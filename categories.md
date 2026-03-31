@@ -13,7 +13,10 @@ description: 按分类浏览文章。
     <ul>
       {% for post in category[1] %}
       <li>
-        <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+        <div>
+          <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+          <p>{{ post.excerpt | strip_html | truncate: 64 }}</p>
+        </div>
         <span>{{ post.date | date: "%Y-%m-%d" }}</span>
       </li>
       {% endfor %}
