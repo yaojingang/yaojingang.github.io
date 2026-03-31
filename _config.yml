@@ -1,21 +1,27 @@
 title: Yao Jingang
 email: ""
 description: >-
-  Yao Jingang 的个人博客，记录技术、产品和工作中的思考。
+  Yao Jingang 的个人博客，记录技术、产品、AI 与工作中的长期思考。
 baseurl: ""
 url: "https://yaojingang.github.io"
-theme: minima
 plugins:
   - jekyll-feed
 
 author:
   name: Yao Jingang
+  github: yaojingang
 
 lang: zh-CN
 timezone: Asia/Shanghai
+permalink: /:categories/:title/
 
-minima:
-  social_links:
-    - title: GitHub
-      icon: github
-      url: https://github.com/yaojingang
+markdown: kramdown
+kramdown:
+  input: GFM
+
+header_pages:
+  - index.md
+  - archive.md
+  - categories.md
+  - tags.md
+  - about.md

@@ -1,0 +1,61 @@
+---
+layout: default
+title: 首页
+---
+
+<section class="hero">
+  <p class="hero-kicker">Yao Jingang</p>
+  <h1>写技术、产品、AI，也记录正在发生的工作与思考。</h1>
+  <p class="hero-summary">
+    这里是我的个人博客。内容会集中在工程实践、自动化、产品判断、团队协作，以及那些值得长期复盘的具体问题。
+  </p>
+  <div class="hero-actions">
+    <a class="button button-primary" href="/archive/">查看文章</a>
+    <a class="button" href="/about/">关于我</a>
+  </div>
+</section>
+
+<section class="panel-grid">
+  <article class="panel">
+    <h2>最近文章</h2>
+    <ul class="post-list">
+      {% for post in site.posts limit:3 %}
+      <li>
+        <a href="{{ post.url | relative_url }}">{{ post.title }}</a>
+        <span>{{ post.date | date: "%Y-%m-%d" }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </article>
+
+  <article class="panel">
+    <h2>关注主题</h2>
+    <ul class="topic-list">
+      <li>AI 工作流与自动化</li>
+      <li>工程效率与工具链</li>
+      <li>产品设计与决策复盘</li>
+      <li>个人知识管理</li>
+    </ul>
+  </article>
+</section>
+
+<section class="section">
+  <div class="section-heading">
+    <h2>写作方向</h2>
+    <a href="/tags/">查看标签</a>
+  </div>
+  <div class="card-grid">
+    <article class="card">
+      <h3>技术实践</h3>
+      <p>记录具体工具、自动化脚本、工作流改造以及踩坑过程，而不是停留在抽象结论。</p>
+    </article>
+    <article class="card">
+      <h3>产品与组织</h3>
+      <p>关注需求判断、信息流设计、团队协同，以及如何把模糊问题拆成可执行动作。</p>
+    </article>
+    <article class="card">
+      <h3>长期积累</h3>
+      <p>把零散经验沉淀成可复用的方法，减少重复试错，提升日常工作的复利。</p>
+    </article>
+  </div>
+</section>
