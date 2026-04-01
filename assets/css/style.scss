@@ -157,6 +157,13 @@ li {
   gap: 24px;
 }
 
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
 .post-card,
 .content-card,
 .archive-year,
@@ -212,6 +219,38 @@ li {
   margin: 12px 0;
   font-size: 1.25rem;
   line-height: 1.5;
+}
+
+.resource-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.resource-card h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.5;
+}
+
+.resource-card p {
+  margin: 0;
+  color: #4b5563;
+}
+
+.resource-card-top,
+.resource-links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.resource-frequency,
+.resource-secondary-link {
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 
 .post-card p,
@@ -368,6 +407,10 @@ li {
 
   .site-main {
     padding-top: 24px;
+  }
+
+  .resource-grid {
+    grid-template-columns: 1fr;
   }
 
   .content-card,

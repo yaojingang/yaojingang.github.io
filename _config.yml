@@ -1,7 +1,7 @@
 title: Yao Jingang
 email: ""
 description: >-
-  Yao Jingang 的个人博客，记录技术、产品、AI 与工作中的长期思考。
+  Yao Jingang 的个人博客与资料库，记录 AI、GEO、自动化与工作中的长期思考。
 baseurl: ""
 url: "https://yaojingang.github.io"
 plugins:
@@ -20,8 +20,8 @@ kramdown:
   input: GFM
 
 header_pages:
-  - index.md
   - archive.md
   - categories.md
   - tags.md
+  - resources/index.md
   - about.md
