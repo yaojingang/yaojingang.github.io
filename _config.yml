@@ -11,6 +11,10 @@ author:
   name: Yao Jingang
   github: yaojingang
 
+guestbook:
+  discussion_url: "https://github.com/yaojingang/yaojingang.github.io/discussions/1"
+  repo_url: "https://github.com/yaojingang/yaojingang.github.io/discussions"
+
 lang: zh-CN
 timezone: Asia/Shanghai
 permalink: /:categories/:title/
