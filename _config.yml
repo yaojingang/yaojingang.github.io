@@ -15,6 +15,12 @@ guestbook:
   discussion_url: "https://github.com/yaojingang/yaojingang.github.io/discussions/1"
   repo_url: "https://github.com/yaojingang/yaojingang.github.io/discussions"
 
+giscus:
+  repo: "yaojingang/yaojingang.github.io"
+  repo_id: "R_kgDOR1tgUQ"
+  discussion_number: "1"
+  lang: "zh-CN"
+
 lang: zh-CN
 timezone: Asia/Shanghai
 permalink: /:categories/:title/

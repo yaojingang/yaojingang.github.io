@@ -282,6 +282,47 @@ li {
   font-size: 1.25rem;
 }
 
+.giscus-shell {
+  margin: 0 0 32px;
+  border-color: #dbeafe;
+}
+
+.giscus-shell-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.giscus-shell-head h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.6vw, 1.8rem);
+  line-height: 1.35;
+}
+
+.giscus-shell-head p {
+  margin: 10px 0 0;
+  color: #4b5563;
+}
+
+.giscus-shell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.giscus-host {
+  padding: 12px 0 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.giscus,
+.giscus-frame {
+  width: 100%;
+}
+
 .guestbook-guide ul {
   margin: 14px 0 0;
   padding-left: 1.25rem;
@@ -527,7 +568,8 @@ li {
   .taxonomy-group li,
   .guestbook-callout,
   .guestbook-panel,
-  .guestbook-guide {
+  .guestbook-guide,
+  .giscus-shell-head {
     display: block;
   }
 
@@ -552,7 +594,8 @@ li {
   }
 
   .guestbook-callout-actions,
-  .guestbook-panel-actions {
+  .guestbook-panel-actions,
+  .giscus-shell-actions {
     margin-top: 18px;
   }
 

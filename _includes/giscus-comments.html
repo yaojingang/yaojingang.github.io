@@ -1,0 +1,40 @@
+<section class="giscus-shell content-card">
+  <div class="giscus-shell-head">
+    <div>
+      {% if include.kicker %}
+      <p class="guestbook-callout-kicker">{{ include.kicker }}</p>
+      {% endif %}
+      {% if include.title %}
+      <h2>{{ include.title }}</h2>
+      {% endif %}
+      {% if include.description %}
+      <p>{{ include.description }}</p>
+      {% endif %}
+    </div>
+    <div class="giscus-shell-actions">
+      <a class="secondary-link-button" href="{{ site.guestbook.discussion_url }}" target="_blank" rel="noopener noreferrer">在 GitHub 中打开</a>
+    </div>
+  </div>
+
+  <div class="giscus-host">
+    <div class="giscus"></div>
+    <script
+      src="https://giscus.app/client.js"
+      data-repo="{{ site.giscus.repo }}"
+      data-repo-id="{{ site.giscus.repo_id }}"
+      data-mapping="number"
+      data-term="{{ site.giscus.discussion_number }}"
+      data-reactions-enabled="1"
+      data-emit-metadata="0"
+      data-input-position="top"
+      data-theme="preferred_color_scheme"
+      data-lang="{{ site.giscus.lang }}"
+      crossorigin="anonymous"
+      async>
+    </script>
+  </div>
+
+  <noscript>
+    <p>评论框需要启用 JavaScript。你也可以直接在 <a href="{{ site.guestbook.discussion_url }}" target="_blank" rel="noopener noreferrer">GitHub Discussion</a> 中留言。</p>
+  </noscript>
+</section>

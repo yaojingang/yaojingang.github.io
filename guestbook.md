@@ -10,7 +10,7 @@ permalink: /guestbook/
     <p class="page-kicker">Guestbook</p>
     <h1>欢迎留言</h1>
     <p>
-      这里的留言板基于 GitHub Discussions。任何 GitHub 用户都可以直接发言，我也会在同一个线程里持续回复。
+      这里和首页共用同一个 GitHub Discussion 线程。任何 GitHub 用户都可以直接发言，我也会在同一个线程里持续回复。
     </p>
     <div class="guestbook-badges">
       <span>公开可见</span>
@@ -19,8 +19,8 @@ permalink: /guestbook/
     </div>
   </div>
   <div class="guestbook-panel-actions">
-    <a class="primary-link-button" href="{{ site.guestbook.discussion_url }}" target="_blank" rel="noopener noreferrer">去 GitHub 留言</a>
-    <a class="secondary-link-button" href="{{ site.guestbook.repo_url }}" target="_blank" rel="noopener noreferrer">查看全部 Discussions</a>
+    <a class="primary-link-button" href="#guestbook-comments">在本页留言</a>
+    <a class="secondary-link-button" href="{{ '/' | relative_url }}">回到首页留言</a>
   </div>
 </section>
 
@@ -45,5 +45,10 @@ permalink: /guestbook/
   </div>
 </section>
 
-如果你是第一次来，可以直接从这个讨论串开始：
-[访客留言板]({{ site.guestbook.discussion_url }}).
+<div id="guestbook-comments">
+  {% include giscus-comments.html
+    kicker="Discussion"
+    title="访客留言板"
+    description="如果想在 GitHub 原生页面里查看，也可以点右侧按钮。"
+  %}
+</div>
