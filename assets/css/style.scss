@@ -516,8 +516,9 @@ li {
 .page-content img,
 .post-content img {
   display: block;
-  max-width: 100%;
-  height: auto;
+  width: auto;
+  max-width: 100% !important;
+  height: auto !important;
   margin: 24px auto;
 }
 
