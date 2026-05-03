@@ -6,6 +6,7 @@ categories: [认知随笔]
 tags: [AI, Skill, Agent, GEO, 开源]
 description: "本期记录元Skill、Skill体系、商业信号、无限游戏、开源和团队组建等思考。"
 lang: zh-CN
+permalink: /cognitive-notes/meta-skill-value/
 translation: /essays/meta-skill-value-en/
 ---
 

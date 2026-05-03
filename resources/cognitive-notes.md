@@ -20,6 +20,6 @@ description: 持续更新的认知、工作与长期积累随笔入口。
 ## 阅读入口
 
 - 飞书原文：[43.9万字《姚金刚认知随笔》](https://jiahejiaoyu.feishu.cn/docx/YHOHd1TLyom6KDxQY8Ac8m4hngf)
-- 站内试读：[元Skill的价值]({{ '/认知随笔/meta-skill-value/' | relative_url }})
+- 站内试读：[元Skill的价值]({{ '/cognitive-notes/meta-skill-value/' | relative_url }})
 - 英文试读：[The Value of Meta-Skills]({{ '/essays/meta-skill-value-en/' | relative_url }})
 - 站内索引：[资料页]({{ '/resources/' | relative_url }})

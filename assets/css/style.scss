@@ -513,6 +513,29 @@ li {
   margin-top: 28px;
 }
 
+.page-content img,
+.post-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 24px auto;
+}
+
+.page-content table,
+.post-content table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.page-content th,
+.page-content td,
+.post-content th,
+.post-content td {
+  padding: 8px;
+  vertical-align: top;
+}
+
 .page-content h2,
 .post-content h2 {
   margin-top: 32px;

@@ -6,10 +6,10 @@ categories: [essays]
 tags: [AI, Meta Skills, Agents, GEO, Open Source]
 description: "A localized English version of the May 3, 2026 weekly essay on meta-skills, AI organizations, business signals, open source, and team building."
 lang: en
-translation_of: /认知随笔/meta-skill-value/
+translation_of: /cognitive-notes/meta-skill-value/
 ---
 
-> Chinese original: [元Skill的价值](/认知随笔/meta-skill-value/)
+> Chinese original: [元Skill的价值](/cognitive-notes/meta-skill-value/)
 
 ## The Value of Meta-Skills
 
