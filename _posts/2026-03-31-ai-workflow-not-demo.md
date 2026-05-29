@@ -5,6 +5,7 @@ date: 2026-03-31 12:00:00 +0800
 categories: [AI]
 tags: [AI, 工作流, 自动化, 效率]
 description: 关于 AI 为什么常常止步于演示，以及怎样把它真正做进日常流程。
+permalink: /ai/ai-workflow-not-demo/
 ---
 
 很多团队在讨论 AI 时，最容易高估的是模型能力，最容易低估的是流程约束。

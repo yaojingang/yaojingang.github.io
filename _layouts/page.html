@@ -2,14 +2,16 @@
 layout: default
 ---
 
-<article class="page-block content-card">
+<article class="page-block{% if page.hide_header %} page-block-no-header{% endif %}">
+  {% unless page.hide_header %}
   <header class="page-header">
-    <p class="page-kicker">Page</p>
+    <p class="page-kicker">{{ page.kicker | default: "Page" }}</p>
     <h1>{{ page.title }}</h1>
     {% if page.description %}
     <p>{{ page.description }}</p>
     {% endif %}
   </header>
+  {% endunless %}
   <div class="page-content">
     {{ content }}
   </div>

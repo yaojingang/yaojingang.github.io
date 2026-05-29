@@ -2,6 +2,7 @@
 layout: page
 title: 《姚金刚提示词合集》
 permalink: /resources/yao-prompts/
+kicker: Resource
 description: 长期维护的提示词资料入口。
 ---
 

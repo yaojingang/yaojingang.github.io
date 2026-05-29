@@ -2,6 +2,7 @@
 layout: page
 title: 《GEO提示词合集》
 permalink: /resources/geo-prompts/
+kicker: Resource
 description: GEO 书籍配套提示词入口。
 ---
 

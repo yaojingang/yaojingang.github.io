@@ -5,6 +5,7 @@ date: 2026-03-31 15:00:00 +0800
 categories: [技术]
 tags: [自动化, 工程效率, 工具链]
 description: 自动化不只是节省点击次数，更重要的是减少重复判断和上下文切换。
+permalink: /tech/automation-compound-interest/
 ---
 
 很多人理解自动化，第一反应是“省了多少次点击”。这没错，但还不够。

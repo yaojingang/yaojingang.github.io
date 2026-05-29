@@ -11,15 +11,16 @@
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a class="site-brand" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+      <a class="site-brand" href="{{ '/' | relative_url }}" aria-label="{{ site.title }} 首页">
+        <span class="brand-mark">YAO</span>
+        <span>姚金刚</span>
+      </a>
       <nav class="site-nav" aria-label="Main navigation">
-        <a href="{{ '/' | relative_url }}">首页</a>
-        <a href="{{ '/guestbook/' | relative_url }}">留言板</a>
-        <a href="{{ '/archive/' | relative_url }}">归档</a>
-        <a href="{{ '/categories/' | relative_url }}">分类</a>
-        <a href="{{ '/tags/' | relative_url }}">标签</a>
-        <a href="{{ '/resources/' | relative_url }}">资料</a>
-        <a href="{{ '/about/' | relative_url }}">关于</a>
+        <a {% if page.url == '/' %}class="is-active"{% endif %} href="{{ '/' | relative_url }}">首页</a>
+        <a {% if page.url contains '/weekly/' %}class="is-active"{% endif %} href="{{ '/weekly/' | relative_url }}">随笔</a>
+        <a {% if page.url contains '/resources/' %}class="is-active"{% endif %} href="{{ '/resources/' | relative_url }}">资源</a>
+        <a {% if page.url contains '/about/' %}class="is-active"{% endif %} href="{{ '/about/' | relative_url }}">关于</a>
+        <a class="nav-github" href="https://github.com/{{ site.author.github }}/yaojingang.github.io" target="_blank" rel="noopener noreferrer">GitHub</a>
       </nav>
     </div>
   </header>
@@ -30,8 +31,12 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p>{{ site.title }} · 以 Jekyll 和 GitHub Pages 构建</p>
-      <a href="https://github.com/{{ site.author.github }}">GitHub</a>
+      <p>{{ site.title }} · 开源内容仓库</p>
+      <div class="footer-links">
+        <a href="{{ '/weekly/' | relative_url }}">每周随笔</a>
+        <a href="{{ '/resources/' | relative_url }}">资源入口</a>
+        <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
     </div>
   </footer>
 </body>

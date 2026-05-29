@@ -7,6 +7,11 @@ url: "https://yaojingang.github.io"
 plugins:
   - jekyll-feed
 
+collections:
+  weekly:
+    output: true
+    permalink: /weekly/:name/
+
 author:
   name: Yao Jingang
   github: yaojingang
@@ -23,13 +28,14 @@ giscus:
 
 lang: zh-CN
 timezone: Asia/Shanghai
-permalink: /:categories/:title/
+permalink: /posts/:title/
 
 markdown: kramdown
 kramdown:
   input: GFM
 
 header_pages:
+  - weekly.md
   - archive.md
   - categories.md
   - tags.md

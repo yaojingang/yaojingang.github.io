@@ -2,15 +2,42 @@
 layout: default
 ---
 
-<article class="post-block content-card">
+<article class="post-block">
   <header class="post-header">
-    <p class="page-kicker">{{ page.categories | join: " / " }}</p>
-    <h1>{{ page.title }}</h1>
-    <div class="post-meta">
-      <span>{{ page.date | date: "%Y-%m-%d" }}</span>
-      {% if page.tags and page.tags.size > 0 %}
-      <span>标签：{{ page.tags | join: " · " }}</span>
+    <div class="post-title-panel">
+      <p class="page-kicker">{{ page.categories | join: " / " }}</p>
+      <h1>{{ page.title }}</h1>
+      {% if page.description %}
+      <p class="post-deck">{{ page.description }}</p>
       {% endif %}
+      <div class="post-info-line">
+        <span>作者：{{ site.author.name }}</span>
+        <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%Y-%m-%d" }}</time>
+      </div>
+      {% if page.tags and page.tags.size > 0 %}
+      <div class="post-tag-list" aria-label="文章标签">
+        <span class="post-row-label">标签</span>
+        {% for tag in page.tags %}
+        <span>{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if page.translation or page.translation_of %}
+      <div class="post-crosslink">
+        {% if page.translation %}
+        <span>英文版</span>
+        <a href="{{ page.translation | relative_url }}">{{ page.translation_title | default: "Read English version" }}</a>
+        {% endif %}
+        {% if page.translation_of %}
+        <span>中文原文</span>
+        <a href="{{ page.translation_of | relative_url }}">{{ page.translation_of_title | default: "Read Chinese original" }}</a>
+        {% endif %}
+      </div>
+      {% endif %}
+      <div class="post-actions">
+        <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io/blob/main/{{ page.path }}" target="_blank" rel="noopener noreferrer">GitHub 查看</a>
+        <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io/archive/refs/heads/main.zip" target="_blank" rel="noopener noreferrer">下载仓库</a>
+      </div>
     </div>
   </header>
 

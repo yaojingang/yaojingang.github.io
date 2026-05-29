@@ -3,164 +3,67 @@ layout: default
 title: 首页
 ---
 
-{% assign featured_post = site.posts.first %}
+{% assign home_posts = site.posts | where_exp: "post", "post.lang != 'en'" %}
+{% assign english_posts = site.posts | where_exp: "post", "post.lang == 'en'" %}
 
-<section class="home-intro">
-  <p class="eyebrow">姚金刚的博客与资料库</p>
-  <h1>记录 AI、GEO、自动化与长期积累，也整理持续更新的文档资料。</h1>
-  <p class="intro-text">
-    这里既发布博客文章，也集中整理我长期维护的认知随笔、GEO 白皮书和提示词文档，方便从一个入口查看公开内容与外部资料。
-  </p>
-</section>
+<section class="home-gateway-hero" aria-labelledby="home-title">
+  <div class="home-gateway-body">
+    <div class="home-gateway-copy">
+      <p class="card-kicker">Open Content Repository</p>
+      <h1 id="home-title">姚金刚的开源内容库</h1>
+      <p>同步长期思考、每周随笔、AI 工作流实践、GEO 资料和提示词文档。网页负责阅读，GitHub 仓库负责开源、下载和版本追踪。</p>
+      <div class="home-gateway-actions">
+        <a class="primary-link-button" href="{{ '/weekly/' | relative_url }}">阅读每周随笔</a>
+        <a class="secondary-link-button" href="https://github.com/{{ site.author.github }}/yaojingang.github.io" target="_blank" rel="noopener noreferrer">查看 GitHub 仓库</a>
+      </div>
+    </div>
 
-<section class="guestbook-callout content-card">
-  <div class="guestbook-callout-copy">
-    <p class="guestbook-callout-kicker">首页留言</p>
-    <h2>可以直接在首页留言</h2>
-    <p>
-      下面就是内嵌留言框。任意 GitHub 用户都可以直接发言，我会在同一个 GitHub Discussion 线程里继续回复。
-    </p>
-  </div>
-  <div class="guestbook-callout-actions">
-    <a class="primary-link-button" href="#homepage-comments">直接开始留言</a>
-    <a class="secondary-link-button" href="{{ '/guestbook/' | relative_url }}">进入独立留言页</a>
-  </div>
-</section>
-
-<div id="homepage-comments">
-  {% include giscus-comments.html
-    kicker="留言区"
-    title="首页留言板"
-    description="登录 GitHub 后即可直接在这里评论。"
-  %}
-</div>
-
-<section class="section-title-row">
-  <div class="section-title">
-    <span class="section-dot"></span>
-    <span>资料入口</span>
+    <aside class="home-code-demo" aria-label="内容同步预览">
+      <div class="home-code-tabs">
+        <span class="is-active">Markdown</span>
+        <span>GitHub</span>
+        <span>Pages</span>
+        <span class="copy-mark">□</span>
+      </div>
+      <div class="home-code-body">
+        <div><span>1</span><code>content_repo: <b>"yaojingang.github.io"</b></code></div>
+        <div><span>2</span><code>source: <b>"weekly-notes"</b></code></div>
+        <div class="is-highlighted"><span>3</span><code>publish: <b>"GitHub Pages"</b></code></div>
+        <div><span>4</span><code>format: <b>"Markdown"</b></code></div>
+        <div><span>5</span><code>open_access: <b>true</b></code></div>
+      </div>
+    </aside>
   </div>
 </section>
 
-<section class="resource-grid home-resource-grid">
-  <article class="content-card resource-card">
-    <div class="resource-card-top">
-      <span class="meta-badge">认知随笔</span>
-      <span class="resource-frequency">每周更新</span>
+<section class="home-list-section">
+  <header class="home-list-head">
+    <div class="home-list-title">
+      <span>文章</span>
+      <small>{{ home_posts.size }} 篇</small>
     </div>
-    <h2><a href="{{ '/resources/cognitive-notes/' | relative_url }}">43.9万字《姚金刚认知随笔》</a></h2>
-    <p>围绕认知、工作、AI 与长期积累持续更新，适合长期跟读。</p>
-    <div class="resource-links">
-      <a class="read-more-link" href="{{ '/resources/cognitive-notes/' | relative_url }}">查看说明</a>
-      <a class="resource-secondary-link" href="https://jiahejiaoyu.feishu.cn/docx/YHOHd1TLyom6KDxQY8Ac8m4hngf" target="_blank" rel="noopener noreferrer">飞书原文</a>
-    </div>
-  </article>
-
-  <article class="content-card resource-card">
-    <div class="resource-card-top">
-      <span class="meta-badge">GEO</span>
-      <span class="resource-frequency">不定时更新</span>
-    </div>
-    <h2><a href="{{ '/resources/geo-whitepaper/' | relative_url }}">《GEO白皮书》</a></h2>
-    <p>面向 AI 搜索营销的科普文档，用来快速建立基础认知和整体框架。</p>
-    <div class="resource-links">
-      <a class="read-more-link" href="{{ '/resources/geo-whitepaper/' | relative_url }}">查看说明</a>
-      <a class="resource-secondary-link" href="https://yaojingang.feishu.cn/docx/Jv85dXAeZoKJ7exJi4Yc4Edrnhf" target="_blank" rel="noopener noreferrer">飞书原文</a>
-    </div>
-  </article>
-
-  <article class="content-card resource-card">
-    <div class="resource-card-top">
-      <span class="meta-badge">提示词</span>
-      <span class="resource-frequency">不定时更新</span>
-    </div>
-    <h2><a href="{{ '/resources/yao-prompts/' | relative_url }}">《姚金刚提示词合集》</a></h2>
-    <p>整理日常高频可复用的提示词，覆盖写作、分析和工作流等场景。</p>
-    <div class="resource-links">
-      <a class="read-more-link" href="{{ '/resources/yao-prompts/' | relative_url }}">查看说明</a>
-      <a class="resource-secondary-link" href="https://yaojingang.feishu.cn/docx/ER4rdSlvcofCtQxttSac2Xc4nGd" target="_blank" rel="noopener noreferrer">飞书原文</a>
-    </div>
-  </article>
-
-  <article class="content-card resource-card">
-    <div class="resource-card-top">
-      <span class="meta-badge">GEO 提示词</span>
-      <span class="resource-frequency">书籍配套</span>
-    </div>
-    <h2><a href="{{ '/resources/geo-prompts/' | relative_url }}">《GEO提示词合集》</a></h2>
-    <p>我和向阳共同整理，作为 GEO 书籍配套提示词使用。</p>
-    <div class="resource-links">
-      <a class="read-more-link" href="{{ '/resources/geo-prompts/' | relative_url }}">查看说明</a>
-      <a class="resource-secondary-link" href="https://yaojingang.feishu.cn/wiki/YbMLwkChmiktbskRoHZcFixBnxb" target="_blank" rel="noopener noreferrer">飞书原文</a>
-    </div>
-  </article>
-</section>
-
-{% if featured_post %}
-<section class="section-title-row">
-  <div class="section-title">
-    <span class="section-dot"></span>
-    <span>推荐文章</span>
-  </div>
-</section>
-
-<article class="post-card post-card-featured">
-  <div class="post-card-head">
-    <div class="meta-badges">
-      {% for category in featured_post.categories limit:1 %}
-      <span class="meta-badge">{{ category }}</span>
-      {% endfor %}
-      <span class="meta-badge meta-badge-muted">推荐</span>
-    </div>
-    <time datetime="{{ featured_post.date | date_to_xmlschema }}">{{ featured_post.date | date: "%Y年%m月%d日" }}</time>
-  </div>
-  <h2><a href="{{ featured_post.url | relative_url }}">{{ featured_post.title }}</a></h2>
-  <p>{{ featured_post.excerpt | strip_html | truncate: 140 }}</p>
-  {% if featured_post.tags and featured_post.tags.size > 0 %}
-  <div class="tag-row">
-    {% for tag in featured_post.tags limit:4 %}
-    <span class="tag-pill">{{ tag }}</span>
+    <nav class="home-list-tabs" aria-label="文章快捷入口">
+      {% if english_posts.size > 0 %}
+      <a href="{{ '/weekly/#weekly-english' | relative_url }}">English <small>{{ english_posts.size }}</small></a>
+      {% endif %}
+      <a href="{{ '/archive/' | relative_url }}">Archive</a>
+    </nav>
+  </header>
+  <div class="weekly-list home-post-list">
+    {% for post in home_posts %}
+    <article class="weekly-row home-post-row">
+      <div>
+        <p class="weekly-date">{{ post.date | date: "%Y-%m-%d" }}</p>
+        <h2><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h2>
+        <p>{{ post.description | default: post.excerpt | strip_html | truncate: 132 }}</p>
+      </div>
+      <div class="weekly-row-links">
+        <a class="read-more-link" href="{{ post.url | relative_url }}">阅读</a>
+        {% if post.translation %}
+        <a class="resource-secondary-link" href="{{ post.translation | relative_url }}">English</a>
+        {% endif %}
+      </div>
+    </article>
     {% endfor %}
   </div>
-  {% endif %}
-  <div class="post-card-foot">
-    <span>GitHub Pages / Jekyll</span>
-    <a class="read-more-link" href="{{ featured_post.url | relative_url }}">阅读全文</a>
-  </div>
-</article>
-{% endif %}
-
-<section class="section-title-row">
-  <div class="section-title">
-    <span class="section-dot section-dot-muted"></span>
-    <span>最新文章</span>
-  </div>
-</section>
-
-<section class="post-feed">
-  {% for post in site.posts %}
-  <article class="post-card">
-    <div class="post-card-head">
-      <div class="meta-badges">
-        {% for category in post.categories limit:1 %}
-        <span class="meta-badge">{{ category }}</span>
-        {% endfor %}
-      </div>
-      <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%Y年%m月%d日" }}</time>
-    </div>
-    <h2><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h2>
-    <p>{{ post.excerpt | strip_html | truncate: 120 }}</p>
-    {% if post.tags and post.tags.size > 0 %}
-    <div class="tag-row">
-      {% for tag in post.tags limit:4 %}
-      <span class="tag-pill">{{ tag }}</span>
-      {% endfor %}
-    </div>
-    {% endif %}
-    <div class="post-card-foot">
-      <span>{{ post.categories | first | default: "文章" }}</span>
-      <a class="read-more-link" href="{{ post.url | relative_url }}">阅读全文</a>
-    </div>
-  </article>
-  {% endfor %}
 </section>

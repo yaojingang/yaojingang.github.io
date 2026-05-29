@@ -1,0 +1,24 @@
+---
+layout: default
+---
+
+<article class="post-block content-card weekly-article">
+  <header class="post-header">
+    <p class="page-kicker">Weekly Notes</p>
+    <h1>{{ page.title }}</h1>
+    <div class="post-meta">
+      <span>{{ page.week | default: page.date | default: page.title }}</span>
+      {% if page.updated %}
+      <span>更新：{{ page.updated }}</span>
+      {% endif %}
+    </div>
+    <div class="post-actions">
+      <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io/blob/main/{{ page.path }}" target="_blank" rel="noopener noreferrer">在 GitHub 查看本周随笔</a>
+      <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io/archive/refs/heads/main.zip" target="_blank" rel="noopener noreferrer">下载内容仓库</a>
+    </div>
+  </header>
+
+  <div class="post-content">
+    {{ content }}
+  </div>
+</article>

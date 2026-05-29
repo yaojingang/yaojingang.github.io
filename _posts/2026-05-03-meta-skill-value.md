@@ -6,11 +6,12 @@ categories: [认知随笔]
 tags: [AI, Skill, Agent, GEO, 开源]
 description: "本期记录元Skill、Skill体系、商业信号、无限游戏、开源和团队组建等思考。"
 lang: zh-CN
+weekly: true
+week: 2026-05-03
 permalink: /cognitive-notes/meta-skill-value/
 translation: /essays/meta-skill-value-en/
+translation_title: The Value of Meta-Skills
 ---
-
-> 英文版：[The Value of Meta-Skills](/essays/meta-skill-value-en/)
 
 ## 元Skill的价值
 

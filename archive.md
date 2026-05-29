@@ -2,6 +2,7 @@
 layout: page
 title: 归档
 permalink: /archive/
+kicker: Archive
 description: 按时间查看所有文章。
 ---
 

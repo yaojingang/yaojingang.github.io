@@ -2,6 +2,7 @@
 layout: page
 title: 《GEO白皮书》
 permalink: /resources/geo-whitepaper/
+kicker: Resource
 description: AI 搜索营销科普文档入口。
 ---
 

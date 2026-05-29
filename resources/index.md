@@ -2,13 +2,10 @@
 layout: page
 title: 资料
 permalink: /resources/
+kicker: Resources
 description: 长期维护的认知随笔、GEO 白皮书与提示词资料入口。
+hide_header: true
 ---
-
-<div class="archive-hero">
-  <h2>持续更新的资料入口</h2>
-  <p>这些内容主要维护在飞书文档中。博客里保留统一索引、分类说明和阅读入口，方便从站内快速找到对应资料。</p>
-</div>
 
 <div class="resource-grid">
   <article class="content-card resource-card">
