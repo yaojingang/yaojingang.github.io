@@ -56,6 +56,8 @@ layout: default
   </div>
 </article>
 
+<button class="post-back-to-top" type="button" aria-label="返回顶部" aria-hidden="true" tabindex="-1">&uarr;</button>
+
 <script>
   document.querySelectorAll(".post-block a[href]").forEach((link) => {
     const href = link.getAttribute("href");
@@ -65,4 +67,20 @@ layout: default
     link.target = "_blank";
     link.rel = "noopener noreferrer";
   });
+
+  const backToTop = document.querySelector(".post-back-to-top");
+  if (backToTop) {
+    const updateBackToTop = () => {
+      const shouldShow = window.scrollY > 220;
+      backToTop.classList.toggle("is-visible", shouldShow);
+      backToTop.setAttribute("aria-hidden", shouldShow ? "false" : "true");
+      backToTop.tabIndex = shouldShow ? 0 : -1;
+    };
+
+    backToTop.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    window.addEventListener("scroll", updateBackToTop, { passive: true });
+    updateBackToTop();
+  }
 </script>
