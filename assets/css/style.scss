@@ -1068,18 +1068,26 @@ li {
 .post-content p,
 .post-content li {
   color: #3d3d3a;
-  line-height: 1.74;
+  line-height: 1.72;
   overflow-wrap: break-word;
 }
 
 .post-block[lang^="en"] .post-content p,
 .post-block[lang^="en"] .post-content li {
-  line-height: 1.68;
+  line-height: 1.66;
 }
 
 .post-content p {
-  margin-top: 0.82em;
-  margin-bottom: 0.82em;
+  margin-top: 0;
+  margin-bottom: 1.18em;
+}
+
+.post-content p + p {
+  margin-top: 0.18em;
+}
+
+.post-block[lang^="en"] .post-content p {
+  margin-bottom: 1.08em;
 }
 
 .post-content li + li {
