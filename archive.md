@@ -4,12 +4,8 @@ title: 归档
 permalink: /archive/
 kicker: Archive
 description: 按时间查看所有文章。
+hide_header: true
 ---
-
-<div class="archive-hero">
-  <h2>按年份整理所有文章</h2>
-  <p>适合集中浏览某一阶段写过的内容。</p>
-</div>
 
 <div class="archive-list">
   {% assign posts_by_year = site.posts | group_by_exp: "post", "post.date | date: '%Y'" %}

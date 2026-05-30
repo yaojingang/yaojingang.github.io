@@ -4,7 +4,7 @@ title: "The Value of Meta-Skills"
 date: 2026-05-03 09:30:00 +0800
 categories: [essays]
 tags: [AI, Meta Skills, Agents, GEO, Open Source]
-description: "A localized English version of the May 3, 2026 weekly essay on meta-skills, AI organizations, business signals, open source, and team building."
+description: "This essay treats meta-skills as more than generators. It explains how they turn personal experience into reusable Skill systems, clarify how people collaborate with AI, and connect open source work with team capability building, business signal judgment, and long-term AI organization design."
 lang: en
 weekly: true
 week: 2026-05-03
@@ -25,7 +25,7 @@ This year, as we have been working on Skills, we have also spent considerable ti
 
 A meta-skill can be understood as "a Skill that generates Skills."
 
-For example, my own meta-skill, `yao-meta-skill`, is already open source: <https://github.com/yaojingang/yao-meta-skill>
+For example, my own meta-skill, [`yao-meta-skill`](https://github.com/yaojingang/yao-meta-skill), is already open source.
 
 But if we only see it as an automatic generator, we are still underestimating it.
 
@@ -270,6 +270,6 @@ The basic logic:
 
 There are three sample reports. One tutorial example is based on an English article by [@ReyJudgementOS](https://x.com/ReyJudgementOS): "English fluency at age 12: my lessons from guiding my child through English learning."
 
-GitHub repository: <https://github.com/yaojingang/yao-open-skills/tree/main/skills/yao-tutorial-skill>
+GitHub repository: [yao-tutorial-skill](https://github.com/yaojingang/yao-open-skills/tree/main/skills/yao-tutorial-skill)
 
 ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-image-3.png)

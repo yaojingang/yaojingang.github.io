@@ -4,7 +4,7 @@ title: "AI 真正进入工作流，不靠 Demo，靠约束"
 date: 2026-03-31 12:00:00 +0800
 categories: [AI]
 tags: [AI, 工作流, 自动化, 效率]
-description: 关于 AI 为什么常常止步于演示，以及怎样把它真正做进日常流程。
+description: 这篇文章讨论AI如何真正进入日常工作流：关键不是做出一个漂亮Demo，而是设计输入、输出、复核、回退和责任边界，让AI能力稳定落地。
 permalink: /ai/ai-workflow-not-demo/
 ---
 

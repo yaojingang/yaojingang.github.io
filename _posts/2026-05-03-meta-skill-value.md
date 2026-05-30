@@ -4,7 +4,7 @@ title: "元Skill的价值"
 date: 2026-05-03 10:00:00 +0800
 categories: [认知随笔]
 tags: [AI, Skill, Agent, GEO, 开源]
-description: "本期记录元Skill、Skill体系、商业信号、无限游戏、开源和团队组建等思考。"
+description: "这篇随笔从元Skill的价值切入，讨论它如何沉淀个人经验、抽象AI协作方式，并延伸到Skill体系、开源协作、团队能力建设和商业信号判断。"
 lang: zh-CN
 weekly: true
 week: 2026-05-03
@@ -31,7 +31,7 @@ translation_title: The Value of Meta-Skills
 
 元Skill，可以理解为“生成Skill的Skill”
 
-比如我自己的元Skill：yao-meta-skill（已开源：https://github.com/yaojingang/yao-meta-skill）
+比如我自己的元Skill：[yao-meta-skill](https://github.com/yaojingang/yao-meta-skill)（已开源）
 
 
 
@@ -401,6 +401,6 @@ Skill本质上，是把个人经验、团队方法、行业知识、组织上下
 
 
 
-GitHub开源地址：https://github.com/yaojingang/yao-open-skills/tree/main/skills/yao-tutorial-skill
+GitHub开源地址：[yao-tutorial-skill](https://github.com/yaojingang/yao-open-skills/tree/main/skills/yao-tutorial-skill)
 
 ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-image-3.png)

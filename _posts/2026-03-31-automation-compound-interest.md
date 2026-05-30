@@ -4,7 +4,7 @@ title: "自动化的真正价值，是减少重复判断"
 date: 2026-03-31 15:00:00 +0800
 categories: [技术]
 tags: [自动化, 工程效率, 工具链]
-description: 自动化不只是节省点击次数，更重要的是减少重复判断和上下文切换。
+description: 这篇文章重新理解自动化的价值：它不只是减少点击，而是把高频流程里的重复判断、上下文切换和隐性成本沉淀成可复用机制。
 permalink: /tech/automation-compound-interest/
 ---
 

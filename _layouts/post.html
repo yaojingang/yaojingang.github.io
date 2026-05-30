@@ -2,42 +2,52 @@
 layout: default
 ---
 
-<article class="post-block">
+{% assign post_lang = page.lang | default: site.lang | default: "zh-CN" %}
+{% assign post_author_name = site.author.name_zh | default: "姚金刚" %}
+{% if post_lang contains "en" %}
+  {% assign post_author_name = site.author.name_en | default: site.author.name | default: "Yao Jingang" %}
+{% endif %}
+
+<article class="post-block" lang="{{ post_lang }}">
   <header class="post-header">
     <div class="post-title-panel">
       <p class="page-kicker">{{ page.categories | join: " / " }}</p>
       <h1>{{ page.title }}</h1>
-      {% if page.description %}
-      <p class="post-deck">{{ page.description }}</p>
-      {% endif %}
-      <div class="post-info-line">
-        <span>作者：{{ site.author.name }}</span>
-        <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%Y-%m-%d" }}</time>
+      <div class="post-meta-bar" aria-label="文章信息">
+        <div class="post-info-line post-meta-group">
+          <span>作者：{{ post_author_name }}</span>
+          <time datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: "%Y-%m-%d" }}</time>
+        </div>
+        {% if page.tags and page.tags.size > 0 %}
+        <div class="post-tag-list post-meta-group" aria-label="文章标签">
+          <span class="post-row-label">标签</span>
+          {% for tag in page.tags %}
+          <span>{{ tag }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="post-actions post-meta-group">
+          <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io/blob/main/{{ page.path }}" target="_blank" rel="noopener noreferrer">GitHub 查看</a>
+          <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io/archive/refs/heads/main.zip" target="_blank" rel="noopener noreferrer">下载仓库</a>
+        </div>
       </div>
-      {% if page.tags and page.tags.size > 0 %}
-      <div class="post-tag-list" aria-label="文章标签">
-        <span class="post-row-label">标签</span>
-        {% for tag in page.tags %}
-        <span>{{ tag }}</span>
-        {% endfor %}
-      </div>
-      {% endif %}
       {% if page.translation or page.translation_of %}
       <div class="post-crosslink">
         {% if page.translation %}
-        <span>英文版</span>
+        <span>English version</span>
         <a href="{{ page.translation | relative_url }}">{{ page.translation_title | default: "Read English version" }}</a>
         {% endif %}
         {% if page.translation_of %}
-        <span>中文原文</span>
+        <span>Chinese original</span>
         <a href="{{ page.translation_of | relative_url }}">{{ page.translation_of_title | default: "Read Chinese original" }}</a>
         {% endif %}
       </div>
       {% endif %}
-      <div class="post-actions">
-        <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io/blob/main/{{ page.path }}" target="_blank" rel="noopener noreferrer">GitHub 查看</a>
-        <a href="https://github.com/{{ site.author.github }}/yaojingang.github.io/archive/refs/heads/main.zip" target="_blank" rel="noopener noreferrer">下载仓库</a>
+      {% if page.description %}
+      <div class="post-summary" aria-label="文章摘要">
+        <p>{{ page.description }}</p>
       </div>
+      {% endif %}
     </div>
   </header>
 
