@@ -17,3 +17,9 @@ The `description` field in each post is the article detail summary.
 - Normal Markdown tables are kept as tables and styled with light borders, readable padding, and image-safe cell rendering.
 - Ordered lists from source notes are normalized to standard Markdown `1. item` syntax, including exported forms such as `1、item`, `1) item`, and `1）item`.
 - All article-page links open in a new tab. In-page anchors, `mailto:`, and `tel:` links are excluded from this rule.
+
+## Cognitive Notes Import
+
+- Run `ruby scripts/import_cognitive_notes.rb` to import all weekly Chinese notes from the source Markdown file.
+- Run `LIMIT=5 ruby scripts/import_cognitive_notes.rb` for a trial batch.
+- English pages are generated only when a curated English source exists in `_imports/cognitive-notes/en/`, or when an existing English post is already present. Do not generate low-quality placeholder translations.

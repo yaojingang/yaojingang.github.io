@@ -4,6 +4,7 @@
 require "date"
 require "cgi"
 require "fileutils"
+require "uri"
 
 ROOT = File.expand_path("..", __dir__)
 SOURCE_FILE = "/Users/laoyao/AI Coding/04-Content/Articles/《姚金刚认知随笔》/《姚金刚认知随笔》.md"
@@ -12,7 +13,7 @@ IMAGE_DIR = File.join(ROOT, "assets/cognitive-notes/images")
 POSTS_DIR = File.join(ROOT, "_posts")
 EN_IMPORT_DIR = File.join(ROOT, "_imports/cognitive-notes/en")
 
-LATEST_LIMIT = Integer(ENV.fetch("LIMIT", "5"))
+IMPORT_LIMIT = ENV["LIMIT"] ? Integer(ENV.fetch("LIMIT")) : nil
 
 POSTS = {
   "2026-05-03" => {
@@ -61,6 +62,10 @@ def yaml_array(values)
   "[#{values.map { |value| value.to_s.inspect }.join(", ")}]"
 end
 
+def fallback_slug(date)
+  "weekly-#{date}"
+end
+
 def normalize_title(title)
   title.gsub(/<[^>]+>/, "").gsub(/&#x20;|&nbsp;/, " ").strip
 end
@@ -76,6 +81,7 @@ def normalize_markdown(content)
   content = normalize_links(content)
   content = content.gsub(/^####\s+/, "## ")
   content = content.gsub(/^#####\s+/, "### ")
+  content = normalize_numbered_emphasis_headings(content)
   content = normalize_ordered_lists(content)
 
   content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do
@@ -131,17 +137,42 @@ def normalize_links(content)
     content = content.gsub(from, to)
   end
 
-  content
+  normalize_bare_urls(content)
+end
+
+def url_label(url)
+  host = URI.parse(url).host
+  host ? host.sub(/\Awww\./, "") : "link"
+rescue URI::InvalidURIError
+  "link"
+end
+
+def normalize_bare_urls(content)
+  content.gsub(%r{(?<!\]\()(?<!\()(?<!["'=])https?://[^\s<>)]+}) do |raw_url|
+    trailing = raw_url[/[，。；、,.]+\z/].to_s
+    url = trailing.empty? ? raw_url : raw_url[0...-trailing.length]
+    "[#{url_label(url)}](#{url})#{trailing}"
+  end
 end
 
 def ordered_list_line?(line)
-  line.to_s.match?(/\A[ \t]{0,3}\d{1,3}\.[ \t]+/)
+  line.to_s.match?(/\A[ \t]{0,3}(?:>[ \t]*)?\d{1,3}\.[ \t]+/)
+end
+
+def normalize_numbered_emphasis_headings(content)
+  content.lines(chomp: true).map do |line|
+    line.sub(/\A\*\*(\d{1,3})[、\)）.．][ \t]*(.+?)\s*\*\*\s*\z/) do
+      number = Regexp.last_match(1)
+      title = Regexp.last_match(2).strip.sub(/[：:]\z/, "")
+      "### #{number}. #{title}"
+    end
+  end.join("\n")
 end
 
 def normalize_ordered_list_marker(line)
-  normalized = line.sub(/\A([ \t]{0,3})(\d{1,3})[.．][ \t]+/, "\\1\\2. ")
-  normalized = normalized.sub(/\A([ \t]{0,3})(\d{1,3})[)）][ \t]*/, "\\1\\2. ")
-  normalized.sub(/\A([ \t]{0,3})(\d{1,3})、[ \t]*/, "\\1\\2. ")
+  normalized = line.sub(/\A([ \t]{0,3}(?:>[ \t]*)?)(\d{1,3})[.．][ \t]+/, "\\1\\2. ")
+  normalized = normalized.sub(/\A([ \t]{0,3}(?:>[ \t]*)?)(\d{1,3})[)）][ \t]*/, "\\1\\2. ")
+  normalized.sub(/\A([ \t]{0,3}(?:>[ \t]*)?)(\d{1,3})、[ \t]*/, "\\1\\2. ")
 end
 
 def normalize_ordered_lists(content)
@@ -231,10 +262,54 @@ def normalize_image_tables(content)
   output.join("\n")
 end
 
-def post_frontmatter(meta, title, date, lang:)
+def section_titles(body)
+  body.scan(/^##\s+(.+)$/).flatten.map { |title| normalize_title(title) }.reject(&:empty?)
+end
+
+def derive_zh_description(title, body)
+  topics = section_titles(body).first(4)
+  if topics.empty?
+    description = "这篇随笔记录「#{title}」相关思考，围绕个人认知、AI工作流、组织协作和长期实践展开，保留当周的观察、判断和方法沉淀。"
+  else
+    description = "这篇随笔记录「#{title}」相关思考，内容涉及#{topics.join("、")}等主题，并沉淀为个人认知、工作流和组织实践中的阶段性判断。"
+  end
+
+  description.length > 100 ? "#{description[0, 96]}。" : description
+end
+
+def derive_zh_tags(title, body)
+  text = "#{title}\n#{body}"
+  rules = [
+    [/AI|Agent|智能体|模型|AGI|LLM/i, "AI"],
+    [/GEO|搜索|SEO/i, "GEO"],
+    [/Skill|技能/i, "Skill"],
+    [/组织|团队|管理|协作/, "组织"],
+    [/营销|增长|商业|客户|销售/, "商业"],
+    [/学习|知识|认知|思考/, "认知"],
+    [/自动化|工作流|工具|GitHub|飞书/i, "工作流"]
+  ]
+  tags = rules.map { |pattern, tag| tag if text.match?(pattern) }.compact
+  tags.empty? ? ["认知随笔"] : tags.first(5)
+end
+
+def metadata_for(entry, body)
+  existing = POSTS[entry[:date]]
+  fallback = {
+    slug: fallback_slug(entry[:date]),
+    en_title: entry[:title],
+    zh_description: derive_zh_description(entry[:title], body),
+    en_description: "",
+    zh_tags: derive_zh_tags(entry[:title], body),
+    en_tags: ["Cognitive Notes"]
+  }
+  fallback.merge(existing || {})
+end
+
+def post_frontmatter(meta, title, date, lang:, has_translation: false)
   if lang == :zh
     permalink = "/cognitive-notes/#{meta[:slug]}/"
     translation = "/essays/#{meta[:slug]}-en/"
+    translation_fields = has_translation ? "translation: #{translation}\ntranslation_title: #{meta[:en_title].inspect}\n" : ""
     <<~YAML
       ---
       layout: post
@@ -247,8 +322,7 @@ def post_frontmatter(meta, title, date, lang:)
       weekly: true
       week: #{date}
       permalink: #{permalink}
-      translation: #{translation}
-      translation_title: #{meta[:en_title].inspect}
+      #{translation_fields.chomp}
       ---
 
     YAML
@@ -288,25 +362,37 @@ lines.each_with_index do |line, index|
   }
 end
 
-entries.first(LATEST_LIMIT).each_with_index do |entry, index|
+entries_to_import = IMPORT_LIMIT ? entries.first(IMPORT_LIMIT) : entries
+written_zh = 0
+written_en = 0
+kept_en = 0
+missing_en = 0
+
+entries_to_import.each_with_index do |entry, index|
   following = entries[index + 1]
   finish = following ? following[:start] : lines.length
-  meta = POSTS.fetch(entry[:date]) { raise "Missing post metadata for #{entry[:date]}" }
   body = normalize_markdown(lines[(entry[:start] + 1)...finish].join.strip)
-
-  zh_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}.md")
-  File.write(zh_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :zh) + body + "\n")
-  puts "wrote #{zh_path}"
-
+  meta = metadata_for(entry, body)
   en_source = File.join(EN_IMPORT_DIR, "#{meta[:slug]}.md")
   en_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}-en.md")
+  has_translation = File.exist?(en_source) || File.exist?(en_path)
+
+  zh_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}.md")
+  File.write(zh_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :zh, has_translation: has_translation) + body + "\n")
+  written_zh += 1
+  puts "wrote #{zh_path}"
+
   if File.exist?(en_source)
     en_body = normalize_markdown(File.read(en_source).strip)
     File.write(en_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :en) + en_body + "\n")
+    written_en += 1
     puts "wrote #{en_path}"
   elsif File.exist?(en_path)
+    kept_en += 1
     puts "kept existing #{en_path}"
   else
-    warn "missing English source for #{entry[:date]} #{meta[:slug]}"
+    missing_en += 1
   end
 end
+
+puts "summary: zh=#{written_zh}, en_written=#{written_en}, en_kept=#{kept_en}, en_missing=#{missing_en}"
