@@ -37,8 +37,11 @@ translation_title: "When Agents Outnumber Humans"
 
 下面三张图为GPT-image-2生成：
 
-| ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-10a18189de91be8e5fa05a742084ccdb.jpg) | ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-9987e246500e9d5beafe4ca4e0ffca98.jpg) | ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-b262fa7dd84b477e2a76a4eacadde70a.jpg) |
-| ---------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+<div class="markdown-image-grid markdown-image-grid-3">
+  <img src="/assets/cognitive-notes/images/《姚金刚认知随笔》-10a18189de91be8e5fa05a742084ccdb.jpg" alt="" loading="lazy">
+  <img src="/assets/cognitive-notes/images/《姚金刚认知随笔》-9987e246500e9d5beafe4ca4e0ffca98.jpg" alt="" loading="lazy">
+  <img src="/assets/cognitive-notes/images/《姚金刚认知随笔》-b262fa7dd84b477e2a76a4eacadde70a.jpg" alt="" loading="lazy">
+</div>
 
 
 
@@ -166,9 +169,12 @@ GitHub地址：[yao-bayesian-skill](https://github.com/yaojingang/yao-open-skill
 
 配图为示例报告
 
-| ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-image-9.png)  | ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-image-7.png) |
-| ---------------------------------- | --------------------------------- |
-| ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-image-10.png) | ![](/assets/cognitive-notes/images/《姚金刚认知随笔》-image-8.png) |
+<div class="markdown-image-grid markdown-image-grid-2">
+  <img src="/assets/cognitive-notes/images/《姚金刚认知随笔》-image-9.png" alt="" loading="lazy">
+  <img src="/assets/cognitive-notes/images/《姚金刚认知随笔》-image-7.png" alt="" loading="lazy">
+  <img src="/assets/cognitive-notes/images/《姚金刚认知随笔》-image-10.png" alt="" loading="lazy">
+  <img src="/assets/cognitive-notes/images/《姚金刚认知随笔》-image-8.png" alt="" loading="lazy">
+</div>
 
 
 

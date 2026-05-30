@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "date"
+require "cgi"
 require "fileutils"
 
 ROOT = File.expand_path("..", __dir__)
@@ -76,7 +77,7 @@ def normalize_markdown(content)
   content = content.gsub(/^####\s+/, "## ")
   content = content.gsub(/^#####\s+/, "### ")
 
-  content.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do
+  content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do
     original = Regexp.last_match(0)
     alt = Regexp.last_match(1)
     raw = Regexp.last_match(2).strip
@@ -93,6 +94,8 @@ def normalize_markdown(content)
     FileUtils.cp(src, dest)
     "![#{alt}](#{public_image_url(clean)})"
   end
+
+  normalize_image_tables(content)
 end
 
 def normalize_links(content)
@@ -128,6 +131,78 @@ def normalize_links(content)
   end
 
   content
+end
+
+def table_cells(line)
+  stripped = line.to_s.strip
+  return [] unless stripped.start_with?("|") && stripped.end_with?("|")
+
+  stripped.split("|", -1)[1...-1].map(&:strip)
+end
+
+def markdown_table_separator?(line)
+  cells = table_cells(line)
+  return false if cells.empty?
+
+  cells.all? { |cell| cell.match?(/\A:?-{3,}:?\z/) }
+end
+
+def markdown_image_cell?(cell)
+  cell.match?(/\A!\[[^\]]*\]\([^)]+\)\z/)
+end
+
+def markdown_image_row?(line)
+  cells = table_cells(line)
+  return false if cells.empty?
+
+  cells.all? { |cell| markdown_image_cell?(cell) }
+end
+
+def image_from_cell(cell)
+  match = cell.match(/\A!\[([^\]]*)\]\(([^)]+)\)\z/)
+  {
+    alt: match[1],
+    src: match[2]
+  }
+end
+
+def image_grid_html(rows, column_count)
+  images = rows.flat_map { |row| table_cells(row).map { |cell| image_from_cell(cell) } }
+  grid_class = "markdown-image-grid markdown-image-grid-#{[[column_count, 1].max, 4].min}"
+  html = ["<div class=\"#{grid_class}\">"]
+  images.each do |image|
+    html << "  <img src=\"#{CGI.escapeHTML(image[:src])}\" alt=\"#{CGI.escapeHTML(image[:alt])}\" loading=\"lazy\">"
+  end
+  html << "</div>"
+  html.join("\n")
+end
+
+def normalize_image_tables(content)
+  lines = content.lines(chomp: true)
+  output = []
+  index = 0
+
+  while index < lines.length
+    if markdown_image_row?(lines[index]) && markdown_table_separator?(lines[index + 1])
+      rows = [lines[index]]
+      cursor = index + 2
+      while cursor < lines.length && markdown_image_row?(lines[cursor])
+        rows << lines[cursor]
+        cursor += 1
+      end
+
+      if table_cells(lines[cursor]).empty?
+        output << image_grid_html(rows, table_cells(lines[index]).size)
+        index = cursor
+        next
+      end
+    end
+
+    output << lines[index]
+    index += 1
+  end
+
+  output.join("\n")
 end
 
 def post_frontmatter(meta, title, date, lang:)
