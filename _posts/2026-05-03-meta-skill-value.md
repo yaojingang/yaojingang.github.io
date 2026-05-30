@@ -2,15 +2,15 @@
 layout: post
 title: "元Skill的价值"
 date: 2026-05-03 10:00:00 +0800
-categories: [认知随笔]
-tags: [AI, Skill, Agent, GEO, 开源]
+categories: ["认知随笔"]
+tags: ["AI", "Skill", "Agent", "GEO", "开源"]
 description: "这篇随笔从元Skill的价值切入，讨论它如何沉淀个人经验、抽象AI协作方式，并延伸到Skill体系、开源协作、团队能力建设和商业信号判断。"
 lang: zh-CN
 weekly: true
 week: 2026-05-03
 permalink: /cognitive-notes/meta-skill-value/
 translation: /essays/meta-skill-value-en/
-translation_title: The Value of Meta-Skills
+translation_title: "The Value of Meta-Skills"
 ---
 
 ## 元Skill的价值
