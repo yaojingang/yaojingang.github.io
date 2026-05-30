@@ -34,9 +34,7 @@ To live through these ten years is a rare kind of luck. We get to witness, and p
 Three core logics help explain the next decade:
 
 1. The world grows exponentially, not linearly.
-
 2. Humans will not simply be replaced by AI. We will merge with AI. Human plus AI will become normal. In the future, you may not be able to tell whether an idea came from you or from AI. Computational intelligence may enter our nervous system through nanotechnology and become part of our thinking.
-
 3. The singularity is not one instant. It is a process. The AGI moment will happen gradually.
 
 What will the impact be?
@@ -160,15 +158,10 @@ I needed to send quarterly bonuses to the team. This time I used Feishu CLI, and
 The steps were:
 
 1. I used voice input to explain to AI the principles and logic behind this quarterly bonus distribution.
-
 2. Through Feishu CLI, I had AI fetch and organize each person's daily work lists, outputs, projects, and OKR status from the past quarter. Then it scored them across six dimensions I cared about and calculated a weighted total.
-
 3. Based on this multi-dimensional weighted score table, it calculated each person's quarterly bonus.
-
 4. I then adjusted weights, nonlinear rules, subjective factors, and rounding rules.
-
 5. After several rounds of adjustment, I asked AI to generate private Feishu messages for each person. After reviewing them, I used my Feishu CLI bot to send one-on-one messages to each person receiving a bonus.
-
 6. Finally, through `yao-meta-skill`, I automatically generated a performance Skill.
 
 If you care about building a team knowledge base, Feishu CLI is a very good experience.

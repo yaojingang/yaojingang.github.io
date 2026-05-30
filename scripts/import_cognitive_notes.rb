@@ -76,6 +76,7 @@ def normalize_markdown(content)
   content = normalize_links(content)
   content = content.gsub(/^####\s+/, "## ")
   content = content.gsub(/^#####\s+/, "### ")
+  content = normalize_ordered_lists(content)
 
   content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do
     original = Regexp.last_match(0)
@@ -131,6 +132,31 @@ def normalize_links(content)
   end
 
   content
+end
+
+def ordered_list_line?(line)
+  line.to_s.match?(/\A[ \t]{0,3}\d{1,3}\.[ \t]+/)
+end
+
+def normalize_ordered_list_marker(line)
+  normalized = line.sub(/\A([ \t]{0,3})(\d{1,3})[.．][ \t]+/, "\\1\\2. ")
+  normalized = normalized.sub(/\A([ \t]{0,3})(\d{1,3})[)）][ \t]*/, "\\1\\2. ")
+  normalized.sub(/\A([ \t]{0,3})(\d{1,3})、[ \t]*/, "\\1\\2. ")
+end
+
+def normalize_ordered_lists(content)
+  lines = content.lines(chomp: true).map { |line| normalize_ordered_list_marker(line) }
+  output = []
+
+  lines.each_with_index do |line, index|
+    if line.strip.empty? && ordered_list_line?(output.last) && ordered_list_line?(lines[index + 1])
+      next
+    end
+
+    output << line
+  end
+
+  output.join("\n")
 end
 
 def table_cells(line)

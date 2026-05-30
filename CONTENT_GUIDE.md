@@ -15,4 +15,5 @@ The `description` field in each post is the article detail summary.
 - Posts should stay compatible with Jekyll Kramdown, including headings, lists, blockquotes, code blocks, tables, images, and inline links.
 - Image-only Markdown tables from source notes are normalized into responsive image grids during import, because Kramdown does not reliably parse table blocks that only contain a header image row.
 - Normal Markdown tables are kept as tables and styled with light borders, readable padding, and image-safe cell rendering.
+- Ordered lists from source notes are normalized to standard Markdown `1. item` syntax, including exported forms such as `1、item`, `1) item`, and `1）item`.
 - All article-page links open in a new tab. In-page anchors, `mailto:`, and `tel:` links are excluded from this rule.

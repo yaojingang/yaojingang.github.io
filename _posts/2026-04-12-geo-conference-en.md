@@ -106,17 +106,13 @@ He shared his playbook.
 Before joining:
 
 1. First judge whether the company is worth joining. The main factors are the business model and potential, plus the organization and culture.
-
 2. Lock in personnel authority in advance. This is the bottom line. Before deciding to join a company, he needs to align with the CEO or even the board on personnel authority.
-
 3. Identify leverage points in advance. Based on the first two factors, judge where technology can create leverage for the business, such as what improvements or changes can quickly let the company see a new result.
 
 After joining:
 
 1. First handle people. Replace people who do not cooperate, then reorganize or clarify his own team.
-
 2. Rebuild organizational processes according to his own view.
-
 3. Focus on several small but leveraged projects and quickly help people win small battles.
 
 These three things must be done within three to six months.
