@@ -7,6 +7,32 @@ description: 长期维护的认知随笔、GEO 白皮书与提示词资料入口
 hide_header: true
 ---
 
+<section class="resource-report-entry" aria-labelledby="cognitive-report-title">
+  <div class="resource-report-copy">
+    <p class="card-kicker">Cognitive Notes Report</p>
+    <h2 id="cognitive-report-title">《姚金刚认知随笔》可视化报告</h2>
+    <p>从 151 篇中文周记和 151 篇英文译文中，整理时间跨度、字数、标签、主题、图片、链接与更新节奏，帮助读者先理解这个开源内容仓库，再进入长期阅读。</p>
+    <div class="resource-report-actions">
+      <a class="primary-link-button" href="{{ '/resources/cognitive-notes-report/' | relative_url }}">查看可视化报告</a>
+      <a class="secondary-link-button" href="{{ '/weekly/' | relative_url }}">进入每周随笔</a>
+    </div>
+  </div>
+  <div class="resource-report-metrics" aria-label="认知随笔核心数据">
+    <div>
+      <span>中文随笔</span>
+      <strong>151</strong>
+    </div>
+    <div>
+      <span>时间跨度</span>
+      <strong>1059 天</strong>
+    </div>
+    <div>
+      <span>站内字符</span>
+      <strong>45.7 万</strong>
+    </div>
+  </div>
+</section>
+
 <div class="resource-grid">
   <article class="content-card resource-card">
     <div class="resource-card-top">
