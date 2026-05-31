@@ -1,6 +1,6 @@
 ---
 layout: page
-title: 43.9万字《姚金刚认知随笔》
+title: 48.1万字《姚金刚认知随笔》
 permalink: /resources/cognitive-notes/
 kicker: Cognitive Notes
 description: 持续更新的认知、工作与长期积累随笔入口。
@@ -20,7 +20,7 @@ description: 持续更新的认知、工作与长期积累随笔入口。
 
 ## 阅读入口
 
-- 飞书原文：[43.9万字《姚金刚认知随笔》](https://jiahejiaoyu.feishu.cn/docx/YHOHd1TLyom6KDxQY8Ac8m4hngf)
+- 飞书原文：[48.1万字《姚金刚认知随笔》](https://jiahejiaoyu.feishu.cn/docx/YHOHd1TLyom6KDxQY8Ac8m4hngf)
 - 每周随笔归档：[站内 Weekly Notes]({{ '/weekly/' | relative_url }})
 - 站内试读：[元Skill的价值]({{ '/cognitive-notes/meta-skill-value/' | relative_url }})
 - 英文试读：[The Value of Meta-Skills]({{ '/essays/meta-skill-value-en/' | relative_url }})

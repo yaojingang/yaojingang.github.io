@@ -34,7 +34,11 @@ COMMON_CJK_REPAIRS = {
   "增量" => "incremental growth",
   "短视频" => "short-video",
   "精力" => "energy",
-  "常识" => "common-sense"
+  "常识" => "common-sense",
+  "GEO公开课" => "GEO public session",
+  "eye-care公益" => "eye-care public-interest",
+  "公开课" => "public session",
+  "公益" => "public-interest"
 }.freeze
 
 def read_markdown_file(path)

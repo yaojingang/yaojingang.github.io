@@ -11,7 +11,7 @@ hide_header: true
   <div class="resource-report-copy">
     <p class="card-kicker">Cognitive Notes Report</p>
     <h2 id="cognitive-report-title">《姚金刚认知随笔》可视化报告</h2>
-    <p>从 151 篇中文周记和 151 篇英文译文中，整理时间跨度、字数、标签、主题、图片、链接与更新节奏，帮助读者先理解这个开源内容仓库，再进入长期阅读。</p>
+    <p>从 152 篇中文周记和 152 篇英文译文中，整理时间跨度、字数、标签、主题、图片、链接与更新节奏，帮助读者先理解这个开源内容仓库，再进入长期阅读。</p>
     <div class="resource-report-actions">
       <a class="primary-link-button" href="{{ '/resources/cognitive-notes-report/' | relative_url }}">查看可视化报告</a>
       <a class="secondary-link-button" href="{{ '/weekly/' | relative_url }}">进入每周随笔</a>
@@ -20,15 +20,15 @@ hide_header: true
   <div class="resource-report-metrics" aria-label="认知随笔核心数据">
     <div>
       <span>中文随笔</span>
-      <strong>151</strong>
+      <strong>152</strong>
     </div>
     <div>
       <span>时间跨度</span>
-      <strong>1059 天</strong>
+      <strong>1087 天</strong>
     </div>
     <div>
       <span>站内字符数</span>
-      <strong>45.7 万</strong>
+      <strong>48.1 万</strong>
     </div>
   </div>
 </section>
@@ -39,7 +39,7 @@ hide_header: true
       <span class="meta-badge">认知随笔</span>
       <span class="resource-frequency">每周更新</span>
     </div>
-    <h2><a href="{{ '/resources/cognitive-notes/' | relative_url }}">43.9万字《姚金刚认知随笔》</a></h2>
+    <h2><a href="{{ '/resources/cognitive-notes/' | relative_url }}">48.1万字《姚金刚认知随笔》</a></h2>
     <p>围绕认知、工作、AI 与长期积累持续更新，适合长期跟读。</p>
     <div class="resource-links">
       <a class="read-more-link" href="{{ '/resources/cognitive-notes/' | relative_url }}">查看说明</a>
