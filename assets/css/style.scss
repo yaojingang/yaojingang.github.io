@@ -277,7 +277,7 @@ li {
   max-width: 680px;
   margin: 0;
   color: var(--heading);
-  font-size: clamp(2.1rem, 3vw, 2.75rem);
+  font-size: clamp(1.95rem, 2.7vw, 2.45rem);
   font-weight: 680;
   line-height: 1.08;
   white-space: nowrap;
@@ -287,22 +287,22 @@ li {
   max-width: 530px;
   margin: 20px 0 0;
   color: var(--muted);
-  font-size: clamp(1.06rem, 1.42vw, 1.22rem);
-  line-height: 1.62;
+  font-size: clamp(0.98rem, 1.22vw, 1.08rem);
+  line-height: 1.68;
 }
 
 .home-gateway-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 30px;
+  margin-top: 28px;
 }
 
 .home-gateway-actions .primary-link-button,
 .home-gateway-actions .secondary-link-button {
-  min-height: 44px;
-  padding: 0 18px;
-  font-size: 0.95rem;
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 0.86rem;
 }
 
 .home-code-demo {
@@ -2160,7 +2160,7 @@ li {
 
   .home-gateway-copy h1 {
     max-width: 100%;
-    font-size: 2.55rem;
+    font-size: 2.22rem;
   }
 
   .home-gateway-copy p:not(.card-kicker) {
@@ -2342,12 +2342,12 @@ li {
   }
 
   .home-gateway-copy h1 {
-    font-size: 1.92rem;
+    font-size: 1.72rem;
   }
 
   .home-gateway-copy p:not(.card-kicker) {
-    margin-top: 18px;
-    font-size: 1rem;
+    margin-top: 16px;
+    font-size: 0.94rem;
     line-height: 1.68;
   }
 
