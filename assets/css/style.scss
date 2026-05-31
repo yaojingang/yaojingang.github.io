@@ -2041,6 +2041,98 @@ li {
   font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
 }
 
+.report-keyword-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 30px;
+  align-items: stretch;
+}
+
+.report-keyword-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 12px;
+  padding: 28px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #fafafa;
+}
+
+.report-keyword-cloud span {
+  display: inline-flex;
+  gap: 7px;
+  align-items: baseline;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid #e7e7e7;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #333333;
+  line-height: 1.1;
+}
+
+.report-keyword-cloud strong {
+  font-size: calc(0.82rem + var(--keyword-level, 1) * 0.14rem);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.report-keyword-cloud small {
+  color: var(--report-warm);
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 560;
+}
+
+.report-keyword-cloud .accent {
+  border-color: #c9d8e8;
+  color: var(--report-brand);
+}
+
+.report-keyword-cloud .level-1 { --keyword-level: 1; }
+.report-keyword-cloud .level-2 { --keyword-level: 2; }
+.report-keyword-cloud .level-3 { --keyword-level: 3; }
+.report-keyword-cloud .level-4 { --keyword-level: 4; }
+.report-keyword-cloud .level-5 { --keyword-level: 5; }
+.report-keyword-cloud .level-6 { --keyword-level: 6; }
+.report-keyword-cloud .level-7 { --keyword-level: 7; }
+
+.report-keyword-density {
+  display: grid;
+  gap: 18px;
+  padding-left: 24px;
+  border-left: 1px solid var(--line);
+}
+
+.report-keyword-density div {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.report-keyword-density span {
+  color: var(--report-warm);
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.report-keyword-density strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--heading);
+  font-size: 1.04rem;
+  font-weight: 650;
+}
+
+.report-keyword-density p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.62;
+}
+
 .report-structure-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2657,9 +2749,15 @@ li {
   .notes-report-hero,
   .report-chart-grid,
   .report-flow,
+  .report-keyword-panel,
   .report-structure-grid,
   .report-reading-grid {
     grid-template-columns: 1fr;
+  }
+
+  .report-keyword-density {
+    padding-left: 0;
+    border-left: 0;
   }
 
   .home-gateway-body {
@@ -2995,6 +3093,21 @@ li {
 
   .report-theme-map strong {
     grid-column: 1 / -1;
+  }
+
+  .report-keyword-cloud {
+    gap: 9px;
+    padding: 20px 0;
+    background: transparent;
+  }
+
+  .report-keyword-cloud span {
+    min-height: 34px;
+    padding: 7px 10px;
+  }
+
+  .report-keyword-cloud strong {
+    font-size: calc(0.76rem + var(--keyword-level, 1) * 0.1rem);
   }
 
   .report-bar-row {
