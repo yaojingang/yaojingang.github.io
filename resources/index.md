@@ -27,7 +27,7 @@ hide_header: true
       <strong>1059 天</strong>
     </div>
     <div>
-      <span>站内字符</span>
+      <span>站内字符数</span>
       <strong>45.7 万</strong>
     </div>
   </div>

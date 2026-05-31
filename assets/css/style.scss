@@ -1694,6 +1694,27 @@ li {
   text-decoration: none;
 }
 
+.page-content .resource-report-actions .primary-link-button,
+.page-content .notes-report-actions .primary-link-button,
+.page-content .resource-report-actions .primary-link-button:hover,
+.page-content .resource-report-actions .primary-link-button:focus-visible,
+.page-content .notes-report-actions .primary-link-button:hover,
+.page-content .notes-report-actions .primary-link-button:focus-visible {
+  color: #ffffff;
+}
+
+.page-content .resource-report-actions .secondary-link-button,
+.page-content .notes-report-actions .secondary-link-button {
+  color: #222222;
+}
+
+.page-content .resource-report-actions .secondary-link-button:hover,
+.page-content .resource-report-actions .secondary-link-button:focus-visible,
+.page-content .notes-report-actions .secondary-link-button:hover,
+.page-content .notes-report-actions .secondary-link-button:focus-visible {
+  color: #111111;
+}
+
 .resource-report-metrics {
   display: grid;
   gap: 14px;
@@ -1936,7 +1957,7 @@ li {
   background: #eeeeee;
 }
 
-.report-bar-row i {
+.report-bar-fill {
   display: block;
   height: 100%;
   border-radius: inherit;
