@@ -49,9 +49,9 @@ title: 首页
       <a href="{{ '/archive/' | relative_url }}">Archive</a>
     </nav>
   </header>
-  <div class="weekly-list home-post-list">
+  <div class="weekly-list home-post-list" data-pagination-list data-pagination-param="page" data-page-size="20">
     {% for post in home_posts %}
-    <article class="weekly-row home-post-row">
+    <article class="weekly-row home-post-row" data-pagination-item>
       <div>
         <p class="weekly-date">{{ post.date | date: "%Y-%m-%d" }}</p>
         <h2><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h2>
@@ -66,4 +66,5 @@ title: 首页
     </article>
     {% endfor %}
   </div>
+  <nav class="pagination-control" data-pagination-control aria-label="文章分页"></nav>
 </section>

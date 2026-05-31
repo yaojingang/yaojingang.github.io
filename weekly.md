@@ -31,9 +31,9 @@ hide_header: true
 
   <div class="weekly-tab-panel weekly-tab-panel-zh" role="tabpanel" aria-label="中文随笔">
   {% if chinese_weekly_notes.size > 0 %}
-  <div class="weekly-list">
+  <div class="weekly-list" data-pagination-list data-pagination-param="zh" data-page-size="20">
     {% for note in chinese_weekly_notes %}
-    <article class="weekly-row">
+    <article class="weekly-row" data-pagination-item>
       <div>
         <p class="weekly-date">{{ note.week | default: note.date | date: "%Y-%m-%d" }}</p>
         <h2><a href="{{ note.url | relative_url }}">{{ note.title }}</a></h2>
@@ -48,6 +48,7 @@ hide_header: true
     </article>
     {% endfor %}
   </div>
+  <nav class="pagination-control" data-pagination-control aria-label="中文随笔分页"></nav>
   {% else %}
   <div class="weekly-empty">中文随笔会在同步后显示在这里。</div>
   {% endif %}
@@ -55,9 +56,9 @@ hide_header: true
 
   <div class="weekly-tab-panel weekly-tab-panel-en" role="tabpanel" aria-label="英文随笔">
   {% if english_weekly_notes.size > 0 %}
-  <div class="weekly-list">
+  <div class="weekly-list" data-pagination-list data-pagination-param="en" data-page-size="20">
     {% for note in english_weekly_notes %}
-    <article class="weekly-row">
+    <article class="weekly-row" data-pagination-item>
       <div>
         <p class="weekly-date">{{ note.week | default: note.date | date: "%Y-%m-%d" }}</p>
         <h2><a href="{{ note.url | relative_url }}">{{ note.title }}</a></h2>
@@ -72,6 +73,7 @@ hide_header: true
     </article>
     {% endfor %}
   </div>
+  <nav class="pagination-control" data-pagination-control aria-label="英文随笔分页"></nav>
   {% else %}
   <div class="weekly-empty">英文翻译版会归入这里，不进入首页默认列表。</div>
   {% endif %}

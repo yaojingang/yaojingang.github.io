@@ -1908,6 +1908,86 @@ li {
   color: var(--muted);
 }
 
+[data-pagination-item][hidden] {
+  display: none !important;
+}
+
+.pagination-control {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  color: var(--quiet);
+  font-family: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.76rem;
+}
+
+.pagination-control:empty {
+  display: none;
+}
+
+.pagination-status {
+  color: var(--quiet);
+  white-space: nowrap;
+}
+
+.pagination-pages {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.pagination-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 560;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.pagination-button:hover,
+.pagination-button:focus-visible {
+  border-color: var(--line-strong);
+  background: #ffffff;
+  color: var(--heading);
+}
+
+.pagination-button:active {
+  transform: translateY(1px);
+}
+
+.pagination-button.is-active {
+  border-color: #111111;
+  background: #111111;
+  color: #ffffff;
+}
+
+.pagination-button[disabled] {
+  cursor: default;
+  opacity: 0.38;
+  transform: none;
+}
+
+.pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 32px;
+  color: var(--faint);
+}
+
 .weekly-date,
 .post-row-meta,
 .archive-year span {
@@ -2220,6 +2300,10 @@ li {
   .weekly-row-links {
     justify-content: flex-start;
   }
+
+  .pagination-control {
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 560px) {
@@ -2345,5 +2429,20 @@ li {
 
   .compact-card h3 {
     margin-top: 34px;
+  }
+
+  .pagination-control {
+    display: block;
+  }
+
+  .pagination-pages {
+    justify-content: flex-start;
+    margin-top: 12px;
+  }
+
+  .pagination-button {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 9px;
   }
 }
