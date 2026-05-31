@@ -24,7 +24,7 @@ hide_header: true
       <small>{{ chinese_weekly_notes.size }}</small>
     </label>
     <label class="weekly-tab" for="weekly-tab-en" role="tab">
-      <span>英文</span>
+      <span>English</span>
       <small>{{ english_weekly_notes.size }}</small>
     </label>
   </div>
