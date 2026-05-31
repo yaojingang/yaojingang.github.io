@@ -5,6 +5,7 @@ require "date"
 require "cgi"
 require "fileutils"
 require "uri"
+require "yaml"
 
 ROOT = File.expand_path("..", __dir__)
 SOURCE_FILE = "/Users/laoyao/AI Coding/04-Content/Articles/《姚金刚认知随笔》/《姚金刚认知随笔》.md"
@@ -62,6 +63,17 @@ def yaml_array(values)
   "[#{values.map { |value| value.to_s.inspect }.join(", ")}]"
 end
 
+def read_markdown_file(path)
+  text = File.read(path)
+  return [{}, text] unless text.start_with?("---\n")
+
+  match = text.match(/\A---\s*\n(.*?)\n---\s*\n/m)
+  return [{}, text] unless match
+
+  frontmatter = YAML.safe_load(match[1], permitted_classes: [Date, Time], aliases: true) || {}
+  [frontmatter, match.post_match]
+end
+
 def fallback_slug(date)
   "weekly-#{date}"
 end
@@ -83,6 +95,7 @@ def normalize_markdown(content)
   content = content.gsub(/^#####\s+/, "### ")
   content = normalize_numbered_emphasis_headings(content)
   content = normalize_ordered_lists(content)
+  content = normalize_obsidian_embeds(content)
 
   content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do
     original = Regexp.last_match(0)
@@ -103,6 +116,34 @@ def normalize_markdown(content)
   end
 
   normalize_image_tables(content)
+end
+
+def normalize_obsidian_embeds(content)
+  patterns = [
+    /!\\\[\\\[([^\]|]+)(?:\|[^\]]+)?\]\]/,
+    /!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/
+  ]
+
+  patterns.each do |pattern|
+    content = content.gsub(pattern) do
+      raw_name = Regexp.last_match(1).strip
+      source_path = [
+        File.join(SOURCE_DIR, raw_name),
+        File.join(SOURCE_DIR, "images", raw_name)
+      ].find { |candidate| File.exist?(candidate) }
+
+      unless source_path
+        next "<!-- Missing image: #{CGI.escapeHTML(raw_name)} -->"
+      end
+
+      FileUtils.mkdir_p(IMAGE_DIR)
+      dest = File.join(IMAGE_DIR, File.basename(source_path))
+      FileUtils.cp(source_path, dest)
+      "![#{File.basename(source_path, '.*')}](#{public_image_url(source_path)})"
+    end
+  end
+
+  content
 end
 
 def normalize_links(content)
@@ -375,6 +416,18 @@ entries_to_import.each_with_index do |entry, index|
   meta = metadata_for(entry, body)
   en_source = File.join(EN_IMPORT_DIR, "#{meta[:slug]}.md")
   en_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}-en.md")
+  en_source_frontmatter = {}
+  en_source_body = nil
+
+  if File.exist?(en_source)
+    en_source_frontmatter, en_source_body = read_markdown_file(en_source)
+    meta = meta.merge(
+      en_title: en_source_frontmatter["title"] || meta[:en_title],
+      en_description: en_source_frontmatter["description"] || meta[:en_description],
+      en_tags: en_source_frontmatter["tags"] || meta[:en_tags]
+    )
+  end
+
   has_translation = File.exist?(en_source) || File.exist?(en_path)
 
   zh_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}.md")
@@ -383,7 +436,7 @@ entries_to_import.each_with_index do |entry, index|
   puts "wrote #{zh_path}"
 
   if File.exist?(en_source)
-    en_body = normalize_markdown(File.read(en_source).strip)
+    en_body = normalize_markdown(en_source_body.strip)
     File.write(en_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :en) + en_body + "\n")
     written_en += 1
     puts "wrote #{en_path}"

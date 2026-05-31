@@ -22,4 +22,7 @@ The `description` field in each post is the article detail summary.
 
 - Run `ruby scripts/import_cognitive_notes.rb` to import all weekly Chinese notes from the source Markdown file.
 - Run `LIMIT=5 ruby scripts/import_cognitive_notes.rb` for a trial batch.
-- English pages are generated only when a curated English source exists in `_imports/cognitive-notes/en/`, or when an existing English post is already present. Do not generate low-quality placeholder translations.
+- Run `ruby scripts/translate_cognitive_notes.rb` to generate missing English source files into `_imports/cognitive-notes/en/`.
+- Use `THREADS=4 ruby scripts/translate_cognitive_notes.rb` for controlled parallel translation, and `SLUG=weekly-YYYY-MM-DD FORCE=1 ruby scripts/translate_cognitive_notes.rb` to regenerate one article.
+- English source files use front matter for `title`, `description`, and `tags`; the importer reads those fields when creating `_posts/*-en.md`.
+- Translation output must preserve Markdown structure, links, image paths, tables, and code. The translation script rejects English prose with remaining Chinese characters outside image paths, code, links, or HTML.
