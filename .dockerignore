@@ -1,0 +1,7 @@
+_site/
+.jekyll-cache/
+.sass-cache/
+.bundle/
+vendor/
+.git/
+LAOYAO_DOCKER_DEPLOYMENT.md
