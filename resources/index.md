@@ -33,6 +33,26 @@ hide_header: true
   </div>
 </section>
 
+<section class="rss-feed-entry" aria-labelledby="rss-feed-title">
+  <div class="rss-feed-copy">
+    <p class="card-kicker">RSS Feeds</p>
+    <h2 id="rss-feed-title">订阅更新</h2>
+    <p>按语言拆分订阅入口。中文内容和英文译文会分别进入独立 RSS，方便在不同阅读器里单独关注。</p>
+  </div>
+  <div class="rss-feed-list" aria-label="RSS 订阅入口">
+    <a class="rss-feed-card" href="{{ '/feed-zh.xml' | relative_url }}" type="application/rss+xml">
+      <span>中文内容</span>
+      <strong>Chinese RSS</strong>
+      <small>同步中文文章与每周随笔</small>
+    </a>
+    <a class="rss-feed-card" href="{{ '/feed-en.xml' | relative_url }}" type="application/rss+xml">
+      <span>English Essays</span>
+      <strong>English RSS</strong>
+      <small>Subscribe to translated essays</small>
+    </a>
+  </div>
+</section>
+
 <div class="resource-grid">
   <article class="content-card resource-card">
     <div class="resource-card-top">

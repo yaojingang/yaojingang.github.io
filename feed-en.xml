@@ -1,0 +1,36 @@
+---
+layout: null
+permalink: /feed-en.xml
+---
+<?xml version="1.0" encoding="UTF-8"?>
+{% assign feed_posts = site.posts | where_exp: "post", "post.lang == 'en'" %}
+{% assign absolute_base = site.url | append: site.baseurl %}
+{% assign href_prefix = 'href="' | append: absolute_base | append: '/' %}
+{% assign src_prefix = 'src="' | append: absolute_base | append: '/' %}
+<rss version="2.0"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>{{ site.title | xml_escape }} · English Essays</title>
+    <link>{{ '/weekly/#weekly-english' | absolute_url }}</link>
+    <atom:link href="{{ '/feed-en.xml' | absolute_url }}" rel="self" type="application/rss+xml" />
+    <description>English translations from {{ site.title | xml_escape }}.</description>
+    <language>en</language>
+    <lastBuildDate>{{ site.time | date_to_rfc822 }}</lastBuildDate>
+    <generator>Jekyll</generator>
+    {% for post in feed_posts %}
+    {% assign item_content = post.content | replace: 'href="/', href_prefix | replace: 'src="/', src_prefix %}
+    <item>
+      <title>{{ post.title | xml_escape }}</title>
+      <link>{{ post.url | absolute_url }}</link>
+      <guid isPermaLink="true">{{ post.url | absolute_url }}</guid>
+      <pubDate>{{ post.date | date_to_rfc822 }}</pubDate>
+      <description>{{ post.description | default: post.excerpt | strip_html | normalize_whitespace | xml_escape }}</description>
+      {% for tag in post.tags %}
+      <category>{{ tag | xml_escape }}</category>
+      {% endfor %}
+      <content:encoded><![CDATA[{{ item_content | replace: ']]>', ']]&gt;' }}]]></content:encoded>
+    </item>
+    {% endfor %}
+  </channel>
+</rss>
