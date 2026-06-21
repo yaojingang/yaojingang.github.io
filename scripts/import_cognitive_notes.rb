@@ -8,8 +8,8 @@ require "uri"
 require "yaml"
 
 ROOT = File.expand_path("..", __dir__)
-SOURCE_FILE = "/Users/laoyao/AI Coding/04-Content/Articles/《姚金刚认知随笔》/《姚金刚认知随笔》.md"
-SOURCE_DIR = File.dirname(SOURCE_FILE)
+SOURCE_FILE = ENV.fetch("SOURCE_FILE", "/Users/laoyao/AI Coding/04-Content/Articles/《姚金刚认知随笔》/《姚金刚认知随笔》.md")
+SOURCE_DIR = ENV.fetch("SOURCE_DIR", File.dirname(SOURCE_FILE))
 IMAGE_DIR = File.join(ROOT, "assets/cognitive-notes/images")
 POSTS_DIR = File.join(ROOT, "_posts")
 EN_IMPORT_DIR = File.join(ROOT, "_imports/cognitive-notes/en")
@@ -17,6 +17,14 @@ EN_IMPORT_DIR = File.join(ROOT, "_imports/cognitive-notes/en")
 IMPORT_LIMIT = ENV["LIMIT"] ? Integer(ENV.fetch("LIMIT")) : nil
 
 POSTS = {
+  "2026-06-21" => {
+    slug: "subtraction-and-continuity",
+    en_title: "Subtraction and Continuity",
+    zh_description: "这篇随笔从减法与连续性谈起，讨论模型可靠性训练、元 Skill 2.0 重构、GEM 广告、DeepSeek 诊断 Skill 和开源项目盈利模式。",
+    en_description: "This essay starts with subtraction and continuity, then moves through model reliability training, the 2.0 redesign of yao-meta-skill, GEM advertising, a DeepSeek diagnostic skill for GEO analysis, and practical ways open-source projects can build sustainable revenue.",
+    zh_tags: %w[认知 AI Skill GEO 开源],
+    en_tags: ["Cognition", "AI", "Skills", "GEO", "Open Source"]
+  },
   "2026-05-03" => {
     slug: "meta-skill-value",
     en_title: "The Value of Meta-Skills",
@@ -147,6 +155,7 @@ def normalize_obsidian_embeds(content)
 end
 
 def normalize_links(content)
+  content = normalize_tracking_markdown_links(content)
   replacements = {
     "比如我自己的元Skill：yao-meta-skill（已开源：https://github.com/yaojingang/yao-meta-skill）" =>
       "比如我自己的元Skill：[yao-meta-skill](https://github.com/yaojingang/yao-meta-skill)（已开源）",
@@ -179,6 +188,13 @@ def normalize_links(content)
   end
 
   normalize_bare_urls(content)
+end
+
+def normalize_tracking_markdown_links(content)
+  content.gsub(/\[(https?:\/\/[^\]\s]+)\]\(https:\/\/t\.co\/[^)]+\)/) do
+    url = Regexp.last_match(1)
+    "[#{url_label(url)}](#{url})"
+  end
 end
 
 def url_label(url)
