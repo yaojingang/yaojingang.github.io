@@ -318,7 +318,7 @@ li {
 
 .home-code-tabs {
   display: grid;
-  grid-template-columns: repeat(3, max-content) 1fr;
+  grid-template-columns: repeat(3, max-content);
   gap: 24px;
   align-items: center;
   min-height: 54px;
@@ -329,15 +329,23 @@ li {
   font-weight: 520;
 }
 
-.home-code-tabs span {
+.home-code-tab {
+  appearance: none;
   position: relative;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }
 
-.home-code-tabs span.is-active {
+.home-code-tab.is-active {
   color: var(--heading);
 }
 
-.home-code-tabs span.is-active::after {
+.home-code-tab.is-active::after {
   content: "";
   position: absolute;
   left: 0;
@@ -347,10 +355,9 @@ li {
   background: #111111;
 }
 
-.home-code-tabs .copy-mark {
-  justify-self: end;
-  color: var(--muted);
-  font-family: "Geist Mono", monospace;
+.home-code-tab:focus-visible {
+  outline: 2px solid rgba(0, 112, 243, 0.32);
+  outline-offset: 6px;
 }
 
 .home-code-body {
@@ -359,6 +366,10 @@ li {
   font-family: "Geist Mono", monospace;
   font-size: clamp(0.86rem, 1.32vw, 1rem);
   line-height: 1.8;
+}
+
+.home-code-body[hidden] {
+  display: none;
 }
 
 .home-code-body div {
@@ -3066,14 +3077,14 @@ li {
   }
 
   .home-code-tabs {
-    grid-template-columns: repeat(3, max-content) 1fr;
+    grid-template-columns: repeat(3, max-content);
     gap: 16px;
     min-height: 48px;
     padding: 0 16px;
     font-size: 0.9rem;
   }
 
-  .home-code-tabs span.is-active::after {
+  .home-code-tab.is-active::after {
     bottom: -14px;
   }
 

@@ -19,18 +19,31 @@ title: 首页
     </div>
 
     <aside class="home-code-demo" aria-label="内容同步预览">
-      <div class="home-code-tabs">
-        <span class="is-active">TypeScript</span>
-        <span>Python</span>
-        <span>Next.js</span>
-        <span class="copy-mark">□</span>
+      <div class="home-code-tabs" role="tablist" aria-label="代码语言">
+        <button class="home-code-tab is-active" type="button" role="tab" aria-selected="true" data-code-tab="typescript">TypeScript</button>
+        <button class="home-code-tab" type="button" role="tab" aria-selected="false" data-code-tab="python">Python</button>
+        <button class="home-code-tab" type="button" role="tab" aria-selected="false" data-code-tab="nextjs">Next.js</button>
       </div>
-      <div class="home-code-body">
+      <div class="home-code-body" data-code-panel="typescript">
         <div><span>1</span><code>const name = <b>"Yao Jingang"</b></code></div>
         <div><span>2</span><code>const repo = <b>"yaojingang.github.io"</b></code></div>
         <div class="is-highlighted"><span>3</span><code>const url = <b>"https://x.com/yaojingang"</b></code></div>
         <div><span>4</span><code>const format = <b>"open content"</b></code></div>
         <div><span>5</span><code>const access = <b>true</b></code></div>
+      </div>
+      <div class="home-code-body" data-code-panel="python" hidden>
+        <div><span>1</span><code>name = <b>"Yao Jingang"</b></code></div>
+        <div><span>2</span><code>repo = <b>"yaojingang.github.io"</b></code></div>
+        <div class="is-highlighted"><span>3</span><code>url = <b>"https://x.com/yaojingang"</b></code></div>
+        <div><span>4</span><code>content_format = <b>"open content"</b></code></div>
+        <div><span>5</span><code>access = <b>True</b></code></div>
+      </div>
+      <div class="home-code-body" data-code-panel="nextjs" hidden>
+        <div><span>1</span><code>export const name = <b>"Yao Jingang"</b></code></div>
+        <div><span>2</span><code>export const repo = <b>"yaojingang.github.io"</b></code></div>
+        <div class="is-highlighted"><span>3</span><code>export const url = <b>"https://x.com/yaojingang"</b></code></div>
+        <div><span>4</span><code>export const format = <b>"open content"</b></code></div>
+        <div><span>5</span><code>export const access = <b>true</b></code></div>
       </div>
     </aside>
   </div>
