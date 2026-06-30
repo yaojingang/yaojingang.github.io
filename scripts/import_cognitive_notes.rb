@@ -17,6 +17,14 @@ EN_IMPORT_DIR = File.join(ROOT, "_imports/cognitive-notes/en")
 IMPORT_LIMIT = ENV["LIMIT"] ? Integer(ENV.fetch("LIMIT")) : nil
 
 POSTS = {
+  "2026-06-28" => {
+    slug: "second-geo-public-session",
+    en_title: "The Second GEO Public Session",
+    zh_description: "这篇随笔从第二场GEO公开课出发，讨论GEO内容工程、创业边界、好销售、面试判断、丰裕时代心态，以及TokKit、ChatGPT采集Skill和GEOFlow等开源进展。",
+    en_description: "This essay starts from the second GEO public session, then explores GEO content engineering, entrepreneurial boundaries, good sales, interview judgment, abundance-era mindsets, and open-source updates across TokKit, a ChatGPT crawler skill, and GEOFlow.",
+    zh_tags: %w[GEO AI 商业 开源 认知],
+    en_tags: ["GEO", "AI", "Business", "Open Source", "Cognition"]
+  },
   "2026-06-21" => {
     slug: "subtraction-and-continuity",
     en_title: "Subtraction and Continuity",
