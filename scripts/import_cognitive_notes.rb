@@ -17,6 +17,14 @@ EN_IMPORT_DIR = File.join(ROOT, "_imports/cognitive-notes/en")
 IMPORT_LIMIT = ENV["LIMIT"] ? Integer(ENV.fetch("LIMIT")) : nil
 
 POSTS = {
+  "2026-07-05" => {
+    slug: "aha-case",
+    en_title: "Aha Case",
+    zh_description: "这篇随笔从To B销售中的Aha Case谈起，延伸到产品边界、好的关系、AI时代稀缺特质、AI面试系统和豆包诊断Skill，讨论商业案例、长期关系与AI工作流的实践。",
+    en_description: "This essay begins with Aha Cases in B2B sales, then moves through product boundaries, nourishing relationships, rare traits in the AI era, an AI interview system, and a Doubao diagnostic skill for GEO research.",
+    zh_tags: %w[商业 AI 认知 工作流 GEO],
+    en_tags: ["Business", "AI", "Cognition", "Workflow", "GEO"]
+  },
   "2026-06-28" => {
     slug: "second-geo-public-session",
     en_title: "The Second GEO Public Session",
@@ -418,7 +426,7 @@ lines = File.readlines(SOURCE_FILE)
 entries = []
 
 lines.each_with_index do |line, index|
-  next unless line =~ /^###\s+(\d{4})\.(\d{2})\.(\d{2})\s+(.+)$/
+  next unless line =~ /^\#{1,3}\s+(\d{4})\.(\d{2})\.(\d{2})\s+(.+)$/
 
   entries << {
     start: index,
