@@ -17,6 +17,14 @@ EN_IMPORT_DIR = File.join(ROOT, "_imports/cognitive-notes/en")
 IMPORT_LIMIT = ENV["LIMIT"] ? Integer(ENV.fetch("LIMIT")) : nil
 
 POSTS = {
+  "2026-07-12" => {
+    slug: "brand-consistency",
+    en_title: "Brand Consistency in the AI Decision Chain",
+    zh_description: "这篇随笔从AI进入用户决策链条谈品牌一致性，延伸到权威媒体的GEO潜力、感谢与交易关系、复杂系统管理、预测能力训练，以及AI作为手段而非目的的判断。",
+    en_description: "This essay starts from brand consistency as AI enters the user decision chain, then extends to GEO opportunities for authoritative media, gratitude versus transactions, managing complex systems, prediction training, and treating AI as a means rather than the goal.",
+    zh_tags: %w[GEO AI 品牌 认知 管理],
+    en_tags: ["GEO", "AI", "Branding", "Cognition", "Systems"]
+  },
   "2026-07-05" => {
     slug: "aha-case",
     en_title: "Aha Case",
