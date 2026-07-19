@@ -21,6 +21,8 @@ LIMIT = ENV["LIMIT"] ? Integer(ENV.fetch("LIMIT")) : nil
 ONLY_SLUG = ENV["SLUG"]
 FORCE = ENV["FORCE"] == "1"
 THREADS = [Integer(ENV.fetch("THREADS", "1")), 1].max
+CHUNK_THRESHOLD = Integer(ENV.fetch("TRANSLATION_CHUNK_THRESHOLD", "9000"))
+MAX_TOKENS = Integer(ENV.fetch("TRANSLATION_MAX_TOKENS", "16000"))
 
 COMMON_CJK_REPAIRS = {
   "traffic红利" => "traffic dividend",
@@ -82,7 +84,22 @@ def parse_translation_response(text)
   }
 end
 
-def chat_completion(messages, max_tokens: 12_000)
+def parse_translation_metadata_response(text)
+  content = strip_code_fence(text)
+  match = content.match(/\ATITLE:\s*(.+?)\nDESCRIPTION:\s*(.+?)\nTAGS:\s*(.+?)\s*\z/m)
+  raise "Translation metadata did not match expected format" unless match
+
+  tags = match[3].split(",").map { |tag| clean_line(tag) }.reject(&:empty?).first(6)
+  raise "Translation metadata did not include tags" if tags.empty?
+
+  {
+    "title" => clean_line(match[1]),
+    "description" => clean_line(match[2]),
+    "tags" => tags
+  }
+end
+
+def chat_completion(messages, max_tokens: MAX_TOKENS)
   api_key = ENV.fetch("DASHSCOPE_API_KEY")
   uri = URI(BASE_URL)
   request = Net::HTTP::Post.new(uri)
@@ -175,9 +192,120 @@ def cleanup_remaining_chinese(translation)
   cleaned
 end
 
+def cleanup_metadata(metadata)
+  cleaned = repair_translation_fragments(metadata.merge("body" => ""))
+  fields = [cleaned.fetch("title"), cleaned.fetch("description"), cleaned.fetch("tags").join(", ")].join("\n")
+  raise "Chinese metadata remained after cleanup: #{fields.inspect}" if fields.match?(/\p{Han}/)
+
+  cleaned.slice("title", "description", "tags")
+end
+
+def cleanup_chunked_translation(translation)
+  cleaned = repair_translation_fragments(translation)
+  metadata = [cleaned.fetch("title"), cleaned.fetch("description"), cleaned.fetch("tags").join(", ")].join("\n")
+  raise "Chinese metadata remained after cleanup: #{metadata.inspect}" if metadata.match?(/\p{Han}/)
+
+  cleaned
+end
+
+def split_markdown_sections(body)
+  chunks = []
+  current = []
+
+  body.lines.each do |line|
+    if line.start_with?("## ") && !current.empty?
+      chunks << current.join.strip
+      current = []
+    end
+
+    current << line
+  end
+
+  chunks << current.join.strip unless current.empty?
+  chunks.reject(&:empty?)
+end
+
+def translate_metadata(frontmatter, body)
+  section_titles = body.scan(/^##\s+(.+)$/).flatten.first(8).join(", ")
+  system_prompt = <<~PROMPT
+    You are creating English metadata for Yao Jingang's Chinese weekly essay.
+    Avoid negation-then-pivot phrasing. State the positive point directly or use parallel facts.
+    Return exactly this format:
+
+    TITLE: <natural English title>
+    DESCRIPTION: <35-70 English words summarizing the article>
+    TAGS: <3-6 concise English tags separated by comma>
+  PROMPT
+
+  user_prompt = <<~PROMPT
+    SOURCE TITLE: #{frontmatter.fetch("title")}
+    SOURCE DATE: #{frontmatter.fetch("week", frontmatter.fetch("date"))}
+    SOURCE DESCRIPTION: #{frontmatter["description"]}
+    SOURCE TAGS: #{Array(frontmatter["tags"]).join(", ")}
+    SOURCE SECTIONS: #{section_titles}
+  PROMPT
+
+  cleanup_metadata(
+    parse_translation_metadata_response(
+      chat_completion(
+        [
+          { role: "system", content: system_prompt },
+          { role: "user", content: user_prompt }
+        ],
+        max_tokens: 1_500
+      )
+    )
+  )
+end
+
+def translate_body_chunk(frontmatter, chunk, index, total)
+  system_prompt = <<~PROMPT
+    You are translating one Markdown section from Yao Jingang's weekly essay into natural English.
+    Preserve Markdown structure, headings, numbered lists, links, image paths, HTML blocks, repository names, code identifiers, dates, and numbers.
+    Translate human-readable Chinese prose into English. Keep mixed Chinese-English technical names readable.
+    Use the author's first-person voice where present.
+    Avoid generic AI-sounding phrasing, hype, and academic stiffness.
+    Avoid negation-then-pivot phrasing. State the positive point directly or use parallel facts.
+    Use plain ASCII punctuation where possible.
+    Return only the translated Markdown section. Do not add notes or code fences.
+  PROMPT
+
+  user_prompt = <<~PROMPT
+    SOURCE TITLE: #{frontmatter.fetch("title")}
+    SOURCE DATE: #{frontmatter.fetch("week", frontmatter.fetch("date"))}
+    SECTION #{index + 1} OF #{total}:
+
+    #{chunk}
+  PROMPT
+
+  strip_code_fence(
+    chat_completion(
+      [
+        { role: "system", content: system_prompt },
+        { role: "user", content: user_prompt }
+      ]
+    )
+  )
+end
+
+def translate_post_in_chunks(frontmatter, body)
+  chunks = split_markdown_sections(body)
+  puts "chunked_translation sections=#{chunks.size}"
+
+  metadata = translate_metadata(frontmatter, body)
+  translated_chunks = chunks.each_with_index.map do |chunk, index|
+    puts "  section #{index + 1}/#{chunks.size}"
+    translate_body_chunk(frontmatter, chunk, index, chunks.size)
+  end
+
+  cleanup_chunked_translation(metadata.merge("body" => translated_chunks.join("\n\n").strip))
+end
+
 def translate_post(post)
   frontmatter = post.fetch(:frontmatter)
   body = post.fetch(:body)
+
+  return translate_post_in_chunks(frontmatter, body) if body.length > CHUNK_THRESHOLD
 
   system_prompt = <<~PROMPT
     You are a senior bilingual editor translating Yao Jingang's Chinese weekly essays into natural English.
@@ -186,6 +314,7 @@ def translate_post(post)
     Translate only human-readable Chinese prose. Do not translate URLs, file paths, repository names, code identifiers, or image asset paths.
     Translate mixed Chinese-English expressions into natural English. Do not leave Chinese characters in English prose unless they are inside image URLs, links, code, or necessary proper names with no English equivalent.
     Keep the author's direct first-person voice. Avoid generic AI-sounding phrasing, hype, and academic stiffness.
+    Avoid negation-then-pivot phrasing. State the positive point directly or use parallel facts.
     Use plain ASCII punctuation where possible.
     Output exactly in this format, without code fences or extra notes:
 

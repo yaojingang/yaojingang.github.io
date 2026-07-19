@@ -17,6 +17,14 @@ EN_IMPORT_DIR = File.join(ROOT, "_imports/cognitive-notes/en")
 IMPORT_LIMIT = ENV["LIMIT"] ? Integer(ENV.fetch("LIMIT")) : nil
 
 POSTS = {
+  "2026-07-19" => {
+    slug: "ai-coding",
+    en_title: "AI Coding",
+    zh_description: "这篇随笔集中回顾近期AI Coding开源作品，包括GEOFlow、yao-meta-skill、开源Skill合集、TokHub、GEORank、Tok系列工具和AI面试系统，并延伸到AI作品案例、小事实推论、重要事项判断、新一代公司与定位Skill。",
+    en_description: "This essay reviews recent AI Coding open-source projects, including GEOFlow, yao-meta-skill, open Skill repositories, TokHub, GEORank, Tok tools, and an AI interview system, then extends into AI product cases, inference discipline, priority judgment, next-generation companies, and a positioning Skill.",
+    zh_tags: ["AI Coding", "开源", "GEO", "Skill", "工具"],
+    en_tags: ["AI Coding", "Open Source", "GEO", "Skills", "Tools"]
+  },
   "2026-07-12" => {
     slug: "brand-consistency",
     en_title: "Brand Consistency in the AI Decision Chain",
@@ -114,12 +122,21 @@ def normalize_title(title)
   title.gsub(/<[^>]+>/, "").gsub(/&#x20;|&nbsp;/, " ").strip
 end
 
-def public_image_url(raw_path)
+def asset_filename(raw_path, image_prefix)
   filename = File.basename(raw_path)
+  return filename unless image_prefix && filename.match?(/\Aimage(?:-\d+)?\.[a-z0-9]+\z/i)
+
+  "#{image_prefix}-#{filename}"
+end
+
+def public_image_url(raw_path, image_prefix = nil)
+  filename = asset_filename(raw_path, image_prefix)
   "/assets/cognitive-notes/images/#{filename.gsub(" ", "%20")}"
 end
 
-def normalize_markdown(content)
+def normalize_markdown(content, image_prefix: nil)
+  content = normalize_feishu_escaped_markdown(content)
+  content = strip_feishu_export_header(content)
   content = content.gsub(/<span[^>]*>(.*?)<\/span>/m, "\\1")
   content = content.gsub(/&#x20;|&nbsp;/, "")
   content = normalize_links(content)
@@ -127,7 +144,7 @@ def normalize_markdown(content)
   content = content.gsub(/^#####\s+/, "### ")
   content = normalize_numbered_emphasis_headings(content)
   content = normalize_ordered_lists(content)
-  content = normalize_obsidian_embeds(content)
+  content = normalize_obsidian_embeds(content, image_prefix: image_prefix)
 
   content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do
     original = Regexp.last_match(0)
@@ -139,18 +156,26 @@ def normalize_markdown(content)
     next original unless clean.start_with?("images/")
 
     src = File.join(SOURCE_DIR, clean)
-    dest = File.join(IMAGE_DIR, File.basename(clean))
+    dest = File.join(IMAGE_DIR, asset_filename(clean, image_prefix))
     raise "Missing image: #{src}" unless File.exist?(src)
 
     FileUtils.mkdir_p(IMAGE_DIR)
     FileUtils.cp(src, dest)
-    "![#{alt}](#{public_image_url(clean)})"
+    "![#{alt}](#{public_image_url(clean, image_prefix)})"
   end
 
   normalize_image_tables(content)
 end
 
-def normalize_obsidian_embeds(content)
+def normalize_feishu_escaped_markdown(content)
+  content.gsub(/\\([.#+\-_()])/, "\\1")
+end
+
+def strip_feishu_export_header(content)
+  content.sub(/\A>\s*原文链接[：:].*?\n>\s*\n>\s*导出时间[：:].*?\n>\s*\n>\s*本文档由.*?\n\n---\n\n/m, "")
+end
+
+def normalize_obsidian_embeds(content, image_prefix: nil)
   patterns = [
     /!\\\[\\\[([^\]|]+)(?:\|[^\]]+)?\]\]/,
     /!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/
@@ -169,9 +194,9 @@ def normalize_obsidian_embeds(content)
       end
 
       FileUtils.mkdir_p(IMAGE_DIR)
-      dest = File.join(IMAGE_DIR, File.basename(source_path))
+      dest = File.join(IMAGE_DIR, asset_filename(source_path, image_prefix))
       FileUtils.cp(source_path, dest)
-      "![#{File.basename(source_path, '.*')}](#{public_image_url(source_path)})"
+      "![#{File.basename(source_path, '.*')}](#{public_image_url(source_path, image_prefix)})"
     end
   end
 
@@ -180,6 +205,7 @@ end
 
 def normalize_links(content)
   content = normalize_tracking_markdown_links(content)
+  content = normalize_url_label_markdown_links(content)
   replacements = {
     "比如我自己的元Skill：yao-meta-skill（已开源：https://github.com/yaojingang/yao-meta-skill）" =>
       "比如我自己的元Skill：[yao-meta-skill](https://github.com/yaojingang/yao-meta-skill)（已开源）",
@@ -221,9 +247,29 @@ def normalize_tracking_markdown_links(content)
   end
 end
 
+def normalize_url_label_markdown_links(content)
+  content.gsub(/\[(https?:\/\/[^\]\s]+)\]\((https?:\/\/[^)\s]+)\)/) do
+    url = Regexp.last_match(2)
+    "[#{url_label(url)}](#{url})"
+  end
+end
+
 def url_label(url)
-  host = URI.parse(url).host
-  host ? host.sub(/\Awww\./, "") : "link"
+  uri = URI.parse(url)
+  host = uri.host
+  return "link" unless host
+
+  normalized_host = host.sub(/\Awww\./, "")
+  path_parts = uri.path.to_s.split("/").reject(&:empty?)
+
+  if normalized_host == "github.com" && path_parts.length >= 2
+    skill_index = path_parts.index("skills")
+    return path_parts[skill_index + 1] if skill_index && path_parts[skill_index + 1]
+
+    return path_parts[1]
+  end
+
+  normalized_host
 rescue URI::InvalidURIError
   "link"
 end
@@ -434,7 +480,7 @@ lines = File.readlines(SOURCE_FILE)
 entries = []
 
 lines.each_with_index do |line, index|
-  next unless line =~ /^\#{1,3}\s+(\d{4})\.(\d{2})\.(\d{2})\s+(.+)$/
+  next unless line =~ /^\#{1,3}\s+(\d{4})\\?\.(\d{2})\\?\.(\d{2})\s+(.+)$/
 
   entries << {
     start: index,
@@ -452,7 +498,10 @@ missing_en = 0
 entries_to_import.each_with_index do |entry, index|
   following = entries[index + 1]
   finish = following ? following[:start] : lines.length
-  body = normalize_markdown(lines[(entry[:start] + 1)...finish].join.strip)
+  raw_body = lines[(entry[:start] + 1)...finish].join.strip
+  preliminary_meta = metadata_for(entry, raw_body)
+  image_prefix = "#{entry[:date]}-#{preliminary_meta[:slug]}"
+  body = normalize_markdown(raw_body, image_prefix: image_prefix)
   meta = metadata_for(entry, body)
   en_source = File.join(EN_IMPORT_DIR, "#{meta[:slug]}.md")
   en_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}-en.md")
@@ -476,7 +525,7 @@ entries_to_import.each_with_index do |entry, index|
   puts "wrote #{zh_path}"
 
   if File.exist?(en_source)
-    en_body = normalize_markdown(en_source_body.strip)
+    en_body = normalize_markdown(en_source_body.strip, image_prefix: image_prefix)
     File.write(en_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :en) + en_body + "\n")
     written_en += 1
     puts "wrote #{en_path}"
