@@ -28,7 +28,7 @@ hide_header: true
     </div>
     <div>
       <span>站内字符数</span>
-      <strong>52.8 万</strong>
+      <strong>53.2 万</strong>
     </div>
   </div>
 </section>
@@ -59,7 +59,7 @@ hide_header: true
       <span class="meta-badge">认知随笔</span>
       <span class="resource-frequency">每周更新</span>
     </div>
-    <h2><a href="{{ '/resources/cognitive-notes/' | relative_url }}">52.8万字《姚金刚认知随笔》</a></h2>
+    <h2><a href="{{ '/resources/cognitive-notes/' | relative_url }}">53.2万字《姚金刚认知随笔》</a></h2>
     <p>围绕认知、工作、AI 与长期积累持续更新，适合长期跟读。</p>
     <div class="resource-links">
       <a class="read-more-link" href="{{ '/resources/cognitive-notes/' | relative_url }}">查看说明</a>

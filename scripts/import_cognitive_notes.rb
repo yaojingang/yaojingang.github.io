@@ -172,7 +172,12 @@ def normalize_feishu_escaped_markdown(content)
 end
 
 def strip_feishu_export_header(content)
-  content.sub(/\A>\s*原文链接[：:].*?\n>\s*\n>\s*导出时间[：:].*?\n>\s*\n>\s*本文档由.*?\n\n---\n\n/m, "")
+  content.sub(/\A>\s*原文链接[：:].*?\n>\s*\n>\s*导出时间[：:].*?\n>\s*\n>\s*本文档由.*?\n\s*---[ \t]*\n*/m, "")
+end
+
+def feishu_export_wrapper_body?(content)
+  normalized = normalize_feishu_escaped_markdown(content.to_s.strip)
+  strip_feishu_export_header(normalized).strip.empty?
 end
 
 def normalize_obsidian_embeds(content, image_prefix: nil)
@@ -432,6 +437,38 @@ def metadata_for(entry, body)
   fallback.merge(existing || {})
 end
 
+def find_weekly_entries(lines)
+  entries = []
+
+  lines.each_with_index do |line, index|
+    next unless line =~ /^\#{1,3}\s+(\d{4})\\?\.(\d{2})\\?\.(\d{2})\s+(.+)$/
+
+    entries << {
+      start: index,
+      date: "#{Regexp.last_match(1)}-#{Regexp.last_match(2)}-#{Regexp.last_match(3)}",
+      title: normalize_title(Regexp.last_match(4))
+    }
+  end
+
+  collapse_duplicate_weekly_entries(entries, lines)
+end
+
+def same_weekly_entry?(entry, following)
+  following &&
+    entry[:date] == following[:date] &&
+    entry[:title] == following[:title]
+end
+
+def collapse_duplicate_weekly_entries(entries, lines)
+  entries.reject.with_index do |entry, index|
+    following = entries[index + 1]
+    next false unless same_weekly_entry?(entry, following)
+
+    wrapper = lines[(entry[:start] + 1)...following[:start]].join
+    feishu_export_wrapper_body?(wrapper)
+  end
+end
+
 def post_frontmatter(meta, title, date, lang:, has_translation: false)
   if lang == :zh
     permalink = "/cognitive-notes/#{meta[:slug]}/"
@@ -476,65 +513,58 @@ def post_frontmatter(meta, title, date, lang:, has_translation: false)
   end
 end
 
-lines = File.readlines(SOURCE_FILE)
-entries = []
+def import_cognitive_notes
+  lines = File.readlines(SOURCE_FILE)
+  entries = find_weekly_entries(lines)
+  entries_to_import = IMPORT_LIMIT ? entries.first(IMPORT_LIMIT) : entries
+  written_zh = 0
+  written_en = 0
+  kept_en = 0
+  missing_en = 0
 
-lines.each_with_index do |line, index|
-  next unless line =~ /^\#{1,3}\s+(\d{4})\\?\.(\d{2})\\?\.(\d{2})\s+(.+)$/
+  entries_to_import.each_with_index do |entry, index|
+    following = entries[index + 1]
+    finish = following ? following[:start] : lines.length
+    raw_body = lines[(entry[:start] + 1)...finish].join.strip
+    preliminary_meta = metadata_for(entry, raw_body)
+    image_prefix = "#{entry[:date]}-#{preliminary_meta[:slug]}"
+    body = normalize_markdown(raw_body, image_prefix: image_prefix)
+    meta = metadata_for(entry, body)
+    en_source = File.join(EN_IMPORT_DIR, "#{meta[:slug]}.md")
+    en_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}-en.md")
+    en_source_frontmatter = {}
+    en_source_body = nil
 
-  entries << {
-    start: index,
-    date: "#{Regexp.last_match(1)}-#{Regexp.last_match(2)}-#{Regexp.last_match(3)}",
-    title: normalize_title(Regexp.last_match(4))
-  }
-end
+    if File.exist?(en_source)
+      en_source_frontmatter, en_source_body = read_markdown_file(en_source)
+      meta = meta.merge(
+        en_title: en_source_frontmatter["title"] || meta[:en_title],
+        en_description: en_source_frontmatter["description"] || meta[:en_description],
+        en_tags: en_source_frontmatter["tags"] || meta[:en_tags]
+      )
+    end
 
-entries_to_import = IMPORT_LIMIT ? entries.first(IMPORT_LIMIT) : entries
-written_zh = 0
-written_en = 0
-kept_en = 0
-missing_en = 0
+    has_translation = File.exist?(en_source) || File.exist?(en_path)
 
-entries_to_import.each_with_index do |entry, index|
-  following = entries[index + 1]
-  finish = following ? following[:start] : lines.length
-  raw_body = lines[(entry[:start] + 1)...finish].join.strip
-  preliminary_meta = metadata_for(entry, raw_body)
-  image_prefix = "#{entry[:date]}-#{preliminary_meta[:slug]}"
-  body = normalize_markdown(raw_body, image_prefix: image_prefix)
-  meta = metadata_for(entry, body)
-  en_source = File.join(EN_IMPORT_DIR, "#{meta[:slug]}.md")
-  en_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}-en.md")
-  en_source_frontmatter = {}
-  en_source_body = nil
+    zh_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}.md")
+    File.write(zh_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :zh, has_translation: has_translation) + body + "\n")
+    written_zh += 1
+    puts "wrote #{zh_path}"
 
-  if File.exist?(en_source)
-    en_source_frontmatter, en_source_body = read_markdown_file(en_source)
-    meta = meta.merge(
-      en_title: en_source_frontmatter["title"] || meta[:en_title],
-      en_description: en_source_frontmatter["description"] || meta[:en_description],
-      en_tags: en_source_frontmatter["tags"] || meta[:en_tags]
-    )
+    if File.exist?(en_source)
+      en_body = normalize_markdown(en_source_body.strip, image_prefix: image_prefix)
+      File.write(en_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :en) + en_body + "\n")
+      written_en += 1
+      puts "wrote #{en_path}"
+    elsif File.exist?(en_path)
+      kept_en += 1
+      puts "kept existing #{en_path}"
+    else
+      missing_en += 1
+    end
   end
 
-  has_translation = File.exist?(en_source) || File.exist?(en_path)
-
-  zh_path = File.join(POSTS_DIR, "#{entry[:date]}-#{meta[:slug]}.md")
-  File.write(zh_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :zh, has_translation: has_translation) + body + "\n")
-  written_zh += 1
-  puts "wrote #{zh_path}"
-
-  if File.exist?(en_source)
-    en_body = normalize_markdown(en_source_body.strip, image_prefix: image_prefix)
-    File.write(en_path, post_frontmatter(meta, entry[:title], entry[:date], lang: :en) + en_body + "\n")
-    written_en += 1
-    puts "wrote #{en_path}"
-  elsif File.exist?(en_path)
-    kept_en += 1
-    puts "kept existing #{en_path}"
-  else
-    missing_en += 1
-  end
+  puts "summary: zh=#{written_zh}, en_written=#{written_en}, en_kept=#{kept_en}, en_missing=#{missing_en}"
 end
 
-puts "summary: zh=#{written_zh}, en_written=#{written_en}, en_kept=#{kept_en}, en_missing=#{missing_en}"
+import_cognitive_notes if __FILE__ == $PROGRAM_NAME
