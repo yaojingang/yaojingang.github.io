@@ -7,6 +7,7 @@ require "json"
 require "net/http"
 require "uri"
 require "yaml"
+require_relative "markdown_image_paths"
 
 STDOUT.sync = true
 STDERR.sync = true
@@ -182,6 +183,7 @@ def cleanup_remaining_chinese(translation)
       ]
     )
   )
+  body = MarkdownImagePaths.restore(translation.fetch("body"), body)
 
   cleaned = repair_translation_fragments(translation.merge("body" => body))
   remaining = prose_han_lines(cleaned.fetch("body"))
@@ -278,7 +280,7 @@ def translate_body_chunk(frontmatter, chunk, index, total)
     #{chunk}
   PROMPT
 
-  strip_code_fence(
+  translated = strip_code_fence(
     chat_completion(
       [
         { role: "system", content: system_prompt },
@@ -286,6 +288,7 @@ def translate_body_chunk(frontmatter, chunk, index, total)
       ]
     )
   )
+  MarkdownImagePaths.restore(chunk, translated)
 end
 
 def translate_post_in_chunks(frontmatter, body)
@@ -342,7 +345,9 @@ def translate_post(post)
     ]
   )
 
-  cleanup_remaining_chinese(parse_translation_response(raw))
+  translation = parse_translation_response(raw)
+  translation["body"] = MarkdownImagePaths.restore(body, translation.fetch("body"))
+  cleanup_remaining_chinese(translation)
 end
 
 def write_import_file(path, translation)

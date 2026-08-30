@@ -124,17 +124,47 @@ end
 
 def asset_filename(raw_path, image_prefix)
   filename = File.basename(raw_path)
-  return filename unless image_prefix && filename.match?(/\Aimage(?:-\d+)?\.[a-z0-9]+\z/i)
+  return filename unless image_prefix && filename.match?(/\Aimage(?:[- _]\d+)?\.[a-z0-9]+\z/i)
 
   "#{image_prefix}-#{filename}"
 end
 
 def public_image_url(raw_path, image_prefix = nil)
   filename = asset_filename(raw_path, image_prefix)
-  "/assets/cognitive-notes/images/#{filename.gsub(" ", "%20")}"
+  "/assets/cognitive-notes/images/#{CGI.escape(filename).gsub("+", "%20")}"
 end
 
-def normalize_markdown(content, image_prefix: nil)
+def local_image_source(raw_path, source_dir: SOURCE_DIR)
+  clean = raw_path.to_s.strip
+  clean = clean[1..-2] if clean.start_with?("<") && clean.end_with?(">")
+  clean = clean.split(/[?#]/).first.to_s
+  return nil if clean.empty? || clean.start_with?("/") || clean.match?(/\A[a-z][a-z0-9+.-]*:/i)
+
+  decoded = URI::DEFAULT_PARSER.unescape(clean)
+  source_root = File.realpath(source_dir)
+  candidate = File.expand_path(decoded, source_root)
+  return nil unless candidate.start_with?("#{source_root}#{File::SEPARATOR}")
+  return nil unless File.file?(candidate)
+
+  resolved = File.realpath(candidate)
+  return nil unless resolved.start_with?("#{source_root}#{File::SEPARATOR}")
+
+  resolved
+rescue ArgumentError, Errno::EACCES, Errno::ENOENT
+  nil
+end
+
+def import_local_image(raw_path, image_prefix:, source_dir:, image_dir:)
+  source_path = local_image_source(raw_path, source_dir: source_dir)
+  return nil unless source_path
+
+  dest = File.join(image_dir, asset_filename(source_path, image_prefix))
+  FileUtils.mkdir_p(image_dir)
+  FileUtils.cp(source_path, dest)
+  public_image_url(source_path, image_prefix)
+end
+
+def normalize_markdown(content, image_prefix: nil, source_dir: SOURCE_DIR, image_dir: IMAGE_DIR)
   content = normalize_feishu_escaped_markdown(content)
   content = strip_feishu_export_header(content)
   content = content.gsub(/<span[^>]*>(.*?)<\/span>/m, "\\1")
@@ -144,24 +174,41 @@ def normalize_markdown(content, image_prefix: nil)
   content = content.gsub(/^#####\s+/, "### ")
   content = normalize_numbered_emphasis_headings(content)
   content = normalize_ordered_lists(content)
-  content = normalize_obsidian_embeds(content, image_prefix: image_prefix)
+  content = normalize_obsidian_embeds(
+    content,
+    image_prefix: image_prefix,
+    source_dir: source_dir,
+    image_dir: image_dir
+  )
 
   content = content.gsub(/!\[([^\]]*)\]\(([^)]+)\)/) do
     original = Regexp.last_match(0)
     alt = Regexp.last_match(1)
     raw = Regexp.last_match(2).strip
-    raw = raw[1..-2] if raw.start_with?("<") && raw.end_with?(">")
-    clean = raw.split(/[?#]/).first
+    public_url = import_local_image(
+      raw,
+      image_prefix: image_prefix,
+      source_dir: source_dir,
+      image_dir: image_dir
+    )
 
-    next original unless clean.start_with?("images/")
+    next original unless public_url
 
-    src = File.join(SOURCE_DIR, clean)
-    dest = File.join(IMAGE_DIR, asset_filename(clean, image_prefix))
-    raise "Missing image: #{src}" unless File.exist?(src)
+    "![#{alt}](#{public_url})"
+  end
 
-    FileUtils.mkdir_p(IMAGE_DIR)
-    FileUtils.cp(src, dest)
-    "![#{alt}](#{public_image_url(clean, image_prefix)})"
+  content = content.gsub(/(<img\b[^>]*\bsrc\s*=\s*["'])([^"']+)(["'][^>]*>)/i) do
+    original = Regexp.last_match(0)
+    public_url = import_local_image(
+      Regexp.last_match(2),
+      image_prefix: image_prefix,
+      source_dir: source_dir,
+      image_dir: image_dir
+    )
+
+    next original unless public_url
+
+    "#{Regexp.last_match(1)}#{public_url}#{Regexp.last_match(3)}"
   end
 
   normalize_image_tables(content)
@@ -180,7 +227,7 @@ def feishu_export_wrapper_body?(content)
   strip_feishu_export_header(normalized).strip.empty?
 end
 
-def normalize_obsidian_embeds(content, image_prefix: nil)
+def normalize_obsidian_embeds(content, image_prefix: nil, source_dir: SOURCE_DIR, image_dir: IMAGE_DIR)
   patterns = [
     /!\\\[\\\[([^\]|]+)(?:\|[^\]]+)?\]\]/,
     /!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/
@@ -190,16 +237,16 @@ def normalize_obsidian_embeds(content, image_prefix: nil)
     content = content.gsub(pattern) do
       raw_name = Regexp.last_match(1).strip
       source_path = [
-        File.join(SOURCE_DIR, raw_name),
-        File.join(SOURCE_DIR, "images", raw_name)
+        File.join(source_dir, raw_name),
+        File.join(source_dir, "images", raw_name)
       ].find { |candidate| File.exist?(candidate) }
 
       unless source_path
         next "<!-- Missing image: #{CGI.escapeHTML(raw_name)} -->"
       end
 
-      FileUtils.mkdir_p(IMAGE_DIR)
-      dest = File.join(IMAGE_DIR, asset_filename(source_path, image_prefix))
+      FileUtils.mkdir_p(image_dir)
+      dest = File.join(image_dir, asset_filename(source_path, image_prefix))
       FileUtils.cp(source_path, dest)
       "![#{File.basename(source_path, '.*')}](#{public_image_url(source_path, image_prefix)})"
     end
