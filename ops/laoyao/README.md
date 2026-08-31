@@ -5,7 +5,8 @@
 ## 固定环境
 
 - 仓库目录：`/www/wwwroot/www.laoyao.cn/yaojingang.github.io`
-- GitHub：`https://github.com/yaojingang/yaojingang.github.io.git`
+- GitHub：`git@github.com:yaojingang/yaojingang.github.io.git`
+- GitHub 只读部署密钥：`/root/.ssh/id_ed25519_laoyao_blog_github`
 - 分支：`main`
 - Docker Compose：`docker-compose.laoyao.yml`
 - 本机端口：`127.0.0.1:10001`
@@ -26,8 +27,8 @@
 
 ```bash
 cd /www/wwwroot/www.laoyao.cn/yaojingang.github.io
-git remote set-url origin https://github.com/yaojingang/yaojingang.github.io.git
-git pull --ff-only origin main
+git remote set-url origin git@github.com:yaojingang/yaojingang.github.io.git
+GIT_SSH="$PWD/ops/laoyao/git-ssh.sh" git pull --ff-only origin main
 ```
 
 确认脚本存在：
@@ -51,7 +52,7 @@ bash ops/laoyao/deploy.sh
 2. 获取项目级部署锁，阻止并发发布。
 3. 确认当前分支为 `main`，已跟踪文件保持干净。
 4. 校验服务器本地部署文件和 Compose 配置。
-5. 把 `origin` 统一为 GitHub HTTPS 地址。
+5. 把 `origin` 统一为 GitHub SSH 地址，并通过 `ops/laoyao/git-ssh.sh` 使用只读部署密钥。
 6. 最多尝试三次 `git fetch`。
 7. 确认远端提交可以快进合并。
 8. 记录更新前提交，再更新到 `FETCH_HEAD`。

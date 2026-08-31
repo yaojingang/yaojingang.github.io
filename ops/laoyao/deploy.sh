@@ -5,9 +5,10 @@ set -Eeuo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 
-EXPECTED_REMOTE="https://github.com/yaojingang/yaojingang.github.io.git"
+EXPECTED_REMOTE="git@github.com:yaojingang/yaojingang.github.io.git"
 BRANCH="main"
 COMPOSE_FILE="docker-compose.laoyao.yml"
+GITHUB_SSH_WRAPPER="$SCRIPT_DIR/git-ssh.sh"
 LOCAL_HEALTH_URL="http://127.0.0.1:10001/"
 PUBLIC_HEALTH_URL="https://www.laoyao.cn/"
 FETCH_ATTEMPTS=3
@@ -110,9 +111,12 @@ check_url() {
   die "$label health check failed: $url"
 }
 
-for required_command in git docker curl; do
+for required_command in git docker curl ssh; do
   require_command "$required_command"
 done
+
+[[ -x "$GITHUB_SSH_WRAPPER" ]] || die "GitHub SSH wrapper missing or not executable: $GITHUB_SSH_WRAPPER"
+export GIT_SSH="$GITHUB_SSH_WRAPPER"
 
 cd "$REPO_DIR"
 

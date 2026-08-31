@@ -82,11 +82,13 @@ create_fixture() {
 
   mkdir -p "$AUTHOR_DIR/ops/laoyao"
   cp "$DEPLOY_SCRIPT" "$AUTHOR_DIR/ops/laoyao/deploy.sh"
+  cp "$SCRIPT_DIR/git-ssh.sh" "$AUTHOR_DIR/ops/laoyao/git-ssh.sh"
+  chmod +x "$AUTHOR_DIR/ops/laoyao/git-ssh.sh"
   sed -i.bak "s#^EXPECTED_REMOTE=.*#EXPECTED_REMOTE=\"$UPSTREAM_DIR\"#" "$AUTHOR_DIR/ops/laoyao/deploy.sh"
   rm "$AUTHOR_DIR/ops/laoyao/deploy.sh.bak"
 
   printf 'base\n' > "$AUTHOR_DIR/README.md"
-  git -C "$AUTHOR_DIR" add README.md ops/laoyao/deploy.sh
+  git -C "$AUTHOR_DIR" add README.md ops/laoyao/deploy.sh ops/laoyao/git-ssh.sh
   git -C "$AUTHOR_DIR" commit -q -m "Base fixture"
   git -C "$AUTHOR_DIR" remote add origin "$UPSTREAM_DIR"
   git -C "$AUTHOR_DIR" push -q -u origin main
