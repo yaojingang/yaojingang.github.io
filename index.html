@@ -81,3 +81,22 @@ title: 首页
   </div>
   <nav class="pagination-control" data-pagination-control aria-label="文章分页"></nav>
 </section>
+
+<section class="home-list-section home-friends-section" aria-labelledby="home-friends-title">
+  <header class="home-list-head">
+    <div class="home-list-title">
+      <h2 id="home-friends-title">友情链接</h2>
+      <small>{{ site.data.friends.size }} 个站点</small>
+    </div>
+  </header>
+  <ul class="home-friends-list">
+    {% for friend in site.data.friends %}
+    <li>
+      <a href="{{ friend.url | escape }}" target="_blank" rel="noopener noreferrer">
+        <span class="home-friend-name">{{ friend.name | escape }} <span aria-hidden="true">↗</span></span>
+        <span class="home-friend-domain">{{ friend.url | split: '://' | last | split: '/' | first | escape }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>

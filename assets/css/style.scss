@@ -439,7 +439,8 @@ li {
   min-width: max-content;
 }
 
-.home-list-title span {
+.home-list-title span,
+.home-list-title h2 {
   margin: 0;
   color: var(--heading);
   font-size: 1rem;
@@ -451,6 +452,62 @@ li {
   color: var(--quiet);
   font-family: "Geist Mono", monospace;
   font-size: 0.76rem;
+}
+
+.home-friends-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin: 0;
+  padding: 20px 0 0;
+  list-style: none;
+}
+
+.home-friends-list li {
+  min-width: 140px;
+  max-width: 100%;
+}
+
+.home-friends-list a {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 48px;
+  padding: 6px 0;
+  border-radius: var(--radius);
+  transition: color 160ms ease;
+}
+
+.home-friend-name {
+  font-size: 0.9rem;
+  font-weight: 560;
+}
+
+.home-friend-name span {
+  color: var(--quiet);
+  font-weight: 400;
+}
+
+.home-friend-domain {
+  color: var(--quiet);
+  font-family: "Geist Mono", monospace;
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.home-friends-list a:focus-visible {
+  color: var(--accent);
+}
+
+.home-friends-list a:active {
+  transform: translateY(1px);
+}
+
+@media (hover: hover) {
+  .home-friends-list a:hover {
+    color: var(--accent);
+  }
 }
 
 .home-list-tabs {
