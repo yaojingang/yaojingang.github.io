@@ -39,31 +39,35 @@ permalink: /link-network/
           <button type="button" data-network-zoom="out" aria-label="缩小关系图">−</button>
           <button type="button" data-network-zoom="in" aria-label="放大关系图">＋</button>
           <button type="button" data-network-zoom="reset">复位</button>
+          <button type="button" data-network-fullscreen hidden>全屏</button>
         </div>
       </div>
       <svg class="network-svg" data-network-svg role="group" aria-label="链接网络，点选节点查看关系，也可使用上方的节点选择框" tabindex="0"></svg>
-      <p class="network-map-foot">箭头指向被链接的站点；蓝色为出链，虚线为入链。<br>点选查看详情 · 拖动画布平移</p>
+      <section class="network-detail" id="network-node-detail" data-network-detail role="dialog" aria-labelledby="network-node-title" tabindex="-1" hidden>
+        <button type="button" class="network-detail-close" data-network-close aria-label="关闭节点信息">×</button>
+        <div class="network-detail-body">
+          <div class="network-detail-head" aria-live="polite">
+            <p class="network-detail-kind" data-network-kind>朋友站点</p>
+            <h2 id="network-node-title" data-network-name>姚金刚</h2>
+            <a class="network-domain" data-network-domain href="https://www.laoyao.cn/" target="_blank" rel="noopener noreferrer">https://www.laoyao.cn/</a>
+            <a class="network-visit" data-network-visit href="https://www.laoyao.cn/" target="_blank" rel="noopener noreferrer">访问官网 ↗</a>
+            <p class="network-detail-summary" data-network-summary></p>
+          </div>
+          <section class="network-relations">
+            <h3>它链接了谁 <span data-network-out-count></span></h3>
+            <ul data-network-out aria-label="链接到的节点"></ul>
+            <p class="network-empty" data-network-out-empty hidden></p>
+          </section>
+          <section class="network-relations">
+            <h3>谁链接了它 <span data-network-in-count></span></h3>
+            <ul data-network-in aria-label="链接到此节点的站点"></ul>
+            <p class="network-empty" data-network-in-empty hidden>这次快照中暂未发现入链。</p>
+          </section>
+        </div>
+      </section>
+      <p class="network-map-foot">箭头指向被链接的站点；蓝色为出链，虚线为入链。<br>点击节点或名称查看详情 · 拖动画布平移</p>
+      <p class="sr-only" data-network-status role="status"></p>
     </section>
-
-    <aside class="network-detail" aria-label="当前节点的链接关系">
-      <div class="network-detail-head" aria-live="polite">
-        <p class="network-detail-kind" data-network-kind>朋友站点</p>
-        <h2 data-network-name>姚金刚</h2>
-        <p class="network-domain" data-network-domain>www.laoyao.cn</p>
-        <a class="network-visit" data-network-visit href="https://www.laoyao.cn/" target="_blank" rel="noopener noreferrer">访问网站 ↗</a>
-        <p class="network-detail-summary" data-network-summary></p>
-      </div>
-      <section class="network-relations">
-        <h3>它链接了谁 <span data-network-out-count></span></h3>
-        <ul data-network-out aria-label="链接到的节点"></ul>
-        <p class="network-empty" data-network-out-empty hidden></p>
-      </section>
-      <section class="network-relations">
-        <h3>谁链接了它 <span data-network-in-count></span></h3>
-        <ul data-network-in aria-label="链接到此节点的站点"></ul>
-        <p class="network-empty" data-network-in-empty hidden>这次快照中暂未发现入链。</p>
-      </section>
-    </aside>
   </div>
 
   <details class="network-sources">

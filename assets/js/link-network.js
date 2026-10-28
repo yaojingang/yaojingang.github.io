@@ -8,6 +8,10 @@
   var picker = root.querySelector("[data-network-select]");
   var products = root.querySelector("[data-network-products]");
   var neighbors = root.querySelector("[data-network-neighbors]");
+  var map = root.querySelector(".network-map");
+  var popup = root.querySelector("[data-network-detail]");
+  var fullscreen = root.querySelector("[data-network-fullscreen]");
+  var header = document.querySelector(".site-header");
   var nodes = new Map(data.nodes.map(function (node) { return [node.id, node]; }));
   var pairs = new Set(data.links.map(function (link) { return link.source + "|" + link.target; }));
   var selected = data.home;
@@ -51,7 +55,7 @@
       badge.textContent = pairs.has(link.target + "|" + link.source) ? "互链" : "↗";
       badge.setAttribute("aria-hidden", "true");
       button.appendChild(badge);
-      button.addEventListener("click", function () { select(other.id); });
+      button.addEventListener("click", function () { select(other.id, true); });
       li.appendChild(button);
       list.appendChild(li);
     });
@@ -64,13 +68,54 @@
     var out = outgoing(selected);
     var into = incoming(selected);
     root.querySelector("[data-network-name]").textContent = node.name;
-    root.querySelector("[data-network-domain]").textContent = new URL(node.url).hostname;
+    root.querySelector("[data-network-domain]").textContent = node.url;
+    root.querySelector("[data-network-domain]").href = node.url;
     root.querySelector("[data-network-kind]").textContent = node.id === data.home ? "从这里出发" : node.kind === "site" ? "朋友站点" : "朋友的产品";
     root.querySelector("[data-network-visit]").href = node.url;
     root.querySelector("[data-network-summary]").textContent = out.length + " 条出链 · " + into.length + " 条入链";
     root.querySelector("[data-network-out-empty]").textContent = node.collected ? "这次首页快照中暂未发现指向已收录节点的链接。" : "此产品首页的出站链接尚未采集。";
     showRelations("out", out);
     showRelations("in", into);
+  }
+
+  function closeDetail(restoreFocus) {
+    if (popup.hidden) return;
+    popup.hidden = true;
+    nodeElements.forEach(function (el) { el.setAttribute("aria-expanded", "false"); });
+    if (restoreFocus && nodeElements.has(selected)) nodeElements.get(selected).focus({ preventScroll: true });
+  }
+
+  function positionDetail() {
+    if (popup.hidden) return;
+    var el = nodeElements.get(selected);
+    if (!el) { closeDetail(false); return; }
+    var anchor = el.querySelector(".network-node-dot").getBoundingClientRect();
+    var frame = map.getBoundingClientRect();
+    var canvas = svg.getBoundingClientRect();
+    if (anchor.right < canvas.left || anchor.left > canvas.right || anchor.bottom < canvas.top || anchor.top > canvas.bottom) {
+      closeDetail(false);
+      return;
+    }
+    var headerBottom = document.fullscreenElement === map ? 0 : header.getBoundingClientRect().bottom;
+    var topLimit = Math.max(12, headerBottom - frame.top + 12);
+    var bottomLimit = Math.min(map.clientHeight - 12, window.innerHeight - frame.top - 12);
+    if (bottomLimit - topLimit < 160) { closeDetail(false); return; }
+    popup.style.setProperty("--network-card-height", Math.min(440, bottomLimit - topLimit) + "px");
+    var cardWidth = popup.offsetWidth;
+    var cardHeight = popup.offsetHeight;
+    var x = anchor.left - frame.left - map.clientLeft;
+    var y = anchor.top - frame.top - map.clientTop;
+    var right = x + anchor.width + 14;
+    var left = x - cardWidth - 14;
+    var top = y - 32;
+    if (right + cardWidth <= map.clientWidth - 12) left = right;
+    else if (left < 12) {
+      left = x + anchor.width / 2 - cardWidth / 2;
+      top = y + anchor.height + 14;
+      if (top + cardHeight > bottomLimit) top = y - cardHeight - 14;
+    }
+    popup.style.left = Math.max(12, Math.min(map.clientWidth - cardWidth - 12, left)) + "px";
+    popup.style.top = Math.max(topLimit, Math.min(bottomLimit - cardHeight, top)) + "px";
   }
 
   function visibleData() {
@@ -151,6 +196,7 @@
     var layer = svg.querySelector("[data-network-layer]");
     if (layer) layer.setAttribute("transform", "translate(" + pan.x + " " + pan.y + ") scale(" + scale + ")");
     svg.classList.toggle("is-zoomed", scale > 1.3);
+    positionDetail();
   }
 
   function highlight(hovered) {
@@ -164,6 +210,7 @@
       el.classList.toggle("is-selected", id === selected);
       el.classList.toggle("is-hovered", id === hovered);
       el.setAttribute("aria-pressed", String(id === selected));
+      el.setAttribute("aria-expanded", String(id === selected && !popup.hidden));
     });
   }
 
@@ -197,7 +244,7 @@
     visible.nodes.forEach(function (node) {
       var point = positions.get(node.id);
       var r = radius(node);
-      var el = element("g", { "class": "network-node is-" + node.kind, transform: "translate(" + point.x + " " + point.y + ")", role: "button", tabindex: "0", "aria-label": node.name + "，查看链接关系", "data-node": node.id });
+      var el = element("g", { "class": "network-node is-" + node.kind, transform: "translate(" + point.x + " " + point.y + ")", role: "button", tabindex: "0", "aria-label": node.name + "，查看链接关系", "aria-haspopup": "dialog", "aria-controls": "network-node-detail", "data-node": node.id });
       el.appendChild(element("title", {}, node.name + " · " + new URL(node.url).hostname));
       el.appendChild(element("circle", { r: Math.max(20, r + 5), "class": "network-node-hit" }));
       el.appendChild(element("circle", { r: r, "class": "network-node-dot" }));
@@ -206,7 +253,7 @@
       el.appendChild(element("text", { x: anchor === "start" ? -r : anchor === "end" ? r : 0, y: r + 18, "text-anchor": anchor, "class": "network-node-label" }, node.label));
       el.addEventListener("click", function () { select(node.id); });
       el.addEventListener("keydown", function (event) {
-        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(node.id); }
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(node.id, true); }
       });
       el.addEventListener("pointerenter", function (event) { if (event.pointerType === "mouse") highlight(node.id); });
       el.addEventListener("pointerleave", function () { highlight(); });
@@ -229,18 +276,25 @@
     }
   }
 
-  function select(id) {
+  function select(id, focusPopup) {
     if (!nodes.has(id)) return;
-    var retainFocus = svg.contains(document.activeElement) || document.activeElement.hasAttribute("data-node-ref");
     selected = id;
     picker.value = id;
     var wasHidden = nodes.get(id).kind === "product" && !products.checked;
     if (wasHidden) products.checked = true;
     if (neighbors.checked || wasHidden) draw();
     detail();
-    highlight();
     ensureVisible(id);
-    if (retainFocus && nodeElements.has(id)) nodeElements.get(id).focus({ preventScroll: true });
+    var anchor = nodeElements.get(id).getBoundingClientRect();
+    var headerBottom = header.getBoundingClientRect().bottom;
+    if (!document.fullscreenElement && (anchor.top < headerBottom + 24 || anchor.bottom > window.innerHeight - 24)) {
+      window.scrollBy({ top: (anchor.top + anchor.bottom - headerBottom - window.innerHeight) / 2, behavior: "instant" });
+    }
+    popup.hidden = false;
+    popup.querySelector(".network-detail-body").scrollTop = 0;
+    positionDetail();
+    highlight();
+    if (focusPopup && !popup.hidden) popup.focus({ preventScroll: true });
   }
 
   function zoom(factor) {
@@ -257,6 +311,23 @@
     draw();
   });
   neighbors.addEventListener("change", draw);
+  root.querySelector("[data-network-close]").addEventListener("click", function () { closeDetail(true); });
+  document.addEventListener("pointerdown", function (event) {
+    if (!popup.contains(event.target) && !event.target.closest("[data-node]")) closeDetail(false);
+  });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && !popup.hidden) { event.preventDefault(); closeDetail(true); }
+  });
+  window.addEventListener("scroll", positionDetail, { passive: true });
+  fullscreen.hidden = !map.requestFullscreen || !document.fullscreenEnabled;
+  fullscreen.addEventListener("click", function () {
+    var request = document.fullscreenElement === map ? document.exitFullscreen() : map.requestFullscreen();
+    request.catch(function () { root.querySelector("[data-network-status]").textContent = "暂时无法切换全屏，请重试。"; });
+  });
+  document.addEventListener("fullscreenchange", function () {
+    fullscreen.textContent = document.fullscreenElement === map ? "退出全屏" : "全屏";
+    root.querySelector("[data-network-status]").textContent = "";
+  });
   root.querySelectorAll("[data-network-zoom]").forEach(function (button) {
     button.addEventListener("click", function () {
       if (button.dataset.networkZoom === "reset") { scale = 1; pan = { x: 0, y: 0 }; transform(); }
