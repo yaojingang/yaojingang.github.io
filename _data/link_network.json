@@ -91,6 +91,14 @@
       "collected": true
     },
     {
+      "id": "lizhe.work",
+      "name": "李哲",
+      "label": "李哲",
+      "url": "https://www.lizhe.work/",
+      "kind": "site",
+      "collected": true
+    },
+    {
       "id": "renoise.ai",
       "name": "Renoise",
       "label": "Renoise",
@@ -407,6 +415,10 @@
     {
       "source": "laoyao.cn",
       "target": "kojiyang.me"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "lizhe.work"
     },
     {
       "source": "laoyao.cn",
@@ -841,6 +853,12 @@
     {
       "id": "gaoyang.dev",
       "url": "https://gaoyang.dev/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "lizhe.work",
+      "url": "https://www.lizhe.work/",
       "status": "ok",
       "method": "首页链接快照"
     }
