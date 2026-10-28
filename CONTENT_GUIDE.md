@@ -1,5 +1,13 @@
 # Content Guide
 
+## Link Network
+
+- `/link-network/` reads the dated homepage-link snapshot in `_data/link_network.json`.
+- Keep its node catalog in sync with `_data/friends.yml` and `_data/friend_products.yml`. A site listed in both has one node. Preserve project paths on shared hosting domains.
+- Add a directed edge only when the source homepage actually links to the target. Record the collection date and source homepage; exclude self-links and duplicate edges.
+- `collected` records whether a node's homepage was checked. Product homepages are currently outside the collection scope, so their outgoing links remain uncollected.
+- Run `ruby scripts/test_link_network.rb` after editing the catalog or snapshot. Also check node selection, incoming/outgoing lists, filters, zoom, panning, keyboard access, and mobile layout in the browser.
+
 ## Article Summary
 
 The `description` field in each post is the article detail summary.

@@ -88,6 +88,7 @@ title: 首页
       <h2 id="home-friends-title">友情链接</h2>
       <small>{{ site.data.friends.size }} 个站点</small>
     </div>
+    <a class="home-network-link" href="{{ '/link-network/' | relative_url }}">探索链接网络 <span aria-hidden="true">→</span></a>
   </header>
   <ul class="home-friends-list">
     {% for friend in site.data.friends %}

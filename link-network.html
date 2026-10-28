@@ -1,0 +1,83 @@
+---
+layout: default
+title: 链接网络
+description: 探索朋友站点与产品之间真实可查的链接关系，看看它链接了谁，又被谁链接。
+permalink: /link-network/
+---
+
+{% assign network = site.data.link_network %}
+<article class="network-page" data-network>
+  <header class="network-intro">
+    <a class="network-back" href="{{ '/' | relative_url }}#home-friends-title">← 返回友情链接</a>
+    <p class="page-kicker">Link Network</p>
+    <h1>链接网络</h1>
+    <p>从一个站点出发，看看它链接了谁，又被谁链接。点选节点，沿着链接发现朋友与产品。</p>
+    <div class="network-meta">
+      <span><strong>{{ network.nodes.size }}</strong> 个节点</span>
+      <span><strong>{{ network.links.size }}</strong> 条有向链接</span>
+      <span>快照 {{ network.updated_at }}</span>
+    </div>
+  </header>
+
+  <div class="network-toolbar">
+    <label class="network-picker">选择节点
+      <select data-network-select>
+        {% for node in network.nodes %}
+        <option value="{{ node.id | escape }}"{% if node.id == network.home %} selected{% endif %}>{{ node.name | escape }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="network-checkbox"><input type="checkbox" data-network-products checked> 显示产品</label>
+    <label class="network-checkbox"><input type="checkbox" data-network-neighbors> 只看当前关联</label>
+  </div>
+
+  <div class="network-workspace">
+    <section class="network-map" aria-label="站点链接关系图">
+      <div class="network-map-head">
+        <div class="network-legend"><span class="network-key-site">朋友站点</span><span class="network-key-product">产品</span></div>
+        <div class="network-zoom" aria-label="画布缩放">
+          <button type="button" data-network-zoom="out" aria-label="缩小关系图">−</button>
+          <button type="button" data-network-zoom="in" aria-label="放大关系图">＋</button>
+          <button type="button" data-network-zoom="reset">复位</button>
+        </div>
+      </div>
+      <svg class="network-svg" data-network-svg role="group" aria-label="链接网络，点选节点查看关系，也可使用上方的节点选择框" tabindex="0"></svg>
+      <p class="network-map-foot">箭头指向被链接的站点；蓝色为出链，虚线为入链。<br>点选查看详情 · 拖动画布平移</p>
+    </section>
+
+    <aside class="network-detail" aria-label="当前节点的链接关系">
+      <div class="network-detail-head" aria-live="polite">
+        <p class="network-detail-kind" data-network-kind>朋友站点</p>
+        <h2 data-network-name>姚金刚</h2>
+        <p class="network-domain" data-network-domain>www.laoyao.cn</p>
+        <a class="network-visit" data-network-visit href="https://www.laoyao.cn/" target="_blank" rel="noopener noreferrer">访问网站 ↗</a>
+        <p class="network-detail-summary" data-network-summary></p>
+      </div>
+      <section class="network-relations">
+        <h3>它链接了谁 <span data-network-out-count></span></h3>
+        <ul data-network-out aria-label="链接到的节点"></ul>
+        <p class="network-empty" data-network-out-empty hidden></p>
+      </section>
+      <section class="network-relations">
+        <h3>谁链接了它 <span data-network-in-count></span></h3>
+        <ul data-network-in aria-label="链接到此节点的站点"></ul>
+        <p class="network-empty" data-network-in-empty hidden>这次快照中暂未发现入链。</p>
+      </section>
+    </aside>
+  </div>
+
+  <details class="network-sources">
+    <summary>这张网络从哪里来？</summary>
+    <p>连线来自已核对的朋友站点首页，展示范围为本站已收录的站点和产品。同一站点的首页、注册与邀请入口合并为一个节点，双向箭头表示双方首页都出现了对方的链接。</p>
+    <p>这是一份 {{ network.updated_at }} 的首页链接快照。产品节点展示本次已发现的入链，产品首页的出站链接尚未采集。</p>
+    <ul>
+      {% for source in network.sources %}
+      {% assign source_node = network.nodes | where: 'id', source.id | first %}
+      <li><a href="{{ source.url | escape }}" target="_blank" rel="noopener noreferrer">{{ source_node.name | escape }}</a><span>{% if source.status == 'ok' %}已核对{% else %}本次未能读取{% endif %}</span></li>
+      {% endfor %}
+    </ul>
+  </details>
+  <noscript><style>.network-toolbar, .network-workspace { display: none; }</style><p>开启 JavaScript 可操作关系图。也可以直接访问下列站点：</p><ul>{% for node in network.nodes %}<li><a href="{{ node.url | escape }}" target="_blank" rel="noopener noreferrer">{{ node.name | escape }}</a></li>{% endfor %}</ul></noscript>
+  <script type="application/json" id="link-network-data">{{ network | jsonify | replace: '</', '<\/' }}</script>
+</article>
+<script src="{{ '/assets/js/link-network.js' | relative_url }}?v={{ site.time | date: '%Y%m%d%H%M%S' }}" defer></script>

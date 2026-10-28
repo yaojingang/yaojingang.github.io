@@ -1,0 +1,848 @@
+{
+  "updated_at": "2026-10-28",
+  "home": "laoyao.cn",
+  "nodes": [
+    {
+      "id": "laoyao.cn",
+      "name": "姚金刚",
+      "label": "姚金刚",
+      "url": "https://www.laoyao.cn/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "qiaomu.ai",
+      "name": "向阳乔木",
+      "label": "向阳乔木",
+      "url": "https://www.qiaomu.ai/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "nexttoken.tv",
+      "name": "Next Token｜词元之外",
+      "label": "Next Token",
+      "url": "https://nexttoken.tv/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "yangpan.com",
+      "name": "杨攀同学",
+      "label": "杨攀同学",
+      "url": "https://yangpan.com/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "guizang.ai",
+      "name": "歸藏",
+      "label": "歸藏",
+      "url": "https://www.guizang.ai/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "xiaohu.ai",
+      "name": "小互",
+      "label": "小互",
+      "url": "https://xiaohu.ai/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "waytoagi.com",
+      "name": "WaytoAGI",
+      "label": "WaytoAGI",
+      "url": "https://www.waytoagi.com/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "orangesai.com",
+      "name": "橘子 Leo Feng",
+      "label": "橘子",
+      "url": "https://orangesai.com/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "ailianjinshu.com",
+      "name": "AI炼金术",
+      "label": "AI炼金术",
+      "url": "https://ailianjinshu.com/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "kojiyang.me",
+      "name": "Koji",
+      "label": "Koji",
+      "url": "https://kojiyang.me/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "gaoyang.dev",
+      "name": "高阳 Sunny",
+      "label": "高阳",
+      "url": "https://gaoyang.dev/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "renoise.ai",
+      "name": "Renoise",
+      "label": "Renoise",
+      "url": "https://renoise.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "aiwatch.ai",
+      "name": "AIwatch",
+      "label": "AIwatch",
+      "url": "https://aiwatch.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "alice.fans",
+      "name": "白艾莉 · Alice",
+      "label": "白艾莉 · Alice",
+      "url": "https://alice.fans/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "xueai.app",
+      "name": "小山学堂",
+      "label": "小山学堂",
+      "url": "https://xueai.app/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "youmind.com",
+      "name": "YouMind",
+      "label": "YouMind",
+      "url": "https://youmind.com/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "happycapy.ai",
+      "name": "Happycapy",
+      "label": "Happycapy",
+      "url": "https://happycapy.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "bloome.im",
+      "name": "Bloome",
+      "label": "Bloome",
+      "url": "https://bloome.im/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "floatboat.ai",
+      "name": "Floatboat",
+      "label": "Floatboat",
+      "url": "https://floatboat.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "aigocode.com",
+      "name": "AIGoCode",
+      "label": "AIGoCode",
+      "url": "https://aigocode.com/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "code.pipellm.ai",
+      "name": "PipeLLM",
+      "label": "PipeLLM",
+      "url": "https://code.pipellm.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "aihot.virxact.com",
+      "name": "AIHot",
+      "label": "AIHot",
+      "url": "https://aihot.virxact.com/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "newmax.cc",
+      "name": "牛马AI",
+      "label": "牛马AI",
+      "url": "https://newmax.cc/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "codepilot.sh",
+      "name": "CodePilot",
+      "label": "CodePilot",
+      "url": "https://www.codepilot.sh/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "ccswitch.io",
+      "name": "CCSwitch",
+      "label": "CCSwitch",
+      "url": "https://ccswitch.io/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "open-design.ai",
+      "name": "OpenDesign",
+      "label": "OpenDesign",
+      "url": "https://open-design.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "dokie.ai",
+      "name": "Dokie",
+      "label": "Dokie",
+      "url": "https://www.dokie.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "wesight.ai",
+      "name": "WeSight",
+      "label": "WeSight",
+      "url": "https://wesight.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "mole.fit",
+      "name": "Mole",
+      "label": "Mole",
+      "url": "https://mole.fit/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "nemovideo.com",
+      "name": "NemoVideo",
+      "label": "NemoVideo",
+      "url": "https://www.nemovideo.com/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "medeo.app",
+      "name": "Medeo",
+      "label": "Medeo",
+      "url": "https://www.medeo.app/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "cherryai.com.cn",
+      "name": "Cherry Studio",
+      "label": "Cherry Studio",
+      "url": "https://cherryai.com.cn/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "yizhiyanhua-ai.github.io/fireworks-design",
+      "name": "Firework Design",
+      "label": "Firework Design",
+      "url": "https://yizhiyanhua-ai.github.io/fireworks-design",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "hiapi.ai",
+      "name": "HiAPI",
+      "label": "HiAPI",
+      "url": "https://www.hiapi.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "pexo.ai",
+      "name": "Pexo",
+      "label": "Pexo",
+      "url": "https://pexo.ai/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "raycast.com",
+      "name": "Raycast",
+      "label": "Raycast",
+      "url": "https://www.raycast.com/",
+      "kind": "product",
+      "collected": false
+    },
+    {
+      "id": "colaos.ai",
+      "name": "ColaOS",
+      "label": "ColaOS",
+      "url": "https://colaos.ai/",
+      "kind": "product",
+      "collected": false
+    }
+  ],
+  "links": [
+    {
+      "source": "ailianjinshu.com",
+      "target": "gaoyang.dev"
+    },
+    {
+      "source": "ailianjinshu.com",
+      "target": "guizang.ai"
+    },
+    {
+      "source": "ailianjinshu.com",
+      "target": "laoyao.cn"
+    },
+    {
+      "source": "ailianjinshu.com",
+      "target": "nexttoken.tv"
+    },
+    {
+      "source": "ailianjinshu.com",
+      "target": "orangesai.com"
+    },
+    {
+      "source": "ailianjinshu.com",
+      "target": "qiaomu.ai"
+    },
+    {
+      "source": "ailianjinshu.com",
+      "target": "waytoagi.com"
+    },
+    {
+      "source": "ailianjinshu.com",
+      "target": "xiaohu.ai"
+    },
+    {
+      "source": "ailianjinshu.com",
+      "target": "yangpan.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "aigocode.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "aihot.virxact.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "ailianjinshu.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "aiwatch.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "alice.fans"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "bloome.im"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "ccswitch.io"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "cherryai.com.cn"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "code.pipellm.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "codepilot.sh"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "colaos.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "dokie.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "floatboat.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "gaoyang.dev"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "guizang.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "happycapy.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "hiapi.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "kojiyang.me"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "medeo.app"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "mole.fit"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "nemovideo.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "newmax.cc"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "nexttoken.tv"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "open-design.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "orangesai.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "pexo.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "qiaomu.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "raycast.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "renoise.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "waytoagi.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "wesight.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "xiaohu.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "xueai.app"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "yangpan.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "yizhiyanhua-ai.github.io/fireworks-design"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "youmind.com"
+    },
+    {
+      "source": "nexttoken.tv",
+      "target": "guizang.ai"
+    },
+    {
+      "source": "nexttoken.tv",
+      "target": "orangesai.com"
+    },
+    {
+      "source": "nexttoken.tv",
+      "target": "qiaomu.ai"
+    },
+    {
+      "source": "nexttoken.tv",
+      "target": "yangpan.com"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "aigocode.com"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "aihot.virxact.com"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "ailianjinshu.com"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "aiwatch.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "alice.fans"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "bloome.im"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "ccswitch.io"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "cherryai.com.cn"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "code.pipellm.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "codepilot.sh"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "colaos.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "dokie.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "floatboat.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "gaoyang.dev"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "guizang.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "happycapy.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "hiapi.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "kojiyang.me"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "laoyao.cn"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "medeo.app"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "mole.fit"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "nemovideo.com"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "newmax.cc"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "nexttoken.tv"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "open-design.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "pexo.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "qiaomu.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "renoise.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "waytoagi.com"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "wesight.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "xiaohu.ai"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "xueai.app"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "yangpan.com"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "yizhiyanhua-ai.github.io/fireworks-design"
+    },
+    {
+      "source": "orangesai.com",
+      "target": "youmind.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "aigocode.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "aihot.virxact.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "ailianjinshu.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "aiwatch.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "alice.fans"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "bloome.im"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "ccswitch.io"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "cherryai.com.cn"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "code.pipellm.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "codepilot.sh"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "colaos.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "dokie.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "floatboat.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "gaoyang.dev"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "guizang.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "happycapy.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "hiapi.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "laoyao.cn"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "medeo.app"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "mole.fit"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "nemovideo.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "newmax.cc"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "nexttoken.tv"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "open-design.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "orangesai.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "pexo.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "raycast.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "renoise.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "waytoagi.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "wesight.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "xiaohu.ai"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "xueai.app"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "yangpan.com"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "yizhiyanhua-ai.github.io/fireworks-design"
+    },
+    {
+      "source": "qiaomu.ai",
+      "target": "youmind.com"
+    }
+  ],
+  "sources": [
+    {
+      "id": "laoyao.cn",
+      "url": "https://www.laoyao.cn/",
+      "status": "ok",
+      "method": "本站首页"
+    },
+    {
+      "id": "qiaomu.ai",
+      "url": "https://www.qiaomu.ai/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "nexttoken.tv",
+      "url": "https://nexttoken.tv/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "yangpan.com",
+      "url": "https://yangpan.com/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "guizang.ai",
+      "url": "https://www.guizang.ai/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "xiaohu.ai",
+      "url": "https://xiaohu.ai/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "waytoagi.com",
+      "url": "https://www.waytoagi.com/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "orangesai.com",
+      "url": "https://orangesai.com/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "ailianjinshu.com",
+      "url": "https://ailianjinshu.com/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "kojiyang.me",
+      "url": "https://kojiyang.me/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "gaoyang.dev",
+      "url": "https://gaoyang.dev/",
+      "status": "ok",
+      "method": "首页链接快照"
+    }
+  ]
+}
