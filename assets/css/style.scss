@@ -506,7 +506,7 @@ li {
 
 .home-products-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .home-products-list li {
@@ -3298,6 +3298,10 @@ li {
 }
 
 @media (max-width: 980px) {
+  .home-products-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .container,
   .header-inner {
     width: calc(100% - 32px);
