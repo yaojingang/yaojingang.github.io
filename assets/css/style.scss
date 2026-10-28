@@ -504,6 +504,15 @@ li {
   transform: translateY(1px);
 }
 
+.home-products-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.home-products-list li {
+  min-width: 0;
+}
+
 @media (hover: hover) {
   .home-friends-list a:hover {
     color: var(--accent);
@@ -2993,6 +3002,11 @@ li {
 }
 
 @media (max-width: 560px) {
+  .home-products-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+  }
+
   .container,
   .header-inner {
     width: calc(100% - 28px);

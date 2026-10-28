@@ -100,3 +100,22 @@ title: 首页
     {% endfor %}
   </ul>
 </section>
+
+<section class="home-list-section home-products-section" aria-labelledby="home-products-title">
+  <header class="home-list-head">
+    <div class="home-list-title">
+      <h2 id="home-products-title">身边朋友的产品推荐</h2>
+      <small>{{ site.data.friend_products.size }} 个产品</small>
+    </div>
+  </header>
+  <ul class="home-friends-list home-products-list">
+    {% for product in site.data.friend_products %}
+    <li>
+      <a href="{{ product.url | escape }}" target="_blank" rel="noopener noreferrer">
+        <span class="home-friend-name">{{ product.name | escape }} <span aria-hidden="true">↗</span></span>
+        <span class="home-friend-domain">{{ product.url | split: '://' | last | split: '/' | first | escape }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
