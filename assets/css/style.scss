@@ -583,14 +583,30 @@ li {
 }
 
 .network-picker select {
+  -webkit-appearance: none;
+  appearance: none;
   max-width: 100%;
+  min-width: 200px;
   min-height: 40px;
-  padding: 0 34px 0 12px;
+  padding: 0 40px 0 12px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   background: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4.5 6.5 3.5 3.5 3.5-3.5' fill='none' stroke='%23525252' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px 16px;
   color: var(--text);
   font: inherit;
+  cursor: pointer;
+}
+
+@media (forced-colors: active) {
+  .network-picker select {
+    -webkit-appearance: auto;
+    appearance: auto;
+    background-image: none;
+  }
 }
 
 .network-picker select:focus-visible, .network-checkbox input:focus-visible {
