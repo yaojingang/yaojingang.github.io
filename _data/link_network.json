@@ -99,6 +99,14 @@
       "collected": true
     },
     {
+      "id": "hyhor.com",
+      "name": "Hyhor",
+      "label": "Hyhor",
+      "url": "https://hyhor.com/",
+      "kind": "site",
+      "collected": true
+    },
+    {
       "id": "renoise.ai",
       "name": "Renoise",
       "label": "Renoise",
@@ -411,6 +419,10 @@
     {
       "source": "laoyao.cn",
       "target": "hiapi.ai"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "hyhor.com"
     },
     {
       "source": "laoyao.cn",
@@ -859,6 +871,12 @@
     {
       "id": "lizhe.work",
       "url": "https://www.lizhe.work/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "hyhor.com",
+      "url": "https://hyhor.com/",
       "status": "ok",
       "method": "首页链接快照"
     }
