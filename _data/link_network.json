@@ -107,6 +107,14 @@
       "collected": true
     },
     {
+      "id": "jieni.ai",
+      "name": "极客杰尼",
+      "label": "极客杰尼",
+      "url": "https://jieni.ai/",
+      "kind": "site",
+      "collected": true
+    },
+    {
       "id": "renoise.ai",
       "name": "Renoise",
       "label": "Renoise",
@@ -423,6 +431,10 @@
     {
       "source": "laoyao.cn",
       "target": "hyhor.com"
+    },
+    {
+      "source": "laoyao.cn",
+      "target": "jieni.ai"
     },
     {
       "source": "laoyao.cn",
@@ -877,6 +889,12 @@
     {
       "id": "hyhor.com",
       "url": "https://hyhor.com/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "jieni.ai",
+      "url": "https://jieni.ai/",
       "status": "ok",
       "method": "首页链接快照"
     }
