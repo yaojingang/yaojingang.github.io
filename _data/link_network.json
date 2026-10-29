@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-28",
+  "updated_at": "2026-10-29",
   "home": "laoyao.cn",
   "nodes": [
     {
@@ -111,6 +111,14 @@
       "name": "极客杰尼",
       "label": "极客杰尼",
       "url": "https://jieni.ai/",
+      "kind": "site",
+      "collected": true
+    },
+    {
+      "id": "zycode.work",
+      "name": "zyarena",
+      "label": "zyarena",
+      "url": "https://zycode.work/",
       "kind": "site",
       "collected": true
     },
@@ -517,6 +525,10 @@
       "target": "youmind.com"
     },
     {
+      "source": "laoyao.cn",
+      "target": "zycode.work"
+    },
+    {
       "source": "nexttoken.tv",
       "target": "guizang.ai"
     },
@@ -895,6 +907,12 @@
     {
       "id": "jieni.ai",
       "url": "https://jieni.ai/",
+      "status": "ok",
+      "method": "首页链接快照"
+    },
+    {
+      "id": "zycode.work",
+      "url": "https://zycode.work/",
       "status": "ok",
       "method": "首页链接快照"
     }
