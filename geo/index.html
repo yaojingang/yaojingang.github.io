@@ -1,3 +1,6 @@
+---
+layout: null
+---
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GEO 透镜搜索</title>
@@ -1216,3 +1219,4 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
+{% include baidu-analytics.html %}
