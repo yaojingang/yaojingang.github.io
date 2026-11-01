@@ -1,0 +1,30 @@
+services:
+  geo-api:
+    build:
+      context: .
+      dockerfile: backend/geo/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      GEO_CONFIG_FILE: /run/secrets/geo-credentials.json
+      GEO_DATA_DIR: /data
+    volumes:
+      - /etc/laoyao-geo/credentials.json:/run/secrets/geo-credentials.json:ro
+      - geo-data:/data
+    healthcheck:
+      test: ["CMD", "ruby", "-rnet/http", "-e", "exit(Net::HTTP.get_response(URI('http://127.0.0.1:4010/geo/api/health')).is_a?(Net::HTTPSuccess) ? 0 : 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+  laoyao-blog:
+    depends_on:
+      geo-api:
+        condition: service_healthy
+volumes:
+  geo-data:

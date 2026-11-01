@@ -8,6 +8,7 @@ layout: null
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/geo/live.css">
 <style>
 /* 布局：居中单焦点。首页只有一个搜索框；结果页为 680px 正文栏 + 320px 来源栏，底部悬浮居中输入框；过程页为左侧步骤轨 + 中间演示 + 右侧讲解 */
 @property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
@@ -540,6 +541,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
       <button id="tab-lens">过程透视</button>
     </nav>
     <div class="top-r">
+      <button class="beta-mode press" id="beta-mode" type="button" aria-pressed="false" data-short="内测"><span>实时内测</span></button>
       <button class="xswitch press" id="xswitch" role="switch" aria-checked="false" data-sound="toggle"><span class="xl">GEO 透视</span><span class="sw"></span></button>
       <button class="iconbtn press" id="soundbtn" aria-label="音效开关" data-sound="none"></button>
     </div>
@@ -551,6 +553,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
     <span class="eyebrow"><i>新</i>看见 AI 搜索如何挑选内容</span>
     <h1 class="greet">今天想让 AI 帮你搜什么？</h1>
     <p class="greet-sub">搜索照常进行。打开 GEO 透视，每句话的来源、每个网页的得分都会摊开给你看。</p>
+    <div class="live-status" id="live-status" hidden aria-live="polite"></div>
     <form class="box" id="f-home" style="view-transition-name:searchbox">
       <textarea id="q-home" rows="1" placeholder="问任何问题…" aria-label="搜索问题"></textarea>
       <div class="box-row">
@@ -561,6 +564,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
       </div>
     </form>
     <div class="sugg" id="sugg"></div>
+    <details class="live-tests" id="live-tests" hidden><summary>内测问题清单</summary><div id="live-test-list"></div></details>
     <div class="flow" id="flow"></div>
   </div>
 </main>
@@ -1040,6 +1044,7 @@ function renderPipe(){
 
 /* ================= 过程页 ================= */
 function openProcess(i){
+  if(!state.ds&&window.GeoLive&&GeoLive.active){toast('请先完成一次实时搜索');return}
   if(!state.ds){search(DATA[0].query,DATA[0].id)}
   finishThink(false);
   vt(()=>{state.stage=i||0;setView('process');renderProcess()});
@@ -1051,11 +1056,11 @@ function goStage(i){
   renderProcess();
 }
 function renderProcess(){
-  const ds=state.ds,st=STAGES[state.stage],S=state.stage;
+  const ds=state.ds,S=state.stage,st=ds.live&&window.GeoLive?{...STAGES[S],...GeoLive.stageMeta(S)}:STAGES[S];
   $('#proc').innerHTML=`
   <div class="proc-h"><div><button class="back" id="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>返回回答</button>
     <h1>“<em>${esc(state.q||ds.query)}</em>”的回答是怎样生成的</h1>
-    <div class="meta">示例数据 · 评分和权重为教学简化模型${state.fallback?` · 使用示例「${esc(ds.query)}」`:''} · 键盘 ← → 切换步骤</div></div>
+    <div class="meta">${ds.live?'本次实际运行记录 · API 原始排序分 · 本站证据关联':`示例数据 · 评分和权重为教学简化模型${state.fallback?` · 使用示例「${esc(ds.query)}」`:''}`} · 键盘 ← → 切换步骤</div></div>
     <div class="ctrl"><button class="play press" id="play">${state.play?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>暂停':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>自动演示'}</button></div></div>
   <div class="proc-grid">
     <ol class="rail" id="rail">${STAGES.map((s,i)=>`<li><button class="st${i===S?' on':''}${i<S?' past':''}" data-i="${i}" data-sound="none"><span class="num">${i<S?'✓':i+1}${i===S?`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"${state.play?' class="run"':''}/></svg>`:''}</span><span><small>${s.en}</small><b>${s.n}</b></span></button></li>`).join('')}</ol>
@@ -1220,4 +1225,5 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
+<script src="/geo/live.js" defer></script>
 {% include baidu-analytics.html %}

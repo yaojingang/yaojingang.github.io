@@ -2,6 +2,8 @@
 
 本目录保存 `www.laoyao.cn` 的服务器端代码更新入口。脚本在服务器仓库内运行，负责拉取 `main`、构建 Docker 镜像、启动容器并验证站点。
 
+GEO 实时内测的密钥安装、预算规则和单独关闭方式见 [GEO 内测说明](../geo/README.md)。启用后，常规更新会同时管理博客与 GEO 服务，并记录运行模式和待生效的配置更新。
+
 ## 固定环境
 
 - 仓库目录：`/www/wwwroot/www.laoyao.cn/yaojingang.github.io`

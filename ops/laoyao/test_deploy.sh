@@ -20,13 +20,13 @@ fail() {
 assert_contains() {
   local file=$1
   local expected=$2
-  grep -Fq "$expected" "$file" || fail "$file does not contain: $expected"
+  grep -Fq -- "$expected" "$file" || fail "$file does not contain: $expected"
 }
 
 assert_not_contains() {
   local file=$1
   local unexpected=$2
-  if grep -Fq "$unexpected" "$file"; then
+  if grep -Fq -- "$unexpected" "$file"; then
     fail "$file contains unexpected text: $unexpected"
   fi
 }
@@ -41,6 +41,7 @@ create_fake_commands() {
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$*" >> "$DEPLOY_TEST_LOG/docker.log"
+if [[ "${DEPLOY_TEST_FAIL_BUILD:-}" == 1 && "$*" == *"up -d"* ]]; then exit 1; fi
 SH
 
   cat > "$fake_bin/curl" <<'SH'
@@ -85,6 +86,8 @@ create_fixture() {
   cp "$SCRIPT_DIR/git-ssh.sh" "$AUTHOR_DIR/ops/laoyao/git-ssh.sh"
   chmod +x "$AUTHOR_DIR/ops/laoyao/git-ssh.sh"
   sed -i.bak "s#^EXPECTED_REMOTE=.*#EXPECTED_REMOTE=\"$UPSTREAM_DIR\"#" "$AUTHOR_DIR/ops/laoyao/deploy.sh"
+  rm "$AUTHOR_DIR/ops/laoyao/deploy.sh.bak"
+  sed -i.bak "s#^GEO_ENABLED_FILE=.*#GEO_ENABLED_FILE=\"$CASE_DIR/geo-enabled\"#" "$AUTHOR_DIR/ops/laoyao/deploy.sh"
   rm "$AUTHOR_DIR/ops/laoyao/deploy.sh.bak"
 
   printf 'base\n' > "$AUTHOR_DIR/README.md"
@@ -224,6 +227,36 @@ test_tracked_change_stops_deploy() {
   printf 'PASS: tracked change stops deploy\n'
 }
 
+test_geo_enable_and_reconfigure() {
+  create_fixture "geo-reconfigure"
+  mkdir -p "$SERVER_DIR/.git/laoyao-deploy"
+  git -C "$SERVER_DIR" rev-parse HEAD > "$SERVER_DIR/.git/laoyao-deploy/deployed_commit"
+  touch "$CASE_DIR/geo-enabled"
+  run_deploy
+  assert_contains "$LOG_DIR/docker.log" "-f ops/geo/docker-compose.yml up -d --build"
+  assert_contains "$LOG_DIR/curl.log" "https://www.laoyao.cn/geo/api/health"
+  [[ "$(cat "$SERVER_DIR/.git/laoyao-deploy/runtime_kind")" == blog-and-geo-v1 ]] || fail "GEO runtime not recorded"
+  touch "$SERVER_DIR/.git/laoyao-deploy/reconfigure"
+  run_deploy
+  assert_contains "$LOG_DIR/docker.log" "up -d --build --force-recreate"
+  [[ ! -e "$SERVER_DIR/.git/laoyao-deploy/reconfigure" ]] || fail "reconfiguration was not acknowledged"
+  printf 'PASS: GEO enable and same-commit reconfiguration\n'
+}
+
+test_reconfigure_failure_remains_retryable() {
+  create_fixture "reconfigure-failure"
+  mkdir -p "$SERVER_DIR/.git/laoyao-deploy"
+  git -C "$SERVER_DIR" rev-parse HEAD > "$SERVER_DIR/.git/laoyao-deploy/deployed_commit"
+  touch "$SERVER_DIR/.git/laoyao-deploy/reconfigure"
+  export DEPLOY_TEST_FAIL_BUILD=1
+  if run_deploy; then fail "failed reconfiguration unexpectedly succeeded"; fi
+  unset DEPLOY_TEST_FAIL_BUILD
+  [[ -f "$SERVER_DIR/.git/laoyao-deploy/reconfigure" ]] || fail "failed reconfiguration lost retry marker"
+  run_deploy
+  [[ ! -e "$SERVER_DIR/.git/laoyao-deploy/reconfigure" ]] || fail "retry did not acknowledge configuration"
+  printf 'PASS: failed reconfiguration remains retryable\n'
+}
+
 test_successful_update
 test_fetch_failure_skips_build
 test_remote_url_is_repaired
@@ -232,4 +265,7 @@ test_missing_runtime_state_rebuilds
 test_rollback_state_rebuilds_current_source
 test_tracked_change_stops_deploy
 
-printf 'PASS: 7 deployment tests\n'
+test_geo_enable_and_reconfigure
+test_reconfigure_failure_remains_retryable
+
+printf 'PASS: 9 deployment tests\n'

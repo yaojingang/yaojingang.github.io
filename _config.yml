@@ -6,6 +6,9 @@ baseurl: ""
 url: "https://yaojingang.github.io"
 plugins:
   - jekyll-feed
+exclude:
+  - backend
+  - ops/geo
 
 collections:
   weekly:

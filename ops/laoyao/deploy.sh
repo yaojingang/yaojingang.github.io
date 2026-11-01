@@ -8,6 +8,13 @@ REPO_DIR=$(cd "$SCRIPT_DIR/../.." && pwd)
 EXPECTED_REMOTE="git@github.com:yaojingang/yaojingang.github.io.git"
 BRANCH="main"
 COMPOSE_FILE="docker-compose.laoyao.yml"
+GEO_ENABLED_FILE="/etc/laoyao-geo/enabled"
+COMPOSE_ARGS=(-f "$COMPOSE_FILE")
+RUNTIME_KIND="blog"
+if [[ -f "$GEO_ENABLED_FILE" ]]; then
+  COMPOSE_ARGS+=(-f "ops/geo/docker-compose.yml")
+  RUNTIME_KIND="blog-and-geo-v1"
+fi
 GITHUB_SSH_WRAPPER="$SCRIPT_DIR/git-ssh.sh"
 LOCAL_HEALTH_URL="http://127.0.0.1:10001/"
 PUBLIC_HEALTH_URL="https://www.laoyao.cn/"
@@ -17,6 +24,14 @@ LOCK_DIR=""
 ROLLBACK_COMMIT=""
 STATE_DIR=""
 DEPLOYED_COMMIT_FILE=""
+
+# The existing forced SSH entrypoint accepts one application-scoped setup command.
+if [[ "${SSH_ORIGINAL_COMMAND:-}" == "geo-configure" ]]; then
+  exec bash "$REPO_DIR/ops/geo/provision-server.sh"
+fi
+if [[ "${SSH_ORIGINAL_COMMAND:-}" == "geo-disable" ]]; then
+  exec bash "$REPO_DIR/ops/geo/disable-server.sh"
+fi
 
 log() {
   printf '[laoyao-deploy] %s\n' "$*"
@@ -143,7 +158,7 @@ for required_path in DockerfileProd _config.laoyao.yml docker-compose.laoyao.yml
   [[ -e "$required_path" ]] || die "server-local deployment file missing: $required_path"
 done
 
-docker compose -f "$COMPOSE_FILE" config >/dev/null
+docker compose "${COMPOSE_ARGS[@]}" config >/dev/null
 
 ORIGIN_URL=$(git config --get remote.origin.url || true)
 if [[ "$ORIGIN_URL" != "$EXPECTED_REMOTE" ]]; then
@@ -180,11 +195,19 @@ if [[ -f "$DEPLOYED_COMMIT_FILE" ]]; then
   DEPLOYED_COMMIT=$(head -n 1 "$DEPLOYED_COMMIT_FILE")
 fi
 
-if [[ "$DEPLOYED_COMMIT" == "$AFTER_COMMIT" ]]; then
+DEPLOYED_RUNTIME="blog"
+if [[ -f "$STATE_DIR/runtime_kind" ]]; then
+  DEPLOYED_RUNTIME=$(head -n 1 "$STATE_DIR/runtime_kind")
+fi
+
+if [[ "$DEPLOYED_COMMIT" == "$AFTER_COMMIT" && "$DEPLOYED_RUNTIME" == "$RUNTIME_KIND" && ! -f "$STATE_DIR/reconfigure" ]]; then
   log "runtime already deployed: $DEPLOYED_COMMIT"
-  docker compose -f "$COMPOSE_FILE" ps
+  docker compose "${COMPOSE_ARGS[@]}" ps
   check_url "local" "$LOCAL_HEALTH_URL"
   check_url "public" "$PUBLIC_HEALTH_URL"
+  if [[ "$RUNTIME_KIND" == "blog-and-geo-v1" ]]; then
+    check_url "GEO API" "https://www.laoyao.cn/geo/api/health"
+  fi
   log "deployment check complete"
   exit 0
 fi
@@ -198,16 +221,26 @@ else
   log "runtime state is not recorded; building target $AFTER_COMMIT"
 fi
 
-docker compose -f "$COMPOSE_FILE" config >/dev/null
-docker compose -f "$COMPOSE_FILE" up -d --build
-docker compose -f "$COMPOSE_FILE" ps
-docker compose -f "$COMPOSE_FILE" logs --tail=80
+docker compose "${COMPOSE_ARGS[@]}" config >/dev/null
+if [[ -f "$STATE_DIR/reconfigure" ]]; then
+  docker compose "${COMPOSE_ARGS[@]}" up -d --build --force-recreate
+else
+  docker compose "${COMPOSE_ARGS[@]}" up -d --build
+fi
+docker compose "${COMPOSE_ARGS[@]}" ps
+docker compose "${COMPOSE_ARGS[@]}" logs --tail=80
 
 check_url "local" "$LOCAL_HEALTH_URL"
 check_url "public" "$PUBLIC_HEALTH_URL"
+if [[ "$RUNTIME_KIND" == "blog-and-geo-v1" ]]; then
+  check_url "GEO API" "https://www.laoyao.cn/geo/api/health"
+fi
 
 printf '%s\n' "$AFTER_COMMIT" > "$DEPLOYED_COMMIT_FILE.tmp"
 mv "$DEPLOYED_COMMIT_FILE.tmp" "$DEPLOYED_COMMIT_FILE"
+printf '%s\n' "$RUNTIME_KIND" > "$STATE_DIR/runtime_kind.tmp"
+mv "$STATE_DIR/runtime_kind.tmp" "$STATE_DIR/runtime_kind"
+rm -f "$STATE_DIR/reconfigure"
 
 log "deployed successfully: $AFTER_COMMIT"
 if [[ -n "$ROLLBACK_COMMIT" ]]; then
