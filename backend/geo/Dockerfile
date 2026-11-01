@@ -1,7 +1,8 @@
 FROM ruby:3.3-alpine
 WORKDIR /app
-RUN apk add --no-cache sqlite-libs \
-    && apk add --no-cache --virtual .build-deps build-base sqlite-dev \
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories \
+    && apk --timeout 30 add --no-cache sqlite-libs \
+    && apk --timeout 30 add --no-cache --virtual .build-deps build-base sqlite-dev \
     && gem install webrick -v 1.9.1 --no-document \
     && gem install sqlite3 -v 1.7.3 --platform ruby --no-document \
     && apk del .build-deps
