@@ -8,7 +8,7 @@
   const original = {search, renderSide, renderThink, renderPipe, renderAnswer, renderLegend};
   const originalStages = {...STAGE_R};
   const originalAfter = {...STAGE_AFTER};
-  const live = window.GeoLive = {active: false, controller: null, generation: 0, events: [], budget: null};
+  const live = window.GeoLive = {active: false, controller: null, generation: 0, events: [], budget: null, weights: {...DEFAULT_W}};
   const money = value => Number(value || 0).toFixed(3);
   const safeURL = sourceURL;
   const sourceLink = s => `<a href="${esc(safeURL(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.title || s.site)}</a>`;
@@ -126,9 +126,10 @@
   const stageRows = events => STAGES.map((_, index) => events.filter(event => event.stage === index).slice(-1)[0]).filter(Boolean);
   function progress() {
     const rows = stageRows(live.events);
+    const current = rows[rows.length - 1] || {stage:0,message:'正在连接内测服务。'};
     const el = document.getElementById('think');
-    el.className = 'think running';
-    el.innerHTML = `<div class="think-h"><span class="shimmer">${esc(rows[rows.length - 1]?.message || '正在联网检索…')}</span></div><div class="think-body"><div><div class="tlist">${rows.map((row, i) => `<div class="tstep show ${i === rows.length - 1 ? 'cur' : 'done'}">${esc(row.message)}</div>`).join('')}</div></div></div><button class="linkbtn press live-cancel" type="button" id="live-cancel">停止本次搜索</button>`;
+    el.className = 'think running live-progress';
+    el.innerHTML = `<div class="live-progress-head"><div class="live-progress-title"><span class="live-pulse" aria-hidden="true"></span><b>${esc(STAGES[current.stage].n)}</b><span class="mono">0${current.stage+1} / 06</span></div><button class="live-cancel press" type="button" id="live-cancel">停止搜索</button></div><p class="live-progress-message" role="status" aria-live="polite">${esc(current.message)}</p><ol class="live-phase-list" aria-label="实时检索进度">${STAGES.map((stage,i)=>`<li class="live-phase ${i<current.stage?'done':i===current.stage?'cur':'waiting'}" ${i===current.stage?'aria-current="step"':''}><span class="live-phase-num">${i<current.stage?'✓':i+1}</span><span>${esc(stage.n)}</span></li>`).join('')}</ol><p class="live-progress-foot">完成后可逐步查看选段、排序依据与引用原文。</p>`;
     document.getElementById('live-cancel').onclick = () => live.controller?.abort();
   }
   function renderRunMeta(data) {
@@ -139,7 +140,9 @@
     if (!data.live || !Array.isArray(data.sources) || !Array.isArray(data.answer) || !Array.isArray(data.cited)) throw new Error('内测返回的数据格式有误。');
     data.byId = Object.fromEntries(data.sources.map(source => [source.id, source]));
     if (data.cited.some(id => !data.byId[id])) throw new Error('来源对应关系不完整。');
-    data.rank = data.sources.map(s => ({s, v: s.api_score}));
+    data.rank = rankBy(data, data.ranking?.weights || DEFAULT_W);
+    live.weights = {...(data.ranking?.weights || DEFAULT_W)};
+    state.w = {...live.weights};
     data.color = {};
     data.sources.forEach((s, i) => {
       data.color[s.id] = (i % 5) + 1;
@@ -153,9 +156,11 @@
     data.picked = data.evidence.length;
     return data;
   }
-  live.search = async question => {
+  live.search = async (question, options = {}) => {
     question = String(question).trim();
     if (!question || question.length > 500) {toast('请输入 1～500 个字符的问题'); return;}
+    const weights = {...(options.weights || live.weights)};
+    if (!SIG.some(g=>weights[g.k]>0)) {toast('至少保留一个非零权重'); return;}
     if (live.controller) live.controller.abort();
     const controller = new AbortController();
     live.controller = controller;
@@ -165,14 +170,15 @@
     setView('results');
     document.getElementById('r-q').textContent = question;
     for (const id of ['answer', 'pipe', 'r-banner']) document.getElementById(id).innerHTML = '';
-    document.getElementById('side').innerHTML = '<div class="sec-h">本次来源将在检索完成后展示</div>';
+    document.getElementById('side').innerHTML = '<div class="sec-h"><b>来源</b><span>检索完成后展示</span></div><div class="live-source-placeholder" aria-hidden="true"><i></i><i></i><i></i></div>';
     document.getElementById('legend').innerHTML = '';
+    document.getElementById('legend').hidden = true;
     document.getElementById('f-res').classList.add('busy');
     live.events = [{stage: 0, message: '连接内测服务。'}];
     progress();
     let completed = false;
     try {
-      const response = await fetch(api + '/search', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question}), signal: controller.signal});
+      const response = await fetch(api + '/search', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question, weights}), signal: controller.signal});
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error?.message || '内测服务暂未完成请求。');
@@ -272,7 +278,7 @@
   const descriptions = [
     '保留原问题并生成少量等义查询，语言范围在实际搜索词中明确记录。',
     '每组查询调用一次 DeepSeek Search，按实际返回数量汇总并合并重复网址。',
-    '采用 API 原始排序分，本站以 1.50 分作为选用线，最多精读 5 个达标来源。',
+    '先通过 API 1.50 分选用线，再按六个维度归一化加权，最多精读前 5 个来源。拖动滑块先预览，应用后才重新检索。',
     '过滤标题、导航与无效短标签，保留正文选段；使用摘要时单独标明依据类型。',
     '资料充足时生成回答并核对引用编号。资料不足时保留检索记录，请用户补充条件。',
     '引用与候选分别记录，每条引用都能追溯到已保存的选段和原始网页。'
@@ -280,24 +286,24 @@
   const guidance = [
     ['把推荐对象、场景和地区写清楚。', '保留原词，避免把工具、岗位和专家混为同一个需求。', '需要外语原文时，可以在问题里明确说明。'],
     ['让网页标题和正文围绕同一个具体问题。', '本次只展示 Search 的实际返回数量。', '搜索语言会影响可召回的资料范围。'],
-    ['排序分保留 API 的 0～3 原始刻度。', '选用线是本站规则，权威等级未知时保持未知。', '低分候选会保留在过程页，供人工复核。'],
+    ['相关性、权威、时效、结构、信息增益与多源一致共同影响精读排名。', '六维分数由本站估计，未知项不参与该页面加权。', '补足事实、数据与结构，改善内容被选为证据的机会。'],
     ['正文提供完整事实和上下文，减少纯导航内容。', '引用正文与引用搜索摘要分别标记。', '可用段落不足时，补充更具体的查询条件。'],
     ['每段回答关联已存在的证据编号。', '多源引用表示关联多个来源，具体结论可继续核对原文。', '检索证据不足时，先澄清需求。'],
     ['打开引用链接核对上下文。', '未被这次回答引用的来源仍可在候选记录中查看。', '一次查询的引用情况只代表这次运行。']
   ];
-  live.stageMeta = index => ({p: descriptions[index], g: guidance[index], t: ['RAG']});
+  live.stageMeta = index => ({p: descriptions[index], g: guidance[index], t: STAGES[index].t});
   const lead = text => `<p class="lead">${esc(text)}</p>`;
   const emptyStage = text => `<div class="surface live-stage-empty">${esc(text)}</div>`;
   const liveStages = {
-    understand: ds => `<h2>先确认问题，再展开查询</h2>${lead('以下保留原始问题、搜索语言和实际发出的查询，方便核对推荐方向。')}<div class="u-grid"><div class="u-card"><small>识别的意图</small><div class="big">${esc(ds.intent.type || '综合问题')}</div></div><div class="u-card"><small>搜索语言</small><div class="big">${esc(languageLabel(ds))}</div></div><div class="u-card"><small>原始问题</small><div class="big">${esc(ds.query)}</div></div><div class="u-card"><small>本次执行规则</small><dl><dt>查询数量</dt><dd>${ds.searches.length} 组</dd><dt>来源选用线</dt><dd>${Number(ds.quality?.min_score || 1.5).toFixed(2)} / 3</dd></dl></div></div><p class="subh">查询展开 · 原问题与等义查询</p><div class="fan" id="fan"><svg class="wires" id="wires"></svg><div class="fan-q" id="fanq">${esc(ds.query)}</div><ul class="fan-list">${ds.searches.map((s, i) => `<li><span>Q${i + 1}</span>${esc(s.query)}</li>`).join('')}</ul></div>`,
+    understand: ds => `<h2>先读懂问题，再拆成子问题</h2>${lead('核对识别出的意图、实体与条件，再查看本次实际发出的搜索词。未说明的条件保留待确认。')}<div class="u-grid"><div class="u-card"><small>意图类型</small><div class="big">${esc(ds.intent.type || '综合问题')}</div></div><div class="u-card"><small>识别出的实体</small><div class="chips">${ds.intent.ents?.length?ds.intent.ents.map(e=>`<span>${esc(e)}</span>`).join(''):'<span>本次未单独识别</span>'}</div></div><div class="u-card"><small>问题条件</small><dl><dt>语言</dt><dd>${esc(languageLabel(ds))}</dd>${(ds.intent.cons||[]).map(c=>`<dt>${esc(c[0])}</dt><dd>${esc(c[1])}</dd>`).join('')}</dl></div><div class="u-card"><small>回答规划</small><div class="live-plan">${esc(ds.intent.plan || '先检索原始问题，精读达标来源，再依据选段回答。')}</div></div></div><p class="subh">查询扇出 · 1 个问题 → ${ds.searches.length} 组查询</p><div class="fan" id="fan"><svg class="wires" id="wires"></svg><div class="fan-q" id="fanq">${esc(ds.query)}</div><ul class="fan-list">${ds.searches.map((s, i) => `<li><span>Q${i + 1}</span>${esc(s.query)}</li>`).join('')}</ul></div>`,
     retrieve: ds => {
       const max = Math.max(1, ...ds.searches.map(s => s.count));
       return `<h2>实际搜索结果汇入候选池</h2>${lead('每条横线表示该查询实际返回的数量，相同网址合并后保留一份。')}<div class="r-legend"><span class="lg"><i style="background:var(--g1)"></i>Search 返回结果</span></div>${ds.searches.map((s, i) => `<div class="r-row"><span class="q" title="${esc(s.query)}"><span>Q${i + 1}</span>${esc(s.query)}</span><div class="bar"><i data-w="${s.count / max * 100}" style="background:var(--g1)"></i></div><span class="n mono">${s.count}</span></div>`).join('')}<div class="sum"><span>原始结果</span><b>${ds.total}</b><i>→</i><span>去重后网页</span><b>${ds.dedup}</b><em>过程页保留排序最高的 ${ds.sources.length} 个候选，实际精读 ${selectedCount(ds)} 个来源。</em></div>`;
     },
-    rank: ds => `<h2>按原始排序分选择来源</h2>${lead('排序分采用 0～3 刻度，本站选用线为 1.50。权威等级采用 0～4 刻度，未知值单独标记。')}<div class="cmeta"><span>候选网页 <b>${ds.dedup}</b></span><span>达标来源 <b>${ds.quality?.eligible_count ?? ds.sources.length}</b></span><span>实际精读 <b>${selectedCount(ds)}</b></span></div>${ds.sources.length ? `<div class="lab"><div class="lab-h"><b>本次候选与选用情况</b><span class="live-table-key">API 排序分 / 3</span></div><div class="live-board">${ds.sources.map((s, i) => `<div class="brow"><span class="rk">${i + 1}</span><div class="nm">${ico(s)}<div><a href="${esc(safeURL(s.url))}" target="_blank" rel="noopener noreferrer">${esc(short(s))}</a><small>${esc(s.type)} · 权威 ${s.authority < 0 ? '未知' : s.authority}</small></div></div><span class="scorev">${s.api_score.toFixed(2)}</span><span class="stat"><span class="badge ${s.read ? 'in' : 'out'}">${s.read ? '精读' : s.eligible === false ? '未采用' : '候选'}</span></span></div>`).join('')}</div></div>` : emptyStage('本次查询没有返回可用网页。请补充推荐对象或使用场景。')}`,
+    rank: ds => rankingLab(ds),
     chunk: ds => {
-      const ids = [...new Set(ds.evidence.map(e => e.source_id))];
-      return `<h2>阅读有内容的段落</h2>${lead('纯标题和导航标签不作为证据。正文与摘要分别记录，下面展示实际进入模型上下文的选段。')}<div class="cmeta"><span>实际精读 <b>${selectedCount(ds)}</b> 页</span><span>进入上下文 <b>${ds.evidence.length}</b> 段</span></div>${ids.length ? ids.map((id, i) => {const source = ds.byId[id]; return `<details class="doc live-doc" ${i === 0 ? 'open' : ''}><summary class="doc-bar"><span class="live-doc-name">${esc(short(source))}</span><span class="u">${esc(safeURL(source.url))}</span><span>${ds.evidence.filter(e => e.source_id === id).length} 段</span></summary><div class="doc-body"><p class="doc-title">${sourceLink(source)}</p>${ds.evidence.filter(e => e.source_id === id).map(e => `<div class="chunk pick"><p><span class="mono live-evidence-id">${esc(e.id)}</span>${esc(e.text)}</p><div class="cs"><span>${e.basis === 'body' ? '网页正文' : '搜索摘要'}</span><span class="ctag">进入上下文</span></div></div>`).join('')}</div></details>`;}).join('') : emptyStage('本次没有找到可进入上下文的有效段落，因此跳过回答生成。')}`;
+      const read = ds.sources.filter(s=>s.read);
+      return `<h2>AI 读的是段落</h2>${lead('先过滤标题与导航，再按问题词命中数选择每页最多三段完整内容。蓝色为实际输入证据，灰色展示未采用的段落和原因。')}<div class="cmeta"><span>实际精读 <b>${selectedCount(ds)}</b> 页</span><span>进入上下文 <b>${ds.evidence.length}</b> 段</span></div>${read.length ? read.map((source, i) => {const segments=source.segments||ds.evidence.filter(e=>e.source_id===source.id).map((e,j)=>({...e,picked:true,index:j})); return `<details class="doc live-doc" ${i === 0 ? 'open' : ''}><summary class="doc-bar"><span class="live-doc-name">${esc(short(source))}</span><span class="u">${esc(safeURL(source.url))}</span><span>${segments.filter(e=>e.picked).length}/${segments.length} 段</span></summary><div class="doc-body"><p class="doc-title">${sourceLink(source)}</p>${segments.map(e=>`<div class="chunk ${e.picked?'pick':'drop'}"><p><span class="mono live-evidence-id">§${e.index+1}</span>${esc(e.text)}</p><div class="cs"><span>${e.basis==='body'?'网页正文':'搜索摘要'}</span><span>问题词命中 <b>${e.term_hits}</b></span><span class="ctag">${e.picked?'→ 进入上下文':'未采用'}</span></div>${e.reason?`<p class="live-chunk-reason">${esc(e.reason)}</p>`:''}</div>`).join('')}</div></details>`;}).join('') : emptyStage('本次没有精读来源。可返回排序页调整权重，或补充检索条件。')}`;
     },
     generate: ds => {
       const single = ds.sents.filter(s => s.f.length === 1).length, multiple = ds.sents.length - single;
@@ -305,12 +311,12 @@
     },
     cite: ds => {
       const misses = ds.sources.filter(s => !ds.cited.includes(s.id));
-      return `<h2>${ds.cited.length} 个来源获得引用</h2>${lead('实际引用与未采用的候选分别记录，来源链接支持继续核对原文。')}${ds.cited.length ? `<div class="cgrid">${ds.cited.map(id => {const s = ds.byId[id]; return `<div class="ccard" style="--sc:var(--s${ds.color[id]})"><div class="h">${ico(s)}<span>${esc(short(s))}</span><span class="scorev">${s.api_score.toFixed(2)} / 3</span></div><p>关联 <b>${ds.sents.filter(sg => sg.f.some(f => f.id === id)).length}</b> 段回答 · ${esc(s.type)}</p>${sourceLink(s)}</div>`;}).join('')}</div>` : emptyStage('本次没有形成引用。低分或缺少有效段落的候选不会进入回答。')}${misses.length ? `<p class="subh live-section-gap">未采用的候选 · 本次记录</p>${misses.map(s => `<div class="mcard live-miss-card"><div class="h">${ico(s)}<b>${esc(short(s))}</b><span class="gap">${s.api_score.toFixed(2)} / 3</span></div><div><small>本次未引用原因</small><p>${esc(s.why)}</p></div><div><small>候选页面</small><p>${sourceLink(s)}</p></div></div>`).join('')}` : ''}`;
+      return `<h2>${ds.cited.length} 个来源获得引用</h2>${lead('最多精读五个来源，最终引用由实际回答采用的证据决定。这里保留入选、落选与可执行的内容检查项。')}${ds.cited.length ? `<div class="cgrid">${ds.cited.map(id => {const s = ds.byId[id]; return `<div class="ccard" style="--sc:var(--s${ds.color[id]})"><div class="h">${ico(s)}<span>${esc(short(s))}</span><span class="scorev">${s.weighted_score==null?'未知':f1(s.weighted_score)}</span></div><p>关联 <b>${ds.sents.filter(sg => sg.f.some(f => f.id === id)).length}</b> 段回答 · ${esc(s.type)}</p>${sourceLink(s)}</div>`;}).join('')}</div>` : emptyStage('本次没有形成引用。低分或缺少有效段落的候选不会进入回答。')}${misses.length ? `<p class="subh live-section-gap">落选来源 · 原因与优化方向</p>${misses.map(s => {const dims=(s.sig||[]).map((v,i)=>({v,i})).filter(x=>Number.isFinite(x.v)).sort((a,b)=>a.v-b.v);const weakest=dims[0];return `<div class="mcard live-miss-card"><div class="h">${ico(s)}<b>${esc(short(s))}</b><span class="meta">${esc(s.type)} · API ${s.api_score.toFixed(2)} / 3</span><span class="gap">${s.weighted_score==null?'未知':f1(s.weighted_score)}</span></div><div><small>本次未引用原因</small><p>${esc(s.why)}</p>${sourceLink(s)}</div><div class="fix"><small>可优先检查${weakest?' · '+SIG[weakest.i].n:''}</small><p>${esc(weakest?['让标题和正文围绕用户的具体问题展开。','补充可核实的机构、作者和原始出处。','核对日期并持续更新已变化的信息。','增加清晰标题、定义、列表与完整语句。','补充可核对的一手数据、案例或具体事实。','核对与其他独立来源的事实和适用范围。'][weakest.i]:'先补足日期、出处与可读取的正文。')}</p></div></div>`;}).join('')}` : ''}${contentChecklist(ds)}`;
     }
   };
   Object.keys(originalStages).forEach(key => STAGE_R[key] = ds => ds.live ? liveStages[key](ds) : originalStages[key](ds));
   Object.keys(originalAfter).forEach(key => STAGE_AFTER[key] = ds => {
-    if (!ds.live || key === 'understand' || key === 'retrieve') return originalAfter[key](ds);
+    if (!ds.live || ['understand', 'retrieve', 'rank', 'cite'].includes(key)) return originalAfter[key](ds);
   });
   try {if (sessionStorage.getItem('geo-mode') === 'live') enterLive();} catch (_) {}
 })();

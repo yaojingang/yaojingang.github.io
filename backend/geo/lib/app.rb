@@ -83,7 +83,9 @@ module Geo
         json(res, { "authenticated" => false })
       when ["POST", "/geo/api/search"]
         token = authenticate!(req)
-        question = Pipeline.question(input(req)["question"])
+        payload = input(req)
+        question = Pipeline.question(payload["question"])
+        weights = Ranking.weights(payload["weights"])
         raise Error.new("not_configured", "请先完成 DeepSeek API Key 配置。", 503) unless @config.configured?
         @store.rate_limit("search:#{Digest::SHA256.hexdigest(token)}", 5, 60)
         res["Content-Type"] = "text/event-stream; charset=utf-8"
@@ -99,7 +101,7 @@ module Geo
               claimed = true
             end
             pipeline = Pipeline.new(DeepSeek.new(@config, @store, transport: @transport), @store)
-            result = pipeline.run(question, &emit)
+            result = pipeline.run(question, weights: weights, &emit)
             emit.call("result", result)
           rescue Error => error
             emit.call("error", { "code" => error.code, "message" => error.message, "budget" => @store.budget })

@@ -66,6 +66,19 @@ class GeoHTTPTest < Minitest::Test
     assert_equal "401", response.code
   end
 
+  def test_weights_are_validated_before_streaming_and_preserved_in_results
+    cookie = login
+    bad = http("Post", "/geo/api/search", body: {question:"企业工具",weights:{rel:50}},cookie:cookie)
+    assert_equal "400", bad.code
+    assert_equal "invalid_weights", JSON.parse(bad.body)["error"]["code"]
+    assert_empty @calls
+    weights = {"rel"=>50,"auth"=>0,"fresh"=>0,"struct"=>0,"gain"=>0,"cons"=>0}
+    response = http("Post", "/geo/api/search", body:{question:"企业工具",weights:weights},cookie:cookie)
+    block = response.body.split("\n\n").find{|part|part.start_with?("event: result\n")}
+    refute_nil block, response.body
+    assert_equal weights, JSON.parse(block.split("data: ",2)[1])["ranking"]["weights"]
+  end
+
   def test_static_routes_cannot_read_credentials_or_backend_files
     %w[/backend/geo/lib/config.rb /.env /geo/../../backend/geo/server.rb /credentials.json].each do |path|
       assert_includes ["400", "404"], http("Get", path).code

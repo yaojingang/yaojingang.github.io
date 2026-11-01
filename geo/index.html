@@ -527,7 +527,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 @keyframes sheetin{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
 </style>
-<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.2">
+<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.3">
 
 <header class="top" id="top">
   <div class="top-in">
@@ -809,8 +809,8 @@ const fmt=n=>n.toLocaleString('en-US');
 const f1=n=>n.toFixed(1);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-function score(s,w){let t=0,sw=0;SIG.forEach((g,i)=>{t+=w[g.k]*s.sig[i];sw+=w[g.k]});return sw?t/sw:0}
-function rankBy(ds,w){return ds.sources.map(s=>({s,v:score(s,w)})).sort((a,b)=>b.v-a.v)}
+function score(s,w){let t=0,sw=0;SIG.forEach((g,i)=>{if(Number.isFinite(s.sig?.[i])){t+=w[g.k]*s.sig[i];sw+=w[g.k]}});return sw?Math.round(t/sw*1e6)/1e6:null}
+function rankBy(ds,w){return ds.sources.map(s=>({s,v:score(s,w)})).sort((a,b)=>ds.live?Number(b.s.eligible)-Number(a.s.eligible)||(b.v??-1)-(a.v??-1)||b.s.api_score-a.s.api_score||(a.s.url<b.s.url?-1:a.s.url>b.s.url?1:0):(b.v??-1)-(a.v??-1))}
 function kind(sg){return !sg.f||!sg.f.length?'synth':sg.f.length>1?'merge':'extract'}
 function ico(s){return `<i class="ico" style="background:${s.tc}">${esc(s.ic)}</i>`}
 const short=s=>s.display_site||s.site.split(' · ')[0];
@@ -1002,12 +1002,13 @@ function closePop(){
 document.addEventListener('click',e=>{if(!e.target.closest('#pop')&&!e.target.closest('.seg'))closePop()});
 function srcCard(s,ds,i){
   const c=ds.color[s.id];
-  const stack=ds.live?`<i style="width:${s.api_score/3*100}%;background:var(--accent)" title="API 排序分 ${s.api_score.toFixed(2)} / 3"></i>`:SIG.map((g,j)=>`<i style="width:${DEFAULT_W[g.k]*s.sig[j]/100}%;background:var(--g${j+1})" title="${g.n} ${s.sig[j]}"></i>`).join('');
+  const weights=ds.live?(ds.ranking?.weights||DEFAULT_W):DEFAULT_W,sw=SIG.reduce((n,g,j)=>n+(Number.isFinite(s.sig?.[j])?weights[g.k]:0),0);
+  const stack=SIG.map((g,j)=>`<i style="width:${sw&&Number.isFinite(s.sig?.[j])?weights[g.k]*s.sig[j]/sw:0}%;background:var(--g${j+1})" title="${g.n} ${s.sig?.[j]??'未知'}"></i>`).join('');
   const title=ds.live?`<a class="src-t" href="${esc(sourceURL(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a>`:`<p class="src-t">${esc(s.title)}</p>`;
   return `<div class="src" data-id="${s.id}" style="--sc:var(--s${c})">
     <div class="src-site">${ico(s)}<span title="${esc(s.site)}">${esc(ds.live?short(s):s.site)}</span><span class="n">${i+1}</span></div>
     ${title}<div class="src-s">${esc(s.snip)}</div>
-    <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span><span class="scorev">${ds.live?s.api_score.toFixed(2)+' / 3':f1(s.v0)}</span></div>
+    <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span><span class="scorev" title="${ds.live?'本站六维加权分 / 100；API 原分 '+s.api_score.toFixed(2)+' / 3':'教学加权分'}">${ds.live?(s.weighted_score==null?'未知':f1(s.weighted_score)):f1(s.v0)}</span></div>
       <div class="stack">${stack}</div><div class="src-why">${esc(s.why)}</div></div>
   </div>`;
 }
@@ -1069,10 +1070,10 @@ function renderProcess(){
   $('#proc').innerHTML=`
   <div class="proc-h"><div><button class="back" id="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>返回回答</button>
     <h1>“<em>${esc(state.q||ds.query)}</em>”的回答是怎样生成的</h1>
-    <div class="meta">${ds.live?'本次实际运行记录 · API 原始排序分 · 本站证据关联':`示例数据 · 评分和权重为教学简化模型${state.fallback?` · 使用示例「${esc(ds.query)}」`:''}`} · 键盘 ← → 切换步骤</div></div>
+    <div class="meta">${ds.live?'本次实际运行记录 · 本站六维精排 · 选段与引用可追溯':`示例数据 · 评分和权重为教学简化模型${state.fallback?` · 使用示例「${esc(ds.query)}」`:''}`} · 键盘 ← → 切换步骤</div></div>
     <div class="ctrl"><button class="play press" id="play">${state.play?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>暂停':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>自动演示'}</button></div></div>
   <div class="proc-grid">
-    <ol class="rail" id="rail">${STAGES.map((s,i)=>`<li><button class="st${i===S?' on':''}${i<S?' past':''}" data-i="${i}" data-sound="none"><span class="num">${i<S?'✓':i+1}${i===S?`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"${state.play?' class="run"':''}/></svg>`:''}</span><span><small>${s.en}</small><b>${s.n}</b></span></button></li>`).join('')}</ol>
+    <ol class="rail" id="rail" aria-label="回答生成的六个环节">${STAGES.map((s,i)=>`<li><button class="st${i===S?' on':''}${i<S?' past':''}" ${i===S?'aria-current="step"':''} data-i="${i}" data-sound="none"><span class="num">${i<S?'✓':i+1}${i===S?`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"${state.play?' class="run"':''}/></svg>`:''}</span><span><small>${s.en}</small><b>${s.n}</b></span></button></li>`).join('')}</ol>
     <section class="panel stage-in" id="panel">${STAGE_R[st.k](ds)}
       <div class="pager"><button id="prev" ${S===0?'disabled':''} data-sound="none"><small>上一步</small><b>${S>0?'← '+STAGES[S-1].n:''}</b></button>
       <button class="nx" id="next" data-sound="none"><small>${S<5?'下一步':'完成'}</small><b>${S<5?STAGES[S+1].n+' →':'回到回答 →'}</b></button></div>
@@ -1096,6 +1097,60 @@ const PLAY_MS=9000;
 function startPlay(){state.play=true;Sound.play('toggle');schedule()}
 function schedule(){clearTimeout(state.timer);document.documentElement.style.setProperty('--dur',PLAY_MS+'ms');state.timer=setTimeout(()=>{if(state.stage<5){Sound.play('step');state.stage++;renderProcess();schedule()}else{stopPlay();renderProcess()}},PLAY_MS)}
 function stopPlay(){state.play=false;clearTimeout(state.timer)}
+
+function contentChecklist(ds){
+  const checks=STAGES.map((s,i)=>[s.n,ds.live?GeoLive.stageMeta(i).g[0]:s.g[0]]);
+  return `<p class="subh live-section-gap">GEO 内容自查清单 · 勾选已经做到的</p><div class="check">${checks.map((c,i)=>`<label for="ck-${i}"><input type="checkbox" id="ck-${i}" ${ds.checks?.[i]?'checked':''}><span><b>${c[0]}</b>${c[1]}</span></label>`).join('')}</div>`;
+}
+function rankingLab(ds){
+  const live=!!ds.live;
+  const fun=[['召回结果',ds.total],['去重后候选',ds.dedup],[live?'相关性达标':'粗排保留',live?(ds.quality?.eligible_count||0):ds.coarse],['进入精排',ds.sources.length],[live?'实际精读':'模拟入选',live?ds.sources.filter(s=>s.read).length:CITE_N]];
+  return `<h2>多维打分，按权重加总</h2><p class="lead">${live?'拖动六项权重，免费预览候选排名；应用后按新权重重新检索与生成回答。':'拖动六项权重，观察前五个模拟入选来源怎样变化。示例回答保留，方便对照。'}</p>
+    <div class="funnel">${fun.map((f,i)=>`<div class="fn"><span>${f[0]}</span><div style="width:${Math.max(8,Math.sqrt(f[1]/Math.max(1,ds.total))*100)}%">${fmt(f[1])}</div></div>`).join('')}</div>
+    <div class="lab"><div class="lab-h"><b>权重实验台</b><div class="presets" id="presets">${PRESETS.map((p,i)=>`<button data-p="${i}" type="button">${p.n}</button>`).join('')}</div></div>
+    <p class="hint">${live?'与教学版采用相同维度和归一化加权公式。先过 API 1.50 分门槛，再选择最多 5 个精读来源。预览使用本次候选，重新检索时资料可能变化。':ds.rankHint}</p>
+    <div class="weights">${SIG.map((g,i)=>`<div class="wt"><label for="w-${g.k}"><span><i style="background:var(--g${i+1})"></i>${g.n}</span><span class="v" id="wv-${g.k}"></span></label><input type="range" id="w-${g.k}" min="0" max="50" step="5" value="${state.w[g.k]}" style="--c:var(--g${i+1})"><p>${live?['API 综合分映射，作为相关性代理','API 权威等级，未知项单独标记','按 API 发布时间估计新旧程度','按完整语句与标题、列表标记估计','按其他主机未出现的词项比例估计','按其他主机共有的词项比例估计'][i]:g.d}</p></div>`).join('')}</div>
+    <div class="rank-summary"><span id="rank-status" role="status"></span>${live?'<button class="play press" id="rank-apply" type="button">按此权重重新检索</button>':''}</div>
+    <div class="board" id="board"></div>
+    ${live?'<div class="rank-basis"><div class="rank-basis-h"><b>查看分数依据</b><select id="rank-source" aria-label="查看哪个来源的六维依据"></select></div><dl id="rank-breakdown"></dl><p class="hint">六维分数为本站可解释估计。API 综合分也含权威和时效因素；跨站共现需要结合原文核对事实。未知项从该页面的加权分母中排除。</p></div>':''}</div>`;
+}
+function bindRankingLab(ds){
+  const board=$('#board'),live=!!ds.live;
+  board.innerHTML=ds.sources.map(s=>`<div class="brow" data-id="${esc(s.id)}"><span class="rk"></span><div class="nm">${ico(s)}<div><b title="${esc(s.site)}">${esc(short(s))}</b><small>${esc(s.type)} · ${esc(s.date)}</small></div></div><div class="stack">${SIG.map((g,j)=>`<i style="background:var(--g${j+1})"></i>`).join('')}</div><span class="scorev"></span><span class="stat"><span class="delta"></span><span class="badge"></span></span></div>`).join('')+'<div class="cutline"><span></span></div>';
+  let prevTop=null;
+  const detail=()=>{
+    if(!live)return;
+    const source=ds.byId[$('#rank-source').value];if(!source)return;
+    $('#rank-breakdown').innerHTML=SIG.map((g,j)=>`<div><dt><i style="background:var(--g${j+1})"></i>${g.n}<b>${source.sig?.[j]==null?'未知':f1(source.sig[j])}</b></dt><dd>${esc(source.sig_basis?.[j]||'本次尚无该维度的可用依据。')}</dd></div>`).join('');
+  };
+  if(live){$('#rank-source').innerHTML=ds.sources.map(s=>`<option value="${esc(s.id)}">${esc(short(s))}</option>`).join('');$('#rank-source').onchange=detail;detail();}
+  const update=first=>{
+    const H=innerWidth<=640?58:48;
+    board.style.height=(ds.sources.length*H+18)+'px';
+    const w=state.w,sw=SIG.reduce((a,g)=>a+w[g.k],0),r=rankBy(ds,w);
+    const selected=r.filter(x=>(!live||x.s.eligible)&&x.v!=null).slice(0,CITE_N);
+    const top=selected.map(x=>x.s.id).join();
+    if(!first&&prevTop!==null&&top!==prevTop)Sound.play('toggle');prevTop=top;
+    SIG.forEach(g=>{const input=$('#w-'+g.k);$('#wv-'+g.k).textContent=`${w[g.k]} · ${sw?Math.round(w[g.k]/sw*100):0}%`;input.value=w[g.k];input.style.setProperty('--p',(w[g.k]/50*100)+'%');input.setAttribute('aria-valuetext',`${w[g.k]}，归一化占比 ${sw?Math.round(w[g.k]/sw*100):0}%`)});
+    r.forEach((x,i)=>{
+      const el=$('.brow[data-id="'+x.s.id+'"]',board),known=SIG.reduce((n,g,j)=>n+(Number.isFinite(x.s.sig?.[j])?w[g.k]:0),0),isIn=selected.includes(x);
+      el.style.transform=`translateY(${i*H}px)`;el.dataset.rank=String(i+1);el.dataset.selected=String(isIn);$('.rk',el).textContent=i+1;
+      $$('.stack i',el).forEach((bar,j)=>{bar.style.width=(known&&Number.isFinite(x.s.sig?.[j])?w[SIG[j].k]*x.s.sig[j]/known:0)+'%';bar.title=`${SIG[j].n} ${x.s.sig?.[j]??'未知'}`});
+      $('.scorev',el).textContent=x.v==null?'—':f1(x.v);
+      const badge=$('.badge',el);badge.className='badge '+(isIn?'in':'out');badge.textContent=!sw?'未设置':live&&!x.s.eligible?'未达标':x.v==null?'未知':isIn?(live?'拟精读':'入选'):'候选';
+      const delta=x.s.r0-i,dl=$('.delta',el);dl.className='delta '+(delta>0?'up':delta<0?'dn':'');dl.textContent=sw?(delta>0?`↑${delta}`:delta<0?`↓${-delta}`:''):'';
+    });
+    const cut=$('.cutline',board);cut.hidden=!selected.length||selected.length===r.length;cut.style.top=selected.length*H+'px';$('span',cut).textContent=live?'精读名额线':'模拟引用名额线';
+    const changed=live&&SIG.some(g=>w[g.k]!==ds.ranking?.weights?.[g.k]);
+    $('#rank-status').textContent=!sw?'至少保留一个非零权重。':live?(changed?`预览中 · ${selected.length} 个拟精读来源，当前回答保留原权重结果。`:'当前为本次实际使用的权重。'):`模拟选中 ${selected.length} 个来源 · 权重按总和归一化。`;
+    if(live){$('#rank-apply').disabled=!sw||!changed;$('#rank-apply').onclick=()=>{stopPlay();GeoLive.search(ds.query,{weights:{...state.w}})};}
+    $$('#presets button').forEach((b,i)=>{const on=SIG.every(g=>PRESETS[i].w[g.k]===w[g.k]);b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
+  };
+  SIG.forEach(g=>$('#w-'+g.k).addEventListener('input',e=>{state.w[g.k]=+e.target.value;Sound.play('tick');update()}));
+  $$('#presets button').forEach(b=>b.onclick=()=>{state.w={...PRESETS[+b.dataset.p].w};update()});
+  state.rankUpdate=()=>update(true);
+  update(true);
+}
 
 const STAGE_R={
   understand(ds){
@@ -1121,18 +1176,7 @@ const STAGE_R={
     <p class="subh">这些内容连候选池都进不去</p>
     <div class="lost"><div><b>未被收录的页面</b>robots 屏蔽、没有外链、刚发布还没被抓取。</div><div><b>藏在图片和 PDF 里的文字</b>海报、长图、扫描件，机器读不到正文。</div><div><b>需要登录才能看的内容</b>会员专区、私域文章、App 内页。</div></div>`;
   },
-  rank(ds){
-    const fun=[['召回结果',ds.total],['去重后候选',ds.dedup],['粗排保留',ds.coarse],['进入精排',ds.sources.length],['获得引用',CITE_N]];
-    return `<h2>多维打分，按权重加总</h2><p class="lead">拖动权重滑块，排名会实时重排。虚线以上的 ${CITE_N} 个来源会被引用。</p>
-    <div class="funnel">${fun.map((f,i)=>`<div class="fn"><span>${f[0]}</span><div style="width:${Math.max(8,Math.sqrt(f[1]/ds.total)*100)}%;animation-delay:${i*80}ms">${fmt(f[1])}</div></div>`).join('')}</div>
-    <div class="lab">
-      <div class="lab-h"><b>权重实验台</b><div class="presets" id="presets">${PRESETS.map((p,i)=>`<button data-p="${i}" data-sound="tap">${p.n}</button>`).join('')}</div></div>
-      <p class="hint">${ds.rankHint}</p>
-      <div class="weights">${SIG.map((g,i)=>`<div class="wt"><label for="w-${g.k}"><span><i style="background:var(--g${i+1})"></i>${g.n}</span><span class="v" id="wv-${g.k}"></span></label>
-        <input type="range" id="w-${g.k}" min="0" max="50" step="5" value="${state.w[g.k]}" style="--c:var(--g${i+1})"><p>${g.d}</p></div>`).join('')}</div>
-      <div class="board" id="board"></div>
-    </div>`;
-  },
+  rank(ds){return rankingLab(ds)},
   chunk(ds){
     const s=ds.byId[ds.chunkDoc];
     return `<h2>AI 读的是段落</h2><p class="lead">以入选来源「${esc(s.site)}」为例，看它的页面被切成几段、哪几段被选中。</p>
@@ -1157,14 +1201,12 @@ const STAGE_R={
   cite(ds){
     const cut=ds.rank[CITE_N-1].v;
     const uses=id=>ds.sents.filter(s=>(s.f||[]).some(f=>f.id===id)).length;
-    const checks=STAGES.slice(0,5).map(s=>[s.n,s.g[0]]).concat([['引用展示','让第三方替你说话：测评、问答、行业媒体里的客观描述，同样能把品牌带进回答。']]);
     return `<h2>${CITE_N} 个来源获得引用，其余落选</h2><p class="lead">入选来源会出现在回答右侧和句末引用标记里。本次分数线 <span class="mono">${f1(cut)}</span>。</p>
     <div class="cgrid">${ds.cited.map((id,i)=>{const s=ds.byId[id];return `<div class="ccard" style="--sc:var(--s${ds.color[id]});animation-delay:${i*70}ms"><div class="h">${ico(s)}<span>${esc(short(s))}</span><span class="scorev">${f1(s.v0)}</span></div><p>支撑 <b>${uses(id)}</b> 句。${esc(s.why)}</p></div>`}).join('')}</div>
     <p class="subh">落选来源 · 原因与优化方向</p>
     ${ds.rank.slice(CITE_N).map((r,i)=>`<div class="mcard" style="animation-delay:${300+i*70}ms"><div class="h">${ico(r.s)}<b>${esc(r.s.site)}</b><span class="meta">${esc(r.s.type)} · ${esc(r.s.date)}</span><span class="gap">${f1(r.v)} · 差 ${f1(cut-r.v)}</span></div>
       <div><small>落选原因</small><p>${esc(r.s.miss)}</p></div><div class="fix"><small>如果想入选</small><p>${esc(r.s.fix)}</p></div></div>`).join('')}
-    <p class="subh" style="margin-top:28px">GEO 内容自查清单 · 勾选你已经做到的</p>
-    <div class="check">${checks.map((c,i)=>`<label for="ck-${i}"><input type="checkbox" id="ck-${i}" data-sound="none"><span><b>${c[0]}</b>${c[1]}</span></label>`).join('')}</div>`;
+    ${contentChecklist(ds)}`;
   }
 };
 function countUp(el){const to=+el.dataset.count,t0=performance.now(),D=reduced?1:900;const f=t=>{const p=Math.min(1,(t-t0)/D),e=1-Math.pow(1-p,3);el.textContent=fmt(Math.round(to*e));if(p<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
@@ -1181,37 +1223,8 @@ const STAGE_AFTER={
     requestAnimationFrame(()=>requestAnimationFrame(()=>$$('.r-row .bar i').forEach(i=>i.style.width=i.dataset.w+'%')));
     $$('[data-count]').forEach(countUp);
   },
-  rank(ds){
-    const board=$('#board');const narrow=innerWidth<=640;const H=narrow?58:48;
-    board.style.height=(ds.sources.length*H)+'px';
-    board.innerHTML=ds.sources.map(s=>`<div class="brow" data-id="${s.id}"><span class="rk"></span>
-      <div class="nm">${ico(s)}<div><b>${esc(s.site)}</b><small>${esc(s.type)} · ${esc(s.date)}</small></div></div>
-      <div class="stack">${SIG.map((g,j)=>`<i style="background:var(--g${j+1})"></i>`).join('')}</div>
-      <span class="scorev"></span><span class="stat"><span class="delta"></span><span class="badge"></span></span></div>`).join('')+`<div class="cutline" style="top:${CITE_N*H}px"><span>引用名额线</span></div>`;
-    let prevTop=null;
-    const update=(first)=>{
-      const w=state.w,sw=SIG.reduce((a,g)=>a+w[g.k],0);
-      SIG.forEach(g=>{$('#wv-'+g.k).textContent=`${w[g.k]} · ${sw?Math.round(w[g.k]/sw*100):0}%`;const inp=$('#w-'+g.k);inp.value=w[g.k];inp.style.setProperty('--p',(w[g.k]/50*100)+'%')});
-      const r=rankBy(ds,w);
-      const top=r.slice(0,CITE_N).map(x=>x.s.id).join();
-      if(!first&&prevTop!==null&&top!==prevTop)Sound.play('toggle');
-      prevTop=top;
-      r.forEach((x,i)=>{
-        const el=$(`.brow[data-id="${x.s.id}"]`,board);
-        el.style.transform=`translateY(${i*H}px)`;
-        $('.rk',el).textContent=i+1;
-        $$('.stack i',el).forEach((b,j)=>b.style.width=(sw?w[SIG[j].k]*x.s.sig[j]/sw:0)+'%');
-        $('.scorev',el).textContent=f1(x.v);
-        const b=$('.badge',el);b.className='badge '+(i<CITE_N?'in':'out');b.textContent=i<CITE_N?'入选':'落选';
-        const d=x.s.r0-i,dl=$('.delta',el);dl.className='delta '+(d>0?'up':d<0?'dn':'');dl.textContent=d>0?`↑${d}`:d<0?`↓${-d}`:'';
-      });
-      $$('#presets button').forEach((b,i)=>b.classList.toggle('on',SIG.every(g=>PRESETS[i].w[g.k]===w[g.k])));
-    };
-    SIG.forEach(g=>$('#w-'+g.k).addEventListener('input',e=>{state.w[g.k]=+e.target.value;Sound.play('tick');update()}));
-    $$('#presets button').forEach(b=>b.onclick=()=>{state.w={...PRESETS[+b.dataset.p].w};update()});
-    update(true);
-  },
-  cite(){$$('.check input').forEach(c=>c.onchange=()=>{Sound.play(c.checked?'toggle':'off');const n=$$('.check input:checked').length;if(n===6)toast('6 项全部做到，内容已具备被引用的基础')})}
+  rank(ds){bindRankingLab(ds)},
+  cite(ds){$$('.check input').forEach((c,i)=>c.onchange=()=>{ds.checks||={};ds.checks[i]=c.checked;Sound.play(c.checked?'toggle':'off');const n=$$('.check input:checked').length;if(n===6)toast('六项检查已完成，可以继续核对实际引用表现')})}
 };
 
 /* ================= 全局事件 ================= */
@@ -1224,15 +1237,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||
 document.addEventListener('keydown',e=>{
   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();const ta=state.view==='home'?$('#q-home'):$('#q-res');if(state.view==='process')backToResults();setTimeout(()=>$('#'+(state.view==='home'?'q-home':'q-res')).focus(),60);Sound.play('open');return}
   if(e.key==='Escape'){closePop();return}
-  if(state.view==='process'&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){if(e.key==='ArrowRight')goStage(state.stage+1);if(e.key==='ArrowLeft')goStage(state.stage-1)}
+  if(state.view==='process'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){if(e.key==='ArrowRight')goStage(state.stage+1);if(e.key==='ArrowLeft')goStage(state.stage-1)}
 });
 addEventListener('scroll',()=>$('#top').classList.toggle('scrolled',scrollY>4),{passive:true});
-addEventListener('resize',()=>{moveThumb();closePop()});
+addEventListener('resize',()=>{moveThumb();closePop();if(state.view==='process'&&state.stage===2)state.rankUpdate?.()});
 let initX=false,initS=true;try{initX=localStorage.getItem('geo-xray')==='1';initS=localStorage.getItem('geo-sound')!=='0'}catch(e){}
 setSound(initS);setXray(initX,true);moveThumb();
 if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
-<script src="/geo/live.js?v=geo-live-1.2" defer></script>
+<script src="/geo/live.js?v=geo-live-1.3" defer></script>
 {% include baidu-analytics.html %}

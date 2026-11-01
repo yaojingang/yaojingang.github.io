@@ -8,13 +8,14 @@ const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '../../..');
 const artifacts = fs.mkdtempSync(path.join(os.tmpdir(), 'geo-ui-check-'));
 const text = '根据团队使用场景、数据规模与协作需求选择分析工具，并核对产品原始资料。';
+const defaults={rel:30,auth:20,fresh:15,struct:15,gain:10,cons:10}, requests=[];
 const sources = [
   {id:'S1',site:'一个名称较长的数据分析研究中心资料库',title:'数据分析工具选型与团队协作指南',url:'https://example.org/analysis',api_score:2.65,authority:3,date:'2026-11-01'},
   {id:'S2',site:'工具文档',title:'产品说明 <img src=x onerror="window.__geoXSS=1">',url:'https://example.net/guide',api_score:2.13,authority:2,date:'2026-10-30'}
-].map((s,i)=>({...s,snip:text,tc:'#2d5bff',ic:s.site[0],r0:i,v0:s.api_score,type:'网页正文',read:true,eligible:true,why:'本次回答引用了此来源的选段。'}));
+].map((s,i)=>({...s,snip:text,tc:'#2d5bff',ic:s.site[0],r0:i,v0:s.api_score,type:'网页正文',read:true,eligible:true,why:'本次回答引用了此来源的选段。',sig:i?[71,100,99,80,50,60]:[88.33,25,99,95,80,80],sig_basis:Array.from({length:6},(_,j)=>'第 '+(j+1)+' 维分数的离线依据。'),weighted_score:i?79.15:76.599,segments:[{text:'首页\n联系我们',index:0,picked:false,basis:'body',term_hits:0,reason:'导航标签，未采用。'},{text,index:1,picked:true,basis:'body',term_hits:3,reason:'完整语句，进入上下文。'}]}));
 const evidence = sources.map(s=>({id:s.id+'-P1',source_id:s.id,text:text.repeat(24),basis:'body',term_hits:2}));
 const refs = evidence.map(e=>({id:e.source_id,q:e.text,evidence_id:e.id,basis:e.basis}));
-const data = {live:true,query:'企业应该怎样选择数据分析工具？',intent:{type:'工具选型'},searches:[{query:'企业应该怎样选择数据分析工具？ lang:zh',count:2},{query:'数据分析工具 团队协作 lang:zh',count:2}],sources,evidence,answer:[{t:'p',segs:[{x:text.repeat(4),f:refs}]},{t:'p',segs:[{x:text,f:[refs[0]]}]}],cited:['S1','S2'],trace:Array.from({length:6},(_,stage)=>({stage,message:['保留原始问题，生成搜索词。','实际检索 2 组查询。','按 1.50 分选用线筛选来源。','已记录 2 段正文。','已整理 2 段回答。','引用 2 个来源。'][stage]})),total:4,dedup:2,cached:false,status:'complete',quality:{min_score:1.5,eligible_count:2,read_count:2,language:'zh'},warnings:[],created_at:'2026-11-01T19:00:00+08:00',elapsed_seconds:2.18,budget:{limit_cny:50,used_cny:0.12,remaining_cny:49.88}};
+const data = {live:true,query:'企业应该怎样选择数据分析工具？',ranking:{weights:defaults,limit:5},intent:{type:'工具选型',ents:['分析工具'],cons:[['使用场景','团队协作']],plan:'先比较场景，再核对接入条件。'},searches:[{query:'企业应该怎样选择数据分析工具？ lang:zh',count:2},{query:'数据分析工具 团队协作 lang:zh',count:2}],sources,evidence,answer:[{t:'p',segs:[{x:text.repeat(4),f:refs}]},{t:'p',segs:[{x:text,f:[refs[0]]}]}],cited:['S1','S2'],trace:Array.from({length:6},(_,stage)=>({stage,message:['保留原始问题，生成搜索词。','实际检索 2 组查询。','按 1.50 分选用线筛选来源。','已记录 2 段正文。','已整理 2 段回答。','引用 2 个来源。'][stage]})),total:4,dedup:2,cached:false,status:'complete',quality:{min_score:1.5,eligible_count:2,read_count:2,language:'zh'},warnings:[],created_at:'2026-11-01T19:00:00+08:00',elapsed_seconds:2.18,budget:{limit_cny:50,used_cny:0.12,remaining_cny:49.88}};
 let loggedIn = false;
 const files = {'/geo/':['geo/index.html','text/html'],'/geo/live.js':['geo/live.js','text/javascript'],'/geo/live.css':['geo/live.css','text/css'],'/geo/test-questions.json':['geo/test-questions.json','application/json']};
 const json = (res, value, code=200) => {res.writeHead(code, {'Content-Type':'application/json'});res.end(JSON.stringify(value));};
@@ -24,11 +25,11 @@ const server = http.createServer(async(req,res)=>{
   if(pathname==='/geo/api/session'){loggedIn=req.method==='POST';return json(res,{authenticated:loggedIn,budget:data.budget});}
   if(pathname==='/geo/api/search'){
     let body='';for await(const chunk of req) body+=chunk;
-    const question=JSON.parse(body).question;
+    const payload=JSON.parse(body);requests.push(payload);const question=payload.question;
     if(question==='错误状态测试') return json(res,{error:{message:'离线限流测试，请稍后再试。'}},429);
     res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8'});
     if(question==='等待检索测试'){res.write('event: step\ndata: {"stage":0,"message":"正在理解问题。"}\n\n');return;}
-    const output=structuredClone(data);output.query=question;
+    const output=structuredClone(data);output.query=question;output.ranking.weights=payload.weights||defaults;
     if(question==='数学分析师推荐')Object.assign(output,{status:'insufficient',answer:[],cited:[],evidence:[],quality:{min_score:1.5,eligible_count:0,read_count:0,language:'zh'},sources:output.sources.map(s=>({...s,api_score:1.2,read:false,eligible:false,type:'搜索结果',why:'API 排序分低于本站 1.50 分选用线。'})),diagnostic:'本次没有找到足够相关且内容可用的资料。请补充推荐对象、使用场景或地区，再继续检索。',searches:[{query:'数学分析师推荐 lang:zh',count:2},{query:'数学分析师 推荐 lang:zh',count:2}],trace:output.trace.map(row=>({...row,message:row.stage===3?'没有找到有效选段。':row.stage===4?'资料不足，没有调用回答模型。':row.stage===5?'没有形成引用。':row.message}))});
     const bytes=Buffer.from('event: result\ndata: '+JSON.stringify(output)+'\n\n');
     for(let offset=0;offset<bytes.length;offset+=137)res.write(bytes.subarray(offset,offset+137));
@@ -53,6 +54,18 @@ const server = http.createServer(async(req,res)=>{
   await page.getByRole('button',{name:'实时内测',exact:true}).click();
   await page.locator('#live-password').fill('offline-fixture-password');
   await page.getByRole('button',{name:'进入内测',exact:true}).click();await page.waitForFunction(()=>GeoLive.active);
+  if(process.env.GEO_LOADING_ONLY){
+   await page.evaluate(()=>setXray(true,true));
+   page.evaluate(()=>GeoLive.search('等待检索测试')).catch(()=>{});
+   await page.locator('#live-cancel').waitFor({state:'visible'});
+   const boxes=await page.evaluate(()=>({width:innerWidth,legend:document.querySelector('#legend').getBoundingClientRect().height,progress:document.querySelector('#think').getBoundingClientRect().height}));
+   await page.screenshot({path:path.join(artifacts,'loading-desktop.png'),fullPage:true});
+   console.log(JSON.stringify({loading:boxes,artifacts}));
+   assert.equal(boxes.legend,0,'Empty legend should take no layout space during loading');
+   assert.equal(await page.locator('.live-phase').count(),6);assert.equal(await page.locator('.live-phase.cur').count(),1);
+   await page.locator('#live-cancel').click();await page.waitForFunction(()=>!state.thinking);
+   return;
+  }
   await page.evaluate(()=>openProcess(0));
   assert(await page.locator('#home').isVisible());
   await page.evaluate(()=>GeoLive.search('企业应该怎样选择数据分析工具？'));
@@ -72,6 +85,38 @@ const server = http.createServer(async(req,res)=>{
   assert.equal(await page.locator('#answer img,#side img').count(),0);
   assert.equal(await page.evaluate(()=>window.__geoXSS),undefined);
   await page.screenshot({path:path.join(artifacts,'results-desktop.png'),fullPage:true});
+  await page.evaluate(()=>openProcess(2));assert.equal(await page.locator('.weights input[type=range]').count(),6);
+  await page.locator('#rank-source').focus();await page.keyboard.press('ArrowRight');
+  const selectStage=await page.evaluate(()=>state.stage);
+  await page.evaluate(()=>openProcess(2));await page.locator('#rank-source').selectOption('S2');
+  await resize(390);
+  const responsive=await page.locator('#board .brow').evaluateAll(nodes=>{const rows=nodes.map(el=>el.getBoundingClientRect()).sort((a,b)=>a.top-b.top);return{gap:rows[1].top-rows[0].bottom,height:rows[0].height};});
+  console.log(JSON.stringify({selectStage,responsive}));
+  assert.equal(selectStage,2,'Arrow keys in source select must not navigate away');
+  assert(responsive.gap>=-0.1,'Ranking rows overlap after resizing in place');assert.equal(await page.locator('#rank-source').inputValue(),'S2');
+  await resize(1440);
+  const beforePreview=requests.length, originalAnswer=await page.evaluate(()=>JSON.stringify(state.ds.answer));
+  await page.getByRole('button',{name:'只看相关性',exact:true}).click();
+  assert.equal(await page.locator('.brow[data-rank="1"]').getAttribute('data-id'),'S1');
+  await page.getByRole('button',{name:'权威优先',exact:true}).click();
+  assert.equal(await page.locator('.brow[data-rank="1"]').getAttribute('data-id'),'S2');
+  assert.equal(requests.length,beforePreview);assert.equal(await page.evaluate(()=>JSON.stringify(state.ds.answer)),originalAnswer);
+  assert.equal(await page.locator('#rank-breakdown>div').count(),6);
+  await page.locator('#rank-apply').click();await page.waitForFunction(()=>!!state.ds&&!state.thinking);
+  assert.equal(requests.length,beforePreview+1);assert.equal(requests.at(-1).weights.auth,40);
+  await page.evaluate(()=>openProcess(2));assert(await page.locator('#rank-apply').isDisabled());
+  await page.locator('#w-rel').focus();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#w-rel').inputValue(),'35');assert.equal(await page.evaluate(()=>state.stage),2);
+  await page.evaluate(()=>{for(const g of SIG){const input=document.querySelector('#w-'+g.k);input.value=0;input.dispatchEvent(new Event('input',{bubbles:true}));}});
+  assert(await page.locator('#rank-apply').isDisabled());assert((await page.locator('#rank-status').innerText()).includes('非零'));
+  await page.getByRole('button',{name:'默认',exact:true}).click();
+  await page.locator('#next').click();assert.equal(await page.evaluate(()=>state.stage),3);
+  assert.equal(await page.locator('.chunk.pick').count(),2);assert.equal(await page.locator('.chunk.drop').count(),2);
+  await page.locator('#prev').click();assert.equal(await page.evaluate(()=>state.stage),2);
+  await page.locator('#panel h2').click();await page.keyboard.press('ArrowRight');assert.equal(await page.evaluate(()=>state.stage),3);
+  await page.evaluate(()=>openProcess(5));assert.equal(await page.locator('.check input').count(),6);await page.locator('#ck-0').check();
+  await page.evaluate(()=>goStage(4));await page.evaluate(()=>goStage(5));assert(await page.locator('#ck-0').isChecked());
+  await page.evaluate(()=>backToResults());
+
   for(const width of [1440,1024,768,640,390,320]){
    await resize(width);
    await page.evaluate(()=>backToResults());
@@ -80,6 +125,7 @@ const server = http.createServer(async(req,res)=>{
     await page.evaluate(stage=>openProcess(stage),stage);
     assert((await page.locator('#panel').innerText()).length>20,'Empty stage '+stage);
     if(width===1440)await page.screenshot({path:path.join(artifacts,'process-stage-'+(stage+1)+'.png'),fullPage:true});
+    if(width===390&&stage===2)await page.screenshot({path:path.join(artifacts,'ranking-mobile.png'),fullPage:true});
     const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert(bounds.scroll<=bounds.width,'Stage '+stage+' overflow '+JSON.stringify(bounds));
     if(stage===4)assert(await page.locator('.mrow .tx').evaluateAll(nodes=>nodes.every(node=>node.getBoundingClientRect().width>120)));
@@ -97,7 +143,7 @@ const server = http.createServer(async(req,res)=>{
   await page.screenshot({path:path.join(artifacts,'insufficient-mobile.png'),fullPage:true});
   await page.evaluate(()=>GeoLive.search('错误状态测试'));assert((await page.locator('#answer [role=alert]').innerText()).includes('离线限流测试'));
   await page.locator('#q-res').fill('等待检索测试');await page.locator('#f-res').getByRole('button',{name:'搜索',exact:true}).click();
-  await page.locator('#live-cancel').waitFor({state:'visible'});assert.equal(await page.locator('.think.running .tstep').count(),1);
+  await page.locator('#live-cancel').waitFor({state:'visible'});assert.equal(await page.locator('.live-phase').count(),6);assert.equal(await page.locator('.live-phase.cur').count(),1);assert(await page.locator('#legend').isHidden());await page.screenshot({path:path.join(artifacts,'loading-mobile.png'),fullPage:true});
   await page.locator('#live-cancel').click();await page.waitForFunction(()=>!state.thinking);
   assert((await page.locator('#answer [role=alert]').innerText()).includes('已停止'));
   await resize(1440);

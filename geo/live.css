@@ -60,3 +60,61 @@
 .live-mode .fan-list li{overflow-wrap:anywhere}
 .live-mode .pop blockquote{overflow-wrap:anywhere;white-space:pre-wrap}
 @media(min-width:641px){.live-mode .pop{max-height:min(560px,calc(100dvh - 220px));overflow-y:auto;overscroll-behavior:contain}}
+
+/* Shared ranking lab and recorded progress follow the teaching component scale. */
+.live-progress{padding:18px 20px 16px;border-radius:14px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line2);margin:4px 0 26px}
+.live-progress-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.live-progress-title{display:flex;align-items:center;gap:9px;font-size:13px;min-width:0}
+.live-progress-title b{font-weight:600}
+.live-progress-title .mono{font-size:10.5px;color:var(--fg3);margin-left:3px}
+.live-pulse{width:8px;height:8px;flex:none;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-tint);animation:live-pulse 1.8s ease-in-out infinite}
+@keyframes live-pulse{50%{opacity:.35}}
+.live-progress .live-cancel{font-size:11.5px;color:var(--fg2);background:var(--soft);padding:0 12px;min-height:36px;white-space:nowrap}
+.live-progress-message{font-size:13px;line-height:1.7;color:var(--fg2);margin:12px 0 18px;overflow-wrap:anywhere}
+.live-phase-list{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px;margin:0;padding:0}
+.live-phase{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--fg3);min-width:0}
+.live-phase-num{display:grid;place-items:center;width:21px;height:21px;flex:none;border-radius:50%;font:10px var(--mono);box-shadow:inset 0 0 0 1px var(--line2)}
+.live-phase.cur{color:var(--fg);font-weight:500}
+.live-phase.cur .live-phase-num{color:var(--accent);background:var(--accent-tint);box-shadow:inset 0 0 0 1px var(--accent-ring)}
+.live-phase.done .live-phase-num{color:var(--good);background:var(--good-tint);box-shadow:none}
+.live-progress-foot{margin:18px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--fg3);line-height:1.6}
+.live-source-placeholder{padding:8px 12px;opacity:.65}
+.live-source-placeholder i{display:block;border-radius:4px;background:var(--soft2);height:8px;margin:10px 0;max-width:85%}
+.live-source-placeholder i:first-child{width:32%;height:12px;margin-bottom:18px}
+.live-source-placeholder i:last-child{max-width:58%}
+.live-plan{font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.rank-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 18px 14px;padding-top:14px;border-top:1px solid var(--line)}
+.rank-summary>span{font-size:11.5px;line-height:1.7;color:var(--fg3);flex:1;min-width:180px}
+.rank-summary .play{min-height:38px;white-space:nowrap;font-size:11.5px}
+.rank-summary .play:disabled{opacity:.4;cursor:default}
+.rank-basis{padding:16px 18px 4px;border-top:1px solid var(--line)}
+.rank-basis-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.rank-basis-h>b{font-size:12px;font-weight:600;white-space:nowrap}
+.rank-basis select{max-width:65%;height:36px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);color:var(--fg2);font:12px var(--ui);padding:0 8px}
+#rank-breakdown{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px}
+#rank-breakdown dt{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--fg2);margin-bottom:4px}
+#rank-breakdown dt i{width:7px;height:7px;border-radius:2px}
+#rank-breakdown dt b{font:12px var(--mono);margin-left:auto;color:var(--fg)}
+#rank-breakdown dd{font-size:11px;line-height:1.7;margin:0;color:var(--fg3);overflow-wrap:anywhere}
+.rank-basis>.hint{padding:14px 0 10px;margin:0}
+.chunk .cs>span{display:block}
+.chunk .live-chunk-reason{grid-column:1/-1;font-size:10.5px;color:var(--fg3);line-height:1.6;margin-top:-8px}
+.brow .nm .ico{flex:none}
+.lab .lab-h{gap:10px;flex-wrap:wrap}
+.lab .presets{flex-wrap:wrap}
+.live-mode .u-card .big{overflow-wrap:anywhere}
+.live-mode .cgrid{grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr))}
+.live-mode .ccard .h{flex-wrap:wrap}
+.live-mode .ccard .h>span:not(.scorev){flex:1}
+:is(.live-cancel,.rank-summary button,.presets button,.st,input[type=range],.rank-basis select):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:640px){
+ .live-progress{padding:16px;margin-bottom:22px}
+ .live-progress-title{gap:7px}.live-progress-title .mono{margin-left:0}
+ .live-phase-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ .live-progress .live-cancel{min-height:40px;padding:0 10px}
+ .rank-summary{margin:0 14px 14px}.rank-summary .play{min-height:40px}
+ .rank-basis{padding:14px}.rank-basis select{max-width:60%;min-height:40px}
+ #rank-breakdown{grid-template-columns:minmax(0,1fr);gap:14px}
+ .live-mode .chunk .cs{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
+ .chunk .live-chunk-reason{margin-top:0}
+}
