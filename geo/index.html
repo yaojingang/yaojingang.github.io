@@ -9,9 +9,10 @@ layout: null
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-/* 布局：居中单焦点。首页只有一个搜索框；结果页为 680px 正文栏 + 320px 来源栏，底部悬浮居中输入框；过程页为左侧步骤轨 + 中间演示 + 右侧讲解 */
+/* 布局：居中单焦点。首页只有一个搜索框；结果页为 680px 正文栏 + 320px 来源栏，底部悬浮输入框与正文栏对齐；过程页为左侧步骤轨 + 中间演示 + 右侧讲解 */
 @property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
 :root{
+  --page-inset:8px;
   --bg:#fcfcfd; --panel:#ffffff; --fg:#0e1014; --fg2:#4b515a; --fg3:#8b919a; --fg4:#b4b9c0;
   --line:rgba(16,24,40,.08); --line2:rgba(16,24,40,.14); --soft:#f3f4f6; --soft2:#eaecef;
   --accent:#2d5bff; --accent-ink:#ffffff; --accent-tint:rgba(45,91,255,.09); --accent-ring:rgba(45,91,255,.22);
@@ -59,7 +60,7 @@ layout: null
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
-body{background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:"ss01","cv11";text-rendering:optimizeLegibility}
+body{margin:var(--page-inset);background:var(--bg);color:var(--fg);font-family:var(--ui);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:"ss01","cv11";text-rendering:optimizeLegibility}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
 ::selection{background:var(--accent-ring)}
@@ -228,8 +229,8 @@ button.think-h:hover{background:var(--soft)}
 .pipe-mini{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--fg3)}
 
 /* 悬浮输入框 */
-.dock{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:40px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(to top,var(--bg) 45%,transparent);pointer-events:none}
-.dock .box{pointer-events:auto;max-width:640px;margin:0 auto;padding:12px 10px 8px 16px}
+.dock{position:fixed;left:var(--page-inset);right:var(--page-inset);bottom:0;z-index:30;padding:40px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:linear-gradient(to top,var(--bg) 45%,transparent);pointer-events:none}
+.dock .box{pointer-events:auto;max-width:none;margin:0;padding:12px 10px 8px 16px}
 .dock .box-row{margin-top:8px}
 
 /* 侧栏 */
@@ -583,6 +584,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
     <aside class="col-b"><div class="side-sticky" id="side"></div></aside>
   </div>
   <div class="dock">
+    <div class="res">
     <form class="box" id="f-res">
       <textarea id="q-res" rows="1" placeholder="继续追问…" aria-label="继续提问"></textarea>
       <div class="box-row">
@@ -592,6 +594,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
         <button type="submit" class="send" aria-label="搜索" data-sound="none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
       </div>
     </form>
+    </div>
   </div>
 </main>
 
