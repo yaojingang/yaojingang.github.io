@@ -22,6 +22,12 @@
 .live-note{font-size:12px;line-height:1.7;color:var(--fg3);margin:10px 0 0;overflow-wrap:anywhere}
 .live-run-meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;font-size:11.5px;color:var(--fg3);margin:0 0 14px;font-variant-numeric:tabular-nums}
 .live-run-meta span+span::before{content:"·";margin-right:12px;color:var(--fg4)}
+.live-mode .answer{font-size:14px;line-height:1.85;letter-spacing:0;overflow-wrap:anywhere}
+.live-mode .answer p{margin-bottom:18px}
+.live-mode .answer .cite{font-size:10.5px;height:18px}
+.live-mode.xon .answer .ktag{padding:2px 5px;vertical-align:1px}
+.live-mode.xon .answer .seg{background:color-mix(in srgb,var(--sc) 7%,transparent);box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--sc) 45%,transparent)}
+.live-mode.xon .answer .seg:is(:hover,.pin){background:color-mix(in srgb,var(--sc) 14%,transparent)}
 .live-mode .src-site>span:not(.n){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .src-t[href]{color:var(--fg);text-decoration:none}
 .src-t[href]:hover{color:var(--accent)}
