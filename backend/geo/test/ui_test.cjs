@@ -72,18 +72,27 @@ const server = http.createServer(async(req,res)=>{
   const realtime=await metrics();assert.deepEqual(realtime,teaching);assert.equal(await page.evaluate(()=>state.ds.byId.S2.display_site),'工具文档');assert.equal(await page.evaluate(()=>state.ds.byId.S2.ic),'工');
   assert.equal(await page.locator('#side .srcs > .src').count(),2);
   assert.equal(await page.locator('#side .src a.src-t').count(),2);
+  assert.equal(await page.locator('#side .srcs [data-api-metric="authority"]').first().innerText(),'网页权威 3 / 4');
+  assert(await page.locator('#side .srcs [data-api-metric="authority"]').first().isVisible());
+  assert.equal(await page.locator('#side .srcs [data-api-metric="rerank"]').first().innerText(),'搜索排序 2.65 / 3');
   assert.equal(await page.locator('#pipe .pipe-mini').count(),1);
   await page.locator('#xswitch').click();assert.equal(await page.locator('#pipe .pstep').count(),6);
   await page.locator('#side .src').first().hover();
   assert(await page.locator('#answer').evaluate(el=>el.classList.contains('dim')));
   await page.locator('#answer .seg').first().click();await page.locator('#pop').waitFor({state:'visible'});
   assert.equal(await page.locator('#pop .live-evidence-foot a').count(),2);
+  assert.equal(await page.locator('#pop [data-api-metric="authority"]').first().innerText(),'网页权威 3 / 4');
+  assert.equal(await page.locator('#pop [data-api-metric="rerank"]').first().innerText(),'搜索排序 2.65 / 3');
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   const popup=await page.locator('#pop').boundingBox();assert(popup.height<=560 && popup.y>=76 && popup.y+popup.height<=900,'Long evidence popup outside viewport: '+JSON.stringify(popup));
   assert(await page.locator('#pop').evaluate(el=>el.scrollHeight>el.clientHeight));
   await page.evaluate(()=>closePop());
   assert.equal(await page.locator('#answer img,#side img').count(),0);
   assert.equal(await page.evaluate(()=>window.__geoXSS),undefined);
+  const edgeMetrics=await page.evaluate(()=>[sourceMetrics({authority:-1,api_score:0}),sourceMetrics({authority:0,api_score:3}),sourceMetrics({authority:null,api_score:null})]);
+  assert(edgeMetrics[0].includes('未知'));assert(edgeMetrics[0].includes('0.00 / 3'));
+  assert(edgeMetrics[1].includes('0 / 4'));assert(edgeMetrics[1].includes('3.00 / 3'));
+  assert(!edgeMetrics[2].includes('null'));assert(!edgeMetrics[2].includes('NaN'));
   await page.screenshot({path:path.join(artifacts,'results-desktop.png'),fullPage:true});
   await page.evaluate(()=>openProcess(2));assert.equal(await page.locator('.weights input[type=range]').count(),6);
   await page.locator('#rank-source').focus();await page.keyboard.press('ArrowRight');
@@ -125,6 +134,7 @@ const server = http.createServer(async(req,res)=>{
     await page.evaluate(stage=>openProcess(stage),stage);
     assert((await page.locator('#panel').innerText()).length>20,'Empty stage '+stage);
     if(stage===2){const funnel=await page.locator('.funnel .fn>div').allTextContents();const counts=funnel.map(Number);assert(counts.every((n,i)=>i===0||n<=counts[i-1]),'Ranking funnel must not grow after quality filtering');}
+    if(stage===5){assert.equal(await page.locator('.ccard [data-api-metric="authority"]').count(),2);assert.equal(await page.locator('.ccard [data-api-metric="rerank"]').count(),2);}
     if(width===1440)await page.screenshot({path:path.join(artifacts,'process-stage-'+(stage+1)+'.png'),fullPage:true});
     if(width===390&&stage===2)await page.screenshot({path:path.join(artifacts,'ranking-mobile.png'),fullPage:true});
     const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));

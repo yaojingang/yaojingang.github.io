@@ -527,7 +527,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 @keyframes sheetin{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
 </style>
-<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.3.1">
+<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.3.2">
 
 <header class="top" id="top">
   <div class="top-in">
@@ -1000,6 +1000,11 @@ function closePop(){
   $$('.seg.pin').forEach(s=>s.classList.remove('pin'));$$('.src.lit').forEach(s=>s.classList.remove('lit'));
 }
 document.addEventListener('click',e=>{if(!e.target.closest('#pop')&&!e.target.closest('.seg'))closePop()});
+function sourceMetrics(s){
+  const authority=Number.isInteger(s.authority)&&s.authority>=0&&s.authority<=4?s.authority+' / 4':'未知';
+  const rerank=Number.isFinite(s.api_score)&&s.api_score>=0&&s.api_score<=3?s.api_score.toFixed(2)+' / 3':'未知';
+  return `<div class="live-api-metrics" aria-label="DeepSeek 返回的网页评分"><span data-api-metric="authority" title="DeepSeek 返回的网页权威性，0～4；未知时单独标注。">网页权威 <b>${authority}</b></span><span data-api-metric="rerank" title="DeepSeek 综合排序分，0～3，综合考虑相关性、权威性和时效性。">搜索排序 <b>${rerank}</b></span></div>`;
+}
 function srcCard(s,ds,i){
   const c=ds.color[s.id];
   const weights=ds.live?(ds.ranking?.weights||DEFAULT_W):DEFAULT_W,sw=SIG.reduce((n,g,j)=>n+(Number.isFinite(s.sig?.[j])?weights[g.k]:0),0);
@@ -1007,7 +1012,7 @@ function srcCard(s,ds,i){
   const title=ds.live?`<a class="src-t" href="${esc(sourceURL(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a>`:`<p class="src-t">${esc(s.title)}</p>`;
   return `<div class="src" data-id="${s.id}" style="--sc:var(--s${c})">
     <div class="src-site">${ico(s)}<span title="${esc(s.site)}">${esc(ds.live?short(s):s.site)}</span><span class="n">${i+1}</span></div>
-    ${title}<div class="src-s">${esc(s.snip)}</div>
+    ${title}<div class="src-s">${esc(s.snip)}</div>${ds.live?sourceMetrics(s):''}
     <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span><span class="scorev" title="${ds.live?'本站六维加权分 / 100；API 原分 '+s.api_score.toFixed(2)+' / 3':'教学加权分'}">${ds.live?(s.weighted_score==null?'未知':f1(s.weighted_score)):f1(s.v0)}</span></div>
       <div class="stack">${stack}</div><div class="src-why">${esc(s.why)}</div></div>
   </div>`;
@@ -1247,5 +1252,5 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
-<script src="/geo/live.js?v=geo-live-1.3.1" defer></script>
+<script src="/geo/live.js?v=geo-live-1.3.2" defer></script>
 {% include baidu-analytics.html %}
