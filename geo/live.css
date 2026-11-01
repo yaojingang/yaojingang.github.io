@@ -6,7 +6,7 @@
 .live-tests summary{cursor:pointer;text-align:center;padding:8px}
 #live-test-list{display:flex;flex-direction:column;gap:5px;margin-top:8px}
 #live-test-list button{text-align:left;line-height:1.6;padding:8px 10px;border-radius:8px;background:var(--soft)}
-.live-dialog{width:min(420px,calc(100vw - 32px));padding:28px;background:var(--panel);color:var(--fg);border:1px solid var(--line2);border-radius:18px;box-shadow:var(--shadow-lg);max-height:calc(100dvh - 32px);overflow:auto}
+.live-dialog{width:min(420px,calc(100vw - 32px));padding:28px;background:var(--panel);color:var(--fg);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--shadow-lg);max-height:calc(100dvh - 32px);overflow:auto}
 .live-dialog::backdrop{background:rgba(16,24,40,.28)}
 .live-dialog h2{font-size:22px;font-weight:600;margin:0 0 8px;letter-spacing:-.025em}
 .live-dialog p{font-size:13px;line-height:1.7;color:var(--fg2);margin:0 0 18px}
@@ -18,24 +18,45 @@
 .live-dialog button:active,.live-cancel:active,#live-test-list button:active{transform:scale(.97)}
 .live-dialog button:disabled{opacity:.5;cursor:wait}
 .live-dialog .live-error{color:var(--bad);font-size:12px;margin-top:10px;min-height:18px}
-.live-dialog a,.live-source a,.live-table a,.live-evidence a,.live-note a{color:var(--accent);text-decoration:none;overflow-wrap:anywhere}
-.live-log{list-style:none;padding:0;margin:12px 0 18px;color:var(--fg2);font-size:13px;line-height:1.8}
-.live-log li{padding:4px 0;overflow-wrap:anywhere}
-.live-log li:last-child{color:var(--accent)}
-.live-note{font-size:12px;line-height:1.7;color:var(--fg3);margin:10px 0 18px;overflow-wrap:anywhere}
-.live-source{padding:12px 10px;border-radius:10px;background:var(--panel);border:1px solid var(--line);margin:6px 0;overflow-wrap:anywhere}
-.live-source .src-site{margin-bottom:7px}
-.live-source a{display:block;color:var(--fg);font-weight:500;font-size:13px;line-height:1.65}
-.live-source .live-note{margin:7px 0 0}
-.live-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;margin:18px 0}
-.live-table th,.live-table td{text-align:left;vertical-align:top;padding:12px 8px;border-bottom:1px solid var(--line);overflow-wrap:anywhere;line-height:1.65}
-.live-table th{color:var(--fg3);font-weight:500}
-.live-table th:first-child{width:65%}
-.live-table td small{display:block;color:var(--fg3)}
-.live-evidence{padding:14px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.75;overflow-wrap:anywhere}
-.live-evidence strong{font-size:12px;font-weight:500;color:var(--accent)}
-.live-evidence p{margin:8px 0;white-space:pre-wrap}
+.live-dialog a,.live-note a{color:var(--accent);text-decoration:none;overflow-wrap:anywhere}
+.live-note{font-size:12px;line-height:1.7;color:var(--fg3);margin:10px 0 0;overflow-wrap:anywhere}
+.live-run-meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;font-size:11.5px;color:var(--fg3);margin:0 0 14px;font-variant-numeric:tabular-nums}
+.live-run-meta span+span::before{content:"·";margin-right:12px;color:var(--fg4)}
+.live-mode .src-site>span:not(.n){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src-t[href]{color:var(--fg);text-decoration:none}
+.src-t[href]:hover{color:var(--accent)}
+.live-source-name{flex:1;min-width:0;overflow-wrap:anywhere}
+.live-evidence-foot{display:flex;flex-wrap:wrap;gap:5px 12px;align-items:center;justify-content:space-between;font-size:11px;color:var(--fg3);margin-top:8px}
+.live-evidence-foot a{display:inline-flex;align-items:center;gap:4px;color:var(--accent);text-decoration:none}
+.live-evidence-foot svg{width:12px;height:12px}
+.live-empty h2{font-size:20px;line-height:1.35;font-weight:600;letter-spacing:-.025em;margin:6px 0 12px}
+.live-empty p{font-size:13px;line-height:1.75;margin:0 0 8px;color:var(--fg2)}
+.live-empty p:last-child{margin-bottom:0}
+.live-empty-label{font-family:var(--mono);font-size:11px;color:var(--fg3)}
+.live-stage-empty{font-size:13px;line-height:1.75;color:var(--fg2)}
+.live-table-key{font-size:11px;color:var(--fg3)}
+.live-board{padding:0 12px}
+.live-board .brow{position:static;grid-template-columns:28px minmax(0,1fr) 60px 68px;gap:10px;height:auto;min-height:58px;padding:10px 0;border-bottom:1px solid var(--line)}
+.live-board .brow:last-child{border-bottom:0}
+.live-board .brow .nm{min-width:0}
+.live-board .brow .nm>div{min-width:0}
+.live-board .brow .nm a{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg);font-size:12.5px;font-weight:500;text-decoration:none}
+.live-board .brow .nm a:hover{color:var(--accent)}
+.live-doc{margin-bottom:12px}
+.live-doc summary{cursor:pointer;list-style:none;font-size:11px;color:var(--fg3)}
+.live-doc summary::-webkit-details-marker{display:none}
+.live-doc-name{color:var(--fg2);font-size:12px;max-width:40%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-doc .doc-title a,.ccard a,.live-miss-card a{color:var(--fg);text-decoration:none;overflow-wrap:anywhere}
+.live-doc .doc-title a:hover,.ccard a:hover,.live-miss-card a:hover{color:var(--accent)}
+.live-doc .cs{justify-content:space-between}
+.live-evidence-id{font-size:10.5px;color:var(--fg4);margin-right:8px}
+.live-section-gap{margin-top:28px}
 .live-answer-error{padding:18px 0;color:var(--fg2);font-size:14px;line-height:1.8}
-.live-detail{margin:12px 0;font-size:12px;color:var(--fg2)}
-@media(max-width:640px){.beta-mode{padding:0 8px}.beta-mode span{display:none}.beta-mode::after{content:attr(data-short)}.live-dialog{padding:22px}.live-table th,.live-table td{padding:10px 4px}.live-table th:first-child{width:60%}}
+@media(max-width:640px){.beta-mode{padding:0 8px}.beta-mode span{display:none}.beta-mode::after{content:attr(data-short)}.live-dialog{padding:22px}.live-board .brow{grid-template-columns:24px minmax(0,1fr) 48px;gap:8px}.live-board .brow .scorev{grid-column:3;grid-row:1}.live-board .brow .stat{grid-column:2;grid-row:2;justify-self:start}.live-board .brow .nm{grid-column:2;grid-row:1}.live-board .brow .rk{grid-column:1;grid-row:1}.live-doc .doc-bar .u{display:none}}
 @media(max-width:380px){.top-in{gap:4px}.top-r{gap:2px}.beta-mode{padding:0 6px}}
+
+.live-mode .fan{grid-template-columns:minmax(0,180px) minmax(0,1fr)}
+.live-mode .fan-q{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.live-mode .fan-list li{overflow-wrap:anywhere}
+.live-mode .pop blockquote{overflow-wrap:anywhere;white-space:pre-wrap}
+@media(min-width:641px){.live-mode .pop{max-height:min(560px,calc(100dvh - 220px));overflow-y:auto;overscroll-behavior:contain}}

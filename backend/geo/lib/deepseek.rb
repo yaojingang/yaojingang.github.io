@@ -7,6 +7,35 @@ require_relative "store"
 module Geo
   class DeepSeek
     PRICE_DATE = "2026-11-01"
+    def self.search_language(question)
+      explicit = question[/\blang:([a-z]{2,3}(?:,[a-z]{2,3})*)/i, 1]
+      if explicit
+        language = explicit.downcase.split(",").uniq.join(",")
+        raise Error.new("invalid_language", "语言条件较长，请减少语言数量后重试。", 400) if " lang:#{language}".length >= 128
+        return language
+      end
+      return nil unless question.match?(/\p{Han}/)
+      clauses = question.split(/[，,。；;！？!?\n]/)
+      negative = /不(?:要|得|应|能|想|用|看|查|找|搜|需要|使用|引用|希望|允许)|别|无需|避免|排除|拒绝/
+      requested = lambda do |pattern|
+        clauses.any? do |clause|
+          match = pattern.match(clause)
+          match && !match.pre_match.match?(negative) && !match.post_match.match?(/\A\s*#{negative}/)
+        end
+      end
+      chinese_only = requested.call(/(?:只|仅|限定|优先)(?:用|使用|引用|看|查|搜)?中文/)
+      english_requested = requested.call(/(?:英文|英语)(?:资料|来源|原文)|English\s+sources/i)
+      english_requested && !chinese_only ? "en" : "zh"
+    end
+
+    def self.search_query(query, question)
+      language = search_language(question)
+      return query[0, 128] unless language
+      text = query.gsub(/(?<!\S)lang:[a-z,-]+/i, "").strip
+      raise Error.new("invalid_search_query", "请在语言条件之外补充要搜索的内容。", 400) if text.empty?
+      suffix = " lang:#{language}"
+      "#{text[0, 128 - suffix.length].rstrip}#{suffix}"
+    end
     def initialize(config, store, transport: nil)
       @config, @store, @transport = config, store, transport
       @deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 150
@@ -53,7 +82,7 @@ module Geo
     end
 
     def search(query, question)
-      post("/v1/tools/search", { "query" => query, "ori_question" => question[0, 128], "count" => 10, "need_content" => true }, 5000, "search") do |data|
+      post("/v1/tools/search", { "query" => self.class.search_query(query, question), "ori_question" => question[0, 128], "count" => 10, "need_content" => true }, 5000, "search") do |data|
         raise Error.new("invalid_search", "搜索返回的数据格式有误。", 502) unless data["results"].is_a?(Array)
         data["results"].empty? ? 0 : 5000
       end.fetch("results")

@@ -8,7 +8,6 @@ layout: null
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="/geo/live.css">
 <style>
 /* 布局：居中单焦点。首页只有一个搜索框；结果页为 680px 正文栏 + 320px 来源栏，底部悬浮居中输入框；过程页为左侧步骤轨 + 中间演示 + 右侧讲解 */
 @property --ang{syntax:'<angle>';inherits:false;initial-value:0deg}
@@ -528,6 +527,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 @keyframes sheetin{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
 </style>
+<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.2">
 
 <header class="top" id="top">
   <div class="top-in">
@@ -813,7 +813,8 @@ function score(s,w){let t=0,sw=0;SIG.forEach((g,i)=>{t+=w[g.k]*s.sig[i];sw+=w[g.
 function rankBy(ds,w){return ds.sources.map(s=>({s,v:score(s,w)})).sort((a,b)=>b.v-a.v)}
 function kind(sg){return !sg.f||!sg.f.length?'synth':sg.f.length>1?'merge':'extract'}
 function ico(s){return `<i class="ico" style="background:${s.tc}">${esc(s.ic)}</i>`}
-const short=s=>s.site.split(' · ')[0];
+const short=s=>s.display_site||s.site.split(' · ')[0];
+function sourceURL(value){try{const url=new URL(value);return ['http:','https:'].includes(url.protocol)?url.href:'#'}catch(_){return '#'}}
 function vt(fn){if(document.startViewTransition&&!reduced){const t=document.startViewTransition(fn);['ready','finished','updateCallbackDone'].forEach(p=>t[p]&&t[p].catch(()=>{}))}else fn()}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),1600)}
 
@@ -976,6 +977,7 @@ function openPop(segEl){
   pop.innerHTML=`<div class="pop-h"><span class="kbadge">${KLABEL[k]}</span><span>第 ${i+1} 句</span><button class="x" aria-label="关闭" data-sound="tap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
   <p class="desc">${desc}</p>
   ${(sg.f||[]).map(f=>{const s=ds.byId[f.id];return `<div class="tsrc" style="--sc:var(--s${ds.color[f.id]})"><div class="tsrc-h">${ico(s)}${esc(short(s))}<span class="r">#${s.r0+1}</span><span class="scorev">${f1(s.v0)}</span></div><blockquote>${esc(f.q)}</blockquote></div>`}).join('')}`;
+  if(ds.live&&window.GeoLive)GeoLive.decoratePop(pop,sg);
   pop.hidden=false;
   const narrow=innerWidth<=640;
   pop.classList.toggle('sheet',narrow);
@@ -984,7 +986,9 @@ function openPop(segEl){
     const w=Math.min(400,cr.width);
     let left=Math.max(0,Math.min(r.left-cr.left-16,cr.width-w));
     const ph=pop.offsetHeight,above=r.bottom+ph+150>innerHeight&&r.top-ph-80>0;
-    pop.style.left=left+'px';pop.style.top=(above?r.top-cr.top-ph-10:r.bottom-cr.top+10)+'px';
+    let popupY=above?r.top-ph-10:r.bottom+10;
+    if(ds.live)popupY=Math.max(76,Math.min(popupY,innerHeight-ph-124));
+    pop.style.left=left+'px';pop.style.top=(popupY-cr.top)+'px';
     pop.style.setProperty('--ox',Math.max(16,r.left-cr.left-left+10)+'px');
     pop.style.transformOrigin=`var(--ox) ${above?'bottom':'top'}`;
   }else{pop.style.left='';pop.style.top=''}
@@ -998,11 +1002,12 @@ function closePop(){
 document.addEventListener('click',e=>{if(!e.target.closest('#pop')&&!e.target.closest('.seg'))closePop()});
 function srcCard(s,ds,i){
   const c=ds.color[s.id];
-  const stack=SIG.map((g,j)=>`<i style="width:${DEFAULT_W[g.k]*s.sig[j]/100}%;background:var(--g${j+1})" title="${g.n} ${s.sig[j]}"></i>`).join('');
+  const stack=ds.live?`<i style="width:${s.api_score/3*100}%;background:var(--accent)" title="API 排序分 ${s.api_score.toFixed(2)} / 3"></i>`:SIG.map((g,j)=>`<i style="width:${DEFAULT_W[g.k]*s.sig[j]/100}%;background:var(--g${j+1})" title="${g.n} ${s.sig[j]}"></i>`).join('');
+  const title=ds.live?`<a class="src-t" href="${esc(sourceURL(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a>`:`<p class="src-t">${esc(s.title)}</p>`;
   return `<div class="src" data-id="${s.id}" style="--sc:var(--s${c})">
-    <div class="src-site">${ico(s)}<span>${esc(s.site)}</span><span class="n">${i+1}</span></div>
-    <p class="src-t">${esc(s.title)}</p><div class="src-s">${esc(s.snip)}</div>
-    <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span><span class="scorev">${f1(s.v0)}</span></div>
+    <div class="src-site">${ico(s)}<span title="${esc(s.site)}">${esc(ds.live?short(s):s.site)}</span><span class="n">${i+1}</span></div>
+    ${title}<div class="src-s">${esc(s.snip)}</div>
+    <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span><span class="scorev">${ds.live?s.api_score.toFixed(2)+' / 3':f1(s.v0)}</span></div>
       <div class="stack">${stack}</div><div class="src-why">${esc(s.why)}</div></div>
   </div>`;
 }
@@ -1019,6 +1024,10 @@ function renderSide(loading){
     ${misses.slice(0,3).map(r=>`<div class="miss"><div class="miss-h"><b>${esc(r.s.site)}</b><span class="gap">${f1(r.v)} · −${f1(cut-r.v)}</span></div><p>${esc(r.s.miss)}</p></div>`).join('')}
     <button class="linkbtn" id="to-cite" style="margin-top:6px">全部落选原因和优化建议${ARROW}</button></div>`;
   $('#to-cite').onclick=()=>openProcess(5);
+  bindSourceCards();
+}
+function bindSourceCards(){
+  const ds=state.ds;
   $$('.src').forEach((el,i)=>{
     el.animate([{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'none'}],{duration:reduced?1:500,delay:reduced?0:i*60,easing:'cubic-bezier(.22,1,.36,1)',fill:'backwards'});
     el.onmouseenter=()=>{if(!state.xray||state.pin!=null)return;const id=el.dataset.id;const a=$('#answer');a.classList.add('dim');$$('.seg',a).forEach(s=>{const sg=ds.sents[+s.dataset.i];s.classList.toggle('lit',(sg.f||[]).some(f=>f.id===id))})};
@@ -1225,5 +1234,5 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
-<script src="/geo/live.js" defer></script>
+<script src="/geo/live.js?v=geo-live-1.2" defer></script>
 {% include baidu-analytics.html %}

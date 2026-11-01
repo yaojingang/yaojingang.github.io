@@ -96,8 +96,10 @@ class GeoCoreTest < Minitest::Test
   end
 
   def test_no_results_stops_before_fetch_and_answer_generation
-    error = assert_raises(Geo::Error) { pipeline(no_results: true).run("一个没有结果的问题") { |*_| } }
-    assert_equal "no_results", error.code
+    data = pipeline(no_results: true).run("一个没有结果的问题") { |*_| }
+    assert_equal "insufficient", data["status"]
+    assert_empty data["answer"]
+    assert_equal 0, data["quality"]["read_count"]
     assert_equal 3, @calls.length
   end
 
