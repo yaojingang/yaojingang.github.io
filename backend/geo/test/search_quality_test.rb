@@ -128,4 +128,29 @@ class GeoSearchQualityTest < Minitest::Test
     assert_equal "summary", data["evidence"][0]["basis"]
   end
 
+  def test_all_provided_evidence_ids_can_be_used_without_an_arbitrary_three_id_limit
+    paragraph = "企业选择分析工具时，应结合数据规模、团队协作需求和接入成本。"
+    results = [source(content: ([paragraph] * 3).join("\n\n")), source(content: ([paragraph] * 3).join("\n\n")).merge("url" => "https://example.net/guide")]
+    base = transport
+    provider = lambda do |path, payload|
+      response = base.call(path, payload)
+      if path == "/v1/tools/search"
+        [200, { "results" => results }]
+      elsif path == "/chat/completions" && payload["max_tokens"] != 600
+        evidence = JSON.parse(payload["messages"][1]["content"])["evidence"]
+        value = { "paragraphs" => [{ "text" => paragraph, "evidence_ids" => evidence.map { |item| item["id"] } }] }
+        response[1]["choices"][0]["message"]["content"] = JSON.generate(value)
+        response
+      else
+        response
+      end
+    end
+    flow = Geo::Pipeline.new(Geo::DeepSeek.new(@config, @store, transport: provider), @store)
+    data = flow.run("企业数据分析工具怎么选择") { |*_| }
+    assert_equal "complete", data["status"]
+    assert_equal 6, data["evidence"].length
+    assert_equal ["S1", "S2"], data["cited"]
+    assert_equal 2, data["answer"][0]["segs"][0]["f"].length
+  end
+
 end
