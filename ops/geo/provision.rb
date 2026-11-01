@@ -3,6 +3,8 @@
 require "open3"
 require "net/http"
 require_relative "../../backend/geo/lib/store"
+$stdout.sync = true
+$stderr.sync = true
 
 abort "安装到现有博客服务器：ruby ops/geo/provision.rb --install" unless ARGV == ["--install"]
 root = File.expand_path("../..", __dir__)
