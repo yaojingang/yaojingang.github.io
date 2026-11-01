@@ -11,7 +11,7 @@ const text = '根据团队使用场景、数据规模与协作需求选择分析
 const defaults={rel:30,auth:20,fresh:15,struct:15,gain:10,cons:10}, requests=[];
 const sources = [
   {id:'S1',site:'一个名称较长的数据分析研究中心资料库',title:'数据分析工具选型与团队协作指南',url:'https://example.org/analysis',api_score:2.65,authority:3,date:'2026-11-01'},
-  {id:'S2',site:'工具文档',title:'产品说明 <img src=x onerror="window.__geoXSS=1">',url:'https://example.net/guide',api_score:2.13,authority:2,date:'2026-10-30'}
+  {id:'S2',site:'e5b7a5e585b7e69687e6a1a3',title:'产品说明 <img src=x onerror="window.__geoXSS=1">',url:'https://example.net/guide',api_score:2.13,authority:2,date:'2026-10-30'}
 ].map((s,i)=>({...s,snip:text,tc:'#2d5bff',ic:s.site[0],r0:i,v0:s.api_score,type:'网页正文',read:true,eligible:true,why:'本次回答引用了此来源的选段。',sig:i?[71,100,99,80,50,60]:[88.33,25,99,95,80,80],sig_basis:Array.from({length:6},(_,j)=>'第 '+(j+1)+' 维分数的离线依据。'),weighted_score:i?79.15:76.599,segments:[{text:'首页\n联系我们',index:0,picked:false,basis:'body',term_hits:0,reason:'导航标签，未采用。'},{text,index:1,picked:true,basis:'body',term_hits:3,reason:'完整语句，进入上下文。'}]}));
 const evidence = sources.map(s=>({id:s.id+'-P1',source_id:s.id,text:text.repeat(24),basis:'body',term_hits:2}));
 const refs = evidence.map(e=>({id:e.source_id,q:e.text,evidence_id:e.id,basis:e.basis}));
@@ -69,7 +69,7 @@ const server = http.createServer(async(req,res)=>{
   await page.evaluate(()=>openProcess(0));
   assert(await page.locator('#home').isVisible());
   await page.evaluate(()=>GeoLive.search('企业应该怎样选择数据分析工具？'));
-  const realtime=await metrics();assert.deepEqual(realtime,teaching);
+  const realtime=await metrics();assert.deepEqual(realtime,teaching);assert.equal(await page.evaluate(()=>state.ds.byId.S2.display_site),'工具文档');assert.equal(await page.evaluate(()=>state.ds.byId.S2.ic),'工');
   assert.equal(await page.locator('#side .srcs > .src').count(),2);
   assert.equal(await page.locator('#side .src a.src-t').count(),2);
   assert.equal(await page.locator('#pipe .pipe-mini').count(),1);
@@ -124,6 +124,7 @@ const server = http.createServer(async(req,res)=>{
    for(let stage=0;stage<6;stage++){
     await page.evaluate(stage=>openProcess(stage),stage);
     assert((await page.locator('#panel').innerText()).length>20,'Empty stage '+stage);
+    if(stage===2){const funnel=await page.locator('.funnel .fn>div').allTextContents();const counts=funnel.map(Number);assert(counts.every((n,i)=>i===0||n<=counts[i-1]),'Ranking funnel must not grow after quality filtering');}
     if(width===1440)await page.screenshot({path:path.join(artifacts,'process-stage-'+(stage+1)+'.png'),fullPage:true});
     if(width===390&&stage===2)await page.screenshot({path:path.join(artifacts,'ranking-mobile.png'),fullPage:true});
     const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
@@ -137,7 +138,7 @@ const server = http.createServer(async(req,res)=>{
   const sheet=await page.locator('#pop').boundingBox();assert(sheet.x>=-1 && sheet.x+sheet.width<=321 && sheet.y+sheet.height<=1001,'Mobile evidence sheet outside viewport: '+JSON.stringify(sheet));await page.evaluate(()=>closePop());
   await resize(1440);await page.evaluate(()=>GeoLive.search('数学分析师推荐'));
   assert(await page.locator('.live-empty').isVisible());assert(await page.locator('#legend').isHidden());assert.equal(await page.locator('#answer .cite').count(),0);
-  for(let stage=0;stage<6;stage++){await page.evaluate(stage=>openProcess(stage),stage);assert((await page.locator('#panel').innerText()).length>20);}
+  for(let stage=0;stage<6;stage++){await page.evaluate(stage=>openProcess(stage),stage);assert((await page.locator('#panel').innerText()).length>20);if(stage===2){const counts=(await page.locator('.funnel .fn>div').allTextContents()).map(Number);assert(counts.every((n,i)=>i===0||n<=counts[i-1]),'Empty-result funnel must not reintroduce rejected candidates');}}
   await page.evaluate(()=>backToResults());await page.screenshot({path:path.join(artifacts,'insufficient-desktop.png'),fullPage:true});
   for(const width of [390,320]){await resize(width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
   await page.screenshot({path:path.join(artifacts,'insufficient-mobile.png'),fullPage:true});

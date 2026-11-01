@@ -147,7 +147,15 @@
     data.sources.forEach((s, i) => {
       data.color[s.id] = (i % 5) + 1;
       s.tc = `var(--s${data.color[s.id]})`;
-      s.display_site = Array.from(s.site).length > 14 ? new URL(safeURL(s.url)).hostname.replace(/^www\./, '') : s.site;
+      let name = s.site;
+      if (/^(?:[a-f\d]{2}){4,}$/i.test(name)) {
+        try {
+          const decoded = new TextDecoder('utf-8', {fatal:true}).decode(Uint8Array.from(name.match(/../g), pair=>parseInt(pair,16)));
+          if (/^[\p{L}\p{N} .·_-]{2,}$/u.test(decoded)) name = decoded;
+        } catch (_) { /* Keep names that do not form valid UTF-8. */ }
+      }
+      s.display_site = Array.from(name).length > 14 ? new URL(safeURL(s.url)).hostname.replace(/^www\./, '') : name;
+      s.ic = Array.from(s.display_site)[0] || '·';
     });
     data.sents = [];
     data.answer.forEach(block => (block.segs || []).forEach(sg => {sg.i = data.sents.length; data.sents.push(sg);}));
@@ -298,7 +306,7 @@
     understand: ds => `<h2>先读懂问题，再拆成子问题</h2>${lead('核对识别出的意图、实体与条件，再查看本次实际发出的搜索词。未说明的条件保留待确认。')}<div class="u-grid"><div class="u-card"><small>意图类型</small><div class="big">${esc(ds.intent.type || '综合问题')}</div></div><div class="u-card"><small>识别出的实体</small><div class="chips">${ds.intent.ents?.length?ds.intent.ents.map(e=>`<span>${esc(e)}</span>`).join(''):'<span>本次未单独识别</span>'}</div></div><div class="u-card"><small>问题条件</small><dl><dt>语言</dt><dd>${esc(languageLabel(ds))}</dd>${(ds.intent.cons||[]).map(c=>`<dt>${esc(c[0])}</dt><dd>${esc(c[1])}</dd>`).join('')}</dl></div><div class="u-card"><small>回答规划</small><div class="live-plan">${esc(ds.intent.plan || '先检索原始问题，精读达标来源，再依据选段回答。')}</div></div></div><p class="subh">查询扇出 · 1 个问题 → ${ds.searches.length} 组查询</p><div class="fan" id="fan"><svg class="wires" id="wires"></svg><div class="fan-q" id="fanq">${esc(ds.query)}</div><ul class="fan-list">${ds.searches.map((s, i) => `<li><span>Q${i + 1}</span>${esc(s.query)}</li>`).join('')}</ul></div>`,
     retrieve: ds => {
       const max = Math.max(1, ...ds.searches.map(s => s.count));
-      return `<h2>实际搜索结果汇入候选池</h2>${lead('每条横线表示该查询实际返回的数量，相同网址合并后保留一份。')}<div class="r-legend"><span class="lg"><i style="background:var(--g1)"></i>Search 返回结果</span></div>${ds.searches.map((s, i) => `<div class="r-row"><span class="q" title="${esc(s.query)}"><span>Q${i + 1}</span>${esc(s.query)}</span><div class="bar"><i data-w="${s.count / max * 100}" style="background:var(--g1)"></i></div><span class="n mono">${s.count}</span></div>`).join('')}<div class="sum"><span>原始结果</span><b>${ds.total}</b><i>→</i><span>去重后网页</span><b>${ds.dedup}</b><em>过程页保留排序最高的 ${ds.sources.length} 个候选，实际精读 ${selectedCount(ds)} 个来源。</em></div>`;
+      return `<h2>实际搜索结果汇入候选池</h2>${lead('每条横线表示该查询实际返回的数量，相同网址合并后保留一份。')}<div class="r-legend"><span class="lg"><i style="background:var(--g1)"></i>Search 返回结果</span></div>${ds.searches.map((s, i) => `<div class="r-row"><span class="q" title="${esc(s.query)}"><span>Q${i + 1}</span>${esc(s.query)}</span><div class="bar"><i data-w="${s.count / max * 100}" style="background:var(--g1)"></i></div><span class="n mono">${s.count}</span></div>`).join('')}<div class="sum"><span>原始结果</span><b>${ds.total}</b><i>→</i><span>去重后网页</span><b>${ds.dedup}</b><em>过程页保留全部 ${ds.sources.length} 个可用候选，实际精读 ${selectedCount(ds)} 个来源。</em></div>`;
     },
     rank: ds => rankingLab(ds),
     chunk: ds => {
