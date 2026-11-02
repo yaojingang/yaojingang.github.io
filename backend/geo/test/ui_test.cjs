@@ -175,6 +175,7 @@ const server = http.createServer(async(req,res)=>{
   for(const width of [390,320]){await resize(width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
   await page.screenshot({path:path.join(artifacts,'insufficient-mobile.png'),fullPage:true});
   await page.evaluate(()=>GeoLive.search('错误状态测试'));assert((await page.locator('#answer [role=alert]').innerText()).includes('离线限流测试'));
+  assert(!(await page.locator('.live-progress').isVisible()),'Failed loading card must close completely');
   await page.locator('#q-res').fill('等待检索测试');await page.locator('#f-res').getByRole('button',{name:'搜索',exact:true}).click();
   await page.locator('#live-cancel').waitFor({state:'visible'});assert.equal(await page.locator('.live-phase').count(),6);assert.equal(await page.locator('.live-phase.cur').count(),1);assert(await page.locator('#legend').isHidden());await page.screenshot({path:path.join(artifacts,'loading-mobile.png'),fullPage:true});
   await page.locator('#live-cancel').focus();
@@ -182,7 +183,7 @@ const server = http.createServer(async(req,res)=>{
   await page.waitForFunction(()=>document.querySelector('.live-phase.cur')?.textContent.includes('检索召回'));
   assert(await page.locator('#live-cancel').evaluate(el=>document.activeElement===el),'Progress updates must preserve the focused cancel action');
   await page.locator('#live-cancel').click();await page.waitForFunction(()=>!state.thinking);
-  assert.equal(await page.locator('.live-spinner').count(),0);
+  assert.equal(await page.locator('.live-spinner').count(),0);assert(!(await page.locator('.live-progress').isVisible()),'Cancelled loading card must close completely');
   assert((await page.locator('#answer [role=alert]').innerText()).includes('已停止'));
   await resize(1440);
   await page.emulateMedia({colorScheme:'dark'});await page.evaluate(()=>GeoLive.search('企业应该怎样选择数据分析工具？'));
