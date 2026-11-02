@@ -70,9 +70,13 @@ module Geo
       end
     end
 
+    def self.selectable?(source)
+      source["eligible"] && source["language_allowed"] != false && !source["selection_blocked"] && !source["selection_deferred"]
+    end
+
     def self.order(sources, weights)
       sources.each { |source| source["weighted_score"] = score(source, weights) }
-      sources.sort_by { |source| [source["eligible"] ? 0 : 1, -(source["weighted_score"] || -1), -source["api_score"], source["url"]] }
+      sources.sort_by { |source| [selectable?(source) && !source["weighted_score"].nil? ? 0 : 1, source["language_priority"] || 0, -(source["weighted_score"] || -1), -source["api_score"], source["url"]] }
     end
   end
 end

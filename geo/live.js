@@ -122,7 +122,7 @@
   const arrow = '<svg class="car" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>';
   const check = '<span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>';
   const selectedCount = ds => ds.quality?.read_count ?? ds.sources.filter(s => s.read !== false).slice(0, 5).length;
-  const languageLabel = ds => ({zh: '中文', en: '英文', 'zh,en': '中英文'})[ds.quality?.language] || '按问题语言';
+  const languageLabel = ds => ({'zh-Hans':'简体中文','zh-Hant':'繁体中文',zh:'中文',en:'英文','zh,en':'中英文'})[ds.quality?.preferred_language||ds.quality?.language] || '按问题语言';
   const stageRows = events => STAGES.map((_, index) => events.filter(event => event.stage === index).slice(-1)[0]).filter(Boolean);
   function progress() {
     const rows = stageRows(live.events);
@@ -133,7 +133,7 @@
     document.getElementById('live-cancel').onclick = () => live.controller?.abort();
   }
   function renderRunMeta(data) {
-    const meta = [data.cached ? '相同问题缓存' : '实时联网检索', `${data.cached ? '原检索' : '用时'} ${data.elapsed_seconds} 秒`, `累计 ¥${money(data.budget.used_cny)} / ¥${money(data.budget.limit_cny)}`];
+    const meta = [data.quality?.strict_language?`${languageLabel(data)}限定`:`${languageLabel(data)}优先`, ...(data.quality?.language_fallback?['含补充语言信源']:[]), data.cached ? '相同问题缓存' : '实时联网检索', `${data.cached ? '原检索' : '用时'} ${data.elapsed_seconds} 秒`, `累计 ¥${money(data.budget.used_cny)} / ¥${money(data.budget.limit_cny)}`];
     document.getElementById('r-banner').innerHTML = `<div class="live-run-meta">${meta.map(item => `<span>${esc(item)}</span>`).join('')}</div>${(data.warnings || []).map(text => `<div class="banner">${esc(text)}</div>`).join('')}`;
   }
   function prepare(data) {
@@ -285,9 +285,9 @@
   };
 
   const descriptions = [
-    '保留原问题并生成少量等义查询，语言范围在实际搜索词中明确记录。',
+    '保留原问题并生成少量等义查询，优先匹配提问的英文或中文繁简字形，缺少可用资料时补充其他语言，实际搜索词保留记录。',
     '每组查询调用一次 DeepSeek Search，按实际返回数量汇总并合并重复网址。',
-    '先通过 API 1.50 分选用线，再按六个维度归一化加权，最多精读前 5 个来源。拖动滑块先预览，应用后才重新检索。',
+    '先通过 API 1.50 分选用线，按提问语言优先分组，再在组内按六个维度归一化加权，最多精读前 5 个来源。拖动滑块先预览，应用后才重新检索。',
     '过滤标题、导航与无效短标签，保留正文选段；使用摘要时单独标明依据类型。',
     '资料充足时生成回答并核对引用编号。资料不足时保留检索记录，请用户补充条件。',
     '引用与候选分别记录，每条引用都能追溯到已保存的选段和原始网页。'
