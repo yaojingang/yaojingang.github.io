@@ -119,7 +119,7 @@ module Geo
         if req.request_method == "GET" && req.path.start_with?("/geo/api/runs/")
           authenticate!(req)
           id = req.path.delete_prefix("/geo/api/runs/")
-          data = @store.diagnostics.read(id)
+          data = @config.redact_secrets(@store.diagnostics.read(id))
           res["Content-Disposition"] = "attachment; filename=geo-run-#{id}.json"
           json(res, data)
         else

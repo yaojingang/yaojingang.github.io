@@ -27,6 +27,10 @@ module Geo
       @deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 150
     end
 
+    def redact_diagnostics(value)
+      @config.redact_secrets(value)
+    end
+
     def post(path, payload, reservation, kind)
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       id = status = data = settled = nil
@@ -51,6 +55,7 @@ module Geo
         # A response whose body cannot be decoded keeps its reservation.
         data = JSON.parse(response.body)
       end
+      data = @config.redact_secrets(data, redact_keys: false)
       if status != 200
         if status.between?(400, 499)
           @store.settle(id, 0)
@@ -116,7 +121,7 @@ module Geo
       raise Error.new("incomplete_answer", "模型返回了未完成的结果，请稍后再试。", 502) unless choice && choice["finish_reason"] == "stop"
       value = JSON.parse(choice.fetch("message", {}).fetch("content", ""))
       raise Error.new("invalid_answer", "模型返回格式有误，请稍后再试。", 502) unless value.is_a?(Hash)
-      value
+      @config.redact_secrets(value, redact_keys: false)
     rescue JSON::ParserError
       raise Error.new("invalid_answer", "模型返回格式有误，请稍后再试。", 502)
     end

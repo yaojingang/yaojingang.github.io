@@ -39,6 +39,9 @@ const server = http.createServer(async(req,res)=>{
     if(question==='等待检索测试'){waitingResponse=res;res.write('event: step\ndata: {"stage":0,"message":"正在理解问题。"}\n\n');return;}
     const output=structuredClone(data);output.query=question;output.ranking.weights=payload.weights||defaults;output.ranking.mode=payload.ranking_mode||"api";
     if(question==='回答排版测试')output.answer=structuredClone(formattedAnswer);
+    if(question==='长域名测试'){const host='a'.repeat(63)+'.'+'b'.repeat(63)+'.org';Object.assign(output.sources[0],{site:host,url:'https://'+host+'/guide'});}
+    if(['新检索费用测试','缓存留档测试','缓存留档已清理'].includes(question)){output.cached=question!=='新检索费用测试';output.run_id='a'.repeat(32);output.diagnostics={available:question!=='缓存留档已清理',complete:true,settled_cny:0.012,pending_cny:0};}
+
     if(question==='多段证据测试'){const e={id:'S1-P2',source_id:'S1',text:'同一网页的第二段证据保留了适用条件与费用口径。',basis:'body',term_hits:2};output.evidence.push(e);output.answer[0].segs[0].f.push({id:'S1',q:e.text,evidence_id:e.id,basis:e.basis});}
 
     if(question==='语言补充测试'){output.quality.language_fallback=true;output.sources=output.sources.map((s,i)=>({...s,language:i?'en':'zh-Hant',language_priority:i?2:1,language_supplement:true}));}
@@ -232,6 +235,29 @@ const server = http.createServer(async(req,res)=>{
   await page.evaluate(()=>setXray(false,true));assert((await page.locator('#answer strong').count())>=6);
   await page.emulateMedia({colorScheme:'dark'});assert(await page.locator('#answer .live-answer-summary').isVisible());await page.screenshot({path:path.join(artifacts,'formatted-answer-dark.png'),fullPage:true});await page.emulateMedia({colorScheme:'light'});
   await resize(1440);
+  const reviewIssues=[];
+  await page.evaluate(()=>GeoLive.search('长域名测试'));await page.evaluate(()=>openProcess(2));
+  for(const width of [390,320]){
+    await resize(width);
+    const bounds=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
+    if(bounds.scroll>bounds.width)reviewIssues.push('Long-domain API layout overflow: '+JSON.stringify(bounds));
+    await page.screenshot({path:path.join(artifacts,'long-domain-'+width+'.png'),fullPage:true});
+  }
+  await resize(1440);
+  for(const question of ['新检索费用测试','缓存留档测试','缓存留档已清理']){
+    await page.evaluate(question=>GeoLive.search(question),question);await page.evaluate(()=>openProcess(5));
+    await page.locator('.live-run-record').evaluate(el=>el.open=true);
+    const expected=question==='新检索费用测试'?'current':'original';
+    const cost=page.locator('[data-run-cost-origin]');
+    if(await cost.count()!==1||await cost.getAttribute('data-run-cost-origin')!==expected)reviewIssues.push('Cost origin is not explicit: '+question);
+    const text=await page.locator('.live-run-record').innerText();
+    if(!text.includes('0.0120'))reviewIssues.push('Missing retained settled cost: '+question);
+    if(expected==='original'&&!(text.includes('原检索')&&text.includes('无新增')))reviewIssues.push('Cached cost does not distinguish the original run: '+question);
+    const unavailable=question==='缓存留档已清理';
+    if(await page.locator('.live-run-record a').count()!==(unavailable?0:1))reviewIssues.push('Diagnostic download state is wrong: '+question);
+    if(unavailable&&await page.locator('[data-run-record-state="unavailable"]').count()!==1)reviewIssues.push('Removed diagnostic advertised as complete');
+  }
+  assert.deepEqual(reviewIssues,[]);
   await page.evaluate(()=>GeoLive.search('多段证据测试'));assert.equal(requests.at(-1).ranking_mode,'api');
   await page.evaluate(()=>setXray(true,true));await page.locator('#answer .seg').first().click();
   assert.equal(await page.locator('#pop .tsrc').count(),2);assert.equal(await page.locator('#pop blockquote').count(),3);

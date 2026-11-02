@@ -151,9 +151,10 @@
 .live-native-row{padding:18px 0;border-top:1px solid var(--line)}
 .live-native-heading{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:12px;align-items:start}
 .live-native-heading>span{font-size:11px;color:var(--fg3);padding-top:3px}
+.live-native-heading>div{min-width:0}
 .live-native-heading b{display:block;font-size:13px;font-weight:500;line-height:1.6}
 .live-native-heading a{color:var(--fg);text-decoration:none;overflow-wrap:anywhere}
-.live-native-site{display:block;font-size:11px;color:var(--fg3);margin-top:4px}
+.live-native-site{display:block;min-width:0;max-width:100%;overflow-wrap:anywhere;font-size:11px;color:var(--fg3);margin-top:4px}
 .live-native-heading strong{font-size:16px;font-weight:500;white-space:nowrap}
 .live-native-heading small{font-size:11px;color:var(--fg3);font-weight:400}
 .live-native-bar{height:4px;background:var(--soft2);margin:12px 0 10px;overflow:hidden;border-radius:2px}

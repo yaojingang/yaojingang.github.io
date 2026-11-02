@@ -21,8 +21,8 @@ module Geo
       @unavailable = true
     end
 
-    def start(metadata)
-      run = Run.new(self, SecureRandom.hex(16), @clock.call)
+    def start(metadata, redact = nil)
+      run = Run.new(self, SecureRandom.hex(16), @clock.call, redact)
       @mutex.synchronize { @active[run.id] = true }
       run.record("start", metadata)
       run
@@ -62,7 +62,13 @@ module Geo
     end
 
     def available?(id)
-      !@unavailable && File.file?(path(id))
+      return false if @unavailable
+      @mutex.synchronize do
+        prune
+        File.file?(path(id))
+      end
+    rescue SystemCallError, IOError
+      false
     end
 
     def read(id)
@@ -79,13 +85,13 @@ module Geo
 
     class Run
       attr_reader :id
-      def initialize(owner, id, created)
-        @owner, @id, @created = owner, id, created
+      def initialize(owner, id, created, redact)
+        @owner, @id, @created, @redact = owner, id, created, redact
         @complete, @closed, @calls = true, false, []
       end
 
       def record(type, data)
-        @complete = false unless @owner.write(@id, type, data)
+        @complete = false unless @owner.write(@id, type, @redact ? @redact.call(data) : data)
       end
 
       def call(data)

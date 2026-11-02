@@ -42,6 +42,35 @@ module Geo
       credentials_present? && !File.exist?(File.join(@data_dir, "server-installed"))
     end
 
+    def redact_secrets(value, redact_keys: true)
+      secrets = [@api_key, @password].reject(&:empty?).flat_map do |secret|
+        [secret, JSON.generate(secret)[1...-1], JSON.generate(secret, ascii_only: true)[1...-1]]
+      end.uniq.sort_by { |secret| -secret.length }
+      container_secrets = secrets.select { |secret| secret.lstrip.start_with?("{", "[") }
+      redact = lambda do |item|
+        case item
+        when Hash then item.each_with_object({}) { |(key, content), result| result[redact_keys ? redact.call(key) : key] = redact.call(content) }
+        when Array then item.map { |content| redact.call(content) }
+        when String
+          next "[REDACTED]" if secrets.include?(item)
+          begin
+            decoded = JSON.parse(item) if item.lstrip.start_with?("{", "[")
+          rescue JSON::ParserError
+            decoded = nil
+          end
+          if decoded.is_a?(Hash) || decoded.is_a?(Array)
+            cleaned = redact.call(decoded)
+            output = cleaned == decoded ? item : JSON.generate(cleaned)
+            container_secrets.any? { |secret| output.include?(secret) } ? "[REDACTED]" : output
+          else
+            secrets.reduce(item) { |text, secret| text.gsub(secret, "[REDACTED]") }
+          end
+        else item
+        end
+      end
+      redact.call(value)
+    end
+
     def password_valid?(candidate)
       return false if @password.length < 12 || candidate.bytesize > 1024
       expected = OpenSSL::Digest::SHA256.digest(@password)

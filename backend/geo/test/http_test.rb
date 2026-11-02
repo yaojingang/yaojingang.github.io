@@ -109,6 +109,22 @@ class GeoHTTPTest < Minitest::Test
     assert_equal 2, @calls.count { |path, _| path == "/chat/completions" }
   end
 
+  def test_diagnostic_download_redacts_credentials_in_older_records
+    run = @store.diagnostics.start("legacy" => { "response" => @config.api_key, "plan" => JSON.generate("text" => @config.password) })
+    run.finish("complete")
+    cookie = login
+    response = http("Get", "/geo/api/runs/#{run.id}", cookie: cookie)
+    assert_equal "200", response.code
+    record = JSON.parse(response.body)
+    assert record["complete"]
+    legacy = record["events"].first["data"]["legacy"]
+    assert_equal "[REDACTED]", legacy["response"]
+    assert_equal "[REDACTED]", JSON.parse(legacy["plan"])["text"]
+    refute_includes response.body, @config.api_key
+    refute_includes response.body, @config.password
+    assert_empty @calls
+  end
+
   def test_static_routes_cannot_read_credentials_or_backend_files
     %w[/backend/geo/lib/config.rb /.env /geo/../../backend/geo/server.rb /credentials.json].each do |path|
       assert_includes ["400", "404"], http("Get", path).code

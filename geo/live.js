@@ -344,7 +344,10 @@
   function diagnosticPanel(ds) {
     const valid=/^[a-f0-9]{32}$/.test(ds.run_id || '');
     const audit=ds.diagnostics;
-    return `<details class="live-run-record"><summary>本次处理记录与引用核对范围</summary><p>引用编号与来源对应已检查，结论的证据支持程度可继续核对原文。</p><p>本次保留 ${(ds.evidence || []).length} 段输入证据，${ds.sents.reduce((n,s)=>n+s.evidence_refs.length,0)} 条证据引用关联。来源按钮按网页合并，弹层保留全部选段。</p>${audit?`<p>本次调用已结算 ¥${Number(audit.settled_cny).toFixed(4)}${audit.pending_cny?`，另有待确认预留 ¥${Number(audit.pending_cny).toFixed(4)}`:''}；全站累计单独显示</p><p>${audit.complete?'处理留档完整':'处理留档不完整，无法追溯的项目保持未知'}，记录最长保留 7 天，容量达到上限时优先清理旧记录。</p>`:''}${valid&&audit?.available?`<a class="linkbtn" href="/geo/api/runs/${ds.run_id}" download="geo-run-${ds.run_id}.json">下载本次诊断记录</a>`:'<p>本次诊断记录暂不可下载</p>'}</details>`;
+    const costOrigin=ds.cached?'original':'current';
+    const recordState=audit?.available?(audit.complete?'complete':'partial'):'unavailable';
+    const recordLabel=recordState==='complete'?'处理留档完整':recordState==='partial'?'处理留档不完整，无法追溯的项目保持未知':'处理留档已清理或暂不可用';
+    return `<details class="live-run-record"><summary>本次处理记录与引用核对范围</summary><p>引用编号与来源对应已检查，结论的证据支持程度可继续核对原文。</p><p>本次保留 ${(ds.evidence || []).length} 段输入证据，${ds.sents.reduce((n,s)=>n+s.evidence_refs.length,0)} 条证据引用关联。来源按钮按网页合并，弹层保留全部选段。</p>${audit?`<p data-run-cost-origin="${costOrigin}">${ds.cached?'原检索':'本次'}调用已结算 ¥${Number(audit.settled_cny).toFixed(4)}${audit.pending_cny?`，另有待确认预留 ¥${Number(audit.pending_cny).toFixed(4)}`:''}${ds.cached?'；本次缓存读取无新增调用':''}；全站累计单独显示</p><p data-run-record-state="${recordState}">${recordLabel}，记录最长保留 7 天，容量达到上限时优先清理旧记录。</p>`:''}${valid&&audit?.available?`<a class="linkbtn" href="/geo/api/runs/${ds.run_id}" download="geo-run-${ds.run_id}.json">下载本次诊断记录</a>`:'<p>本次诊断记录暂不可下载</p>'}</details>`;
   }
 
   const descriptions = [
