@@ -95,7 +95,7 @@ class GeoNativeRankingTest < Minitest::Test
     assert_equal 0600, File.stat(@store.diagnostics.path(data["run_id"])).mode & 0777
   end
 
-  def test_wrong_language_expansion_falls_back_without_an_extra_model_call
+  def test_cross_language_expansions_are_retained_without_an_extra_model_call
     pipeline = flow do |path, payload, response|
       if path == "/chat/completions" && payload["max_tokens"] == 600
         response[1]["choices"][0]["message"]["content"] = JSON.generate("queries" => ["企业分析工具", "data analysis tools for teams"])
@@ -103,14 +103,13 @@ class GeoNativeRankingTest < Minitest::Test
       response
     end
     data = pipeline.run("企业分析工具") { |*_| }
-    assert_equal ["企业分析工具 lang:zh"], data["searches"].map { |s| s["query"] }
+    assert_equal ["企业分析工具", "data analysis tools for teams"], data["searches"].map { |s| s["query"] }
     assert_equal 2, @calls.count { |path, _| path == "/chat/completions" }
   end
 
-  def test_english_queries_can_keep_chinese_named_entities
-    policy = Geo::Language.preference("Compare 腾讯云 and 阿里云 for our team")
-    assert Geo::Language.query_matches?("Compare 腾讯云 and 阿里云 cloud tools", policy, entities: ["腾讯云", "阿里云"])
-    refute Geo::Language.query_matches?("企业数据分析工具对比", policy, entities: ["腾讯云", "阿里云"])
+  def test_queries_keep_chinese_named_entities_without_automatic_language_limits
+    query = "Compare 腾讯云 and 阿里云 cloud tools"
+    assert_equal query, Geo::DeepSeek.search_query(query, "Compare 腾讯云 and 阿里云 for our team")
   end
 
   def test_malformed_planning_json_uses_the_original_short_question_without_model_retry
@@ -122,7 +121,7 @@ class GeoNativeRankingTest < Minitest::Test
     end
     data = pipeline.run("企业分析工具") { |*_| }
     assert_equal "complete", data["status"]
-    assert_equal ["企业分析工具 lang:zh"], data["searches"].map { |search| search["query"] }
+    assert_equal ["企业分析工具"], data["searches"].map { |search| search["query"] }
     assert_match(/按原问题/, data["warnings"].first)
     assert_equal 2, @calls.count { |path, _| path == "/chat/completions" }
     record = @store.diagnostics.read(data["run_id"])

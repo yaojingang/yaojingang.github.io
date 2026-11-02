@@ -100,7 +100,7 @@ class GeoCoreTest < Minitest::Test
     assert_equal "insufficient", data["status"]
     assert_empty data["answer"]
     assert_equal 0, data["quality"]["read_count"]
-    assert_equal 4, @calls.length
+    assert_equal 3, @calls.length
   end
 
   def test_budget_is_atomic_and_survives_a_restart

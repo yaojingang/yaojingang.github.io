@@ -21,24 +21,24 @@ class GeoReviewRegressionTest < Minitest::Test
     "企业需要比较多种工具的协作与部署能力，" * 8 + "核心对象是FineBI和Power BI。"
   end
 
-  def test_invalid_language_plan_cannot_truncate_a_long_question_and_drop_its_entities
-    flow = planned(["data analysis tools for enterprise teams"])
-    error = assert_raises(Geo::Error) { flow.run(long_question) { |*_| } }
-    assert_equal "invalid_plan", error.code
-    assert_empty @calls.select { |path, _| path == "/v1/tools/search" }
-    assert_equal 1, @calls.count { |path, _| path == "/chat/completions" }
+  def test_cross_language_plan_preserves_long_question_entities
+    query = "FineBI and Power BI enterprise team collaboration comparison"
+    data = planned([query]).run(long_question) { |*_| }
+    assert_equal [query], data["searches"].map { |search| search["query"] }
+    assert_equal "complete", data["status"]
+    assert_equal 2, @calls.count { |path, _| path == "/chat/completions" }
   end
 
-  def test_a_long_question_uses_only_valid_planned_queries
-    query = "FineBI 和 Power BI 企业团队协作接入对比"
-    data = planned([query, "data analysis tools for enterprise teams"]).run(long_question) { |*_| }
-    assert_equal [query + " lang:zh"], data["searches"].map { |search| search["query"] }
+  def test_a_long_question_uses_all_valid_planned_queries
+    queries = ["FineBI 和 Power BI 企业团队协作接入对比", "FineBI and Power BI enterprise team collaboration comparison"]
+    data = planned(queries).run(long_question) { |*_| }
+    assert_equal queries, data["searches"].map { |search| search["query"] }
     assert_equal "complete", data["status"]
   end
 
-  def test_a_short_question_keeps_its_original_query_after_a_language_mismatch
+  def test_a_short_question_keeps_its_original_first_query
     data = planned(["data analysis tools for enterprise teams"]).run("企业分析工具") { |*_| }
-    assert_equal ["企业分析工具 lang:zh"], data["searches"].map { |search| search["query"] }
+    assert_equal ["企业分析工具"], data["searches"].map { |search| search["query"] }
     assert_equal "complete", data["status"]
   end
 

@@ -122,7 +122,8 @@
   const arrow = '<svg class="car" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>';
   const check = '<span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg></span>';
   const selectedCount = ds => ds.quality?.read_count ?? ds.sources.filter(s => s.read !== false).slice(0, 5).length;
-  const languageLabel = ds => ({'zh-Hans':'简体中文','zh-Hant':'繁体中文',zh:'中文',en:'英文','zh,en':'中英文'})[ds.quality?.preferred_language||ds.quality?.language] || '按问题语言';
+  const languageLabel = ds => (ds.quality?.preferred_language||ds.quality?.language||'').split(',').map(code=>({'zh-Hans':'简体中文','zh-Hant':'繁体中文',zh:'中文',en:'英文'})[code]||code).join('、') || '不限';
+  const sourceLanguageLabel = ds => [ds.quality?.strict_language?languageLabel(ds)+'限定':ds.quality?.excluded_languages?.length?null:'不限', ...(ds.quality?.excluded_languages || []).map(code=>'排除'+(({'zh-Hans':'简体中文','zh-Hant':'繁体中文',zh:'中文',en:'英文'})[code]||code))].filter(Boolean).join('，');
   const stageRows = events => STAGES.map((_, index) => events.filter(event => event.stage === index).slice(-1)[0]).filter(Boolean);
   function progress() {
     const current = live.events[live.events.length - 1] || {stage:0};
@@ -147,7 +148,7 @@
   }
 
   function renderRunMeta(data) {
-    const meta = [data.ranking?.mode==='teaching'?'六维教学实验回答':'DeepSeek 综合分排序',data.quality?.strict_language?`${languageLabel(data)}限定`:`${languageLabel(data)}优先`, ...(data.quality?.language_fallback?['含补充语言信源']:[]), data.cached ? '相同问题缓存' : '实时联网检索', `${data.cached ? '原检索' : '用时'} ${data.elapsed_seconds} 秒`, `累计 ¥${money(data.budget.used_cny)} / ¥${money(data.budget.limit_cny)}`];
+    const meta = [data.ranking?.mode==='teaching'?'六维教学实验回答':'DeepSeek 综合分排序',...(data.quality?.strict_language||data.quality?.excluded_languages?.length?[sourceLanguageLabel(data)]:[]), data.cached ? '相同问题缓存' : '实时联网检索', `${data.cached ? '原检索' : '用时'} ${data.elapsed_seconds} 秒`, `累计 ¥${money(data.budget.used_cny)} / ¥${money(data.budget.limit_cny)}`];
     document.getElementById('r-banner').innerHTML = `<div class="live-run-meta">${meta.map(item => `<span>${esc(item)}</span>`).join('')}</div>${(data.warnings || []).map(text => `<div class="banner">${esc(text)}</div>`).join('')}`;
   }
   function prepare(data) {
@@ -339,7 +340,7 @@
   };
   live.apiRanking = ds => {
     const rows=rankBy(ds,DEFAULT_W,'api');
-    return `${live.rankingTabs()}<h2>同语言组内，按 DeepSeek 综合分排序</h2>${lead('先通过 API 1.50 分门槛与语言条件，再按 API 综合分降序检查来源。权威等级与日期保留原值，六维估计不参与默认加权。')}<p class="live-rank-state">${ds.ranking?.mode==='teaching'?'当前预览 API 顺序，已有回答采用六维教学实验。':'本次回答采用 DeepSeek 综合分排序。'}${ds.ranking?.mode==='teaching'?'<button type="button" class="linkbtn press" id="live-apply-api">按 DeepSeek 排序重新生成</button>':''}</p><div class="live-native-ranks">${rows.map(({s},i)=>`<article class="live-native-row" data-native-id="${esc(s.id)}"><div class="live-native-heading"><span class="mono">${String(i+1).padStart(2,'0')}</span><div><b>${sourceLink(s)}</b><span class="live-native-site">${esc(short(s))} · ${esc(s.language_label || '语言待确认')}${s.language_assessment?.uncertain?' · 规则判断待核对':''}</span></div><strong class="mono">${s.api_score.toFixed(2)}<small> / 3</small></strong></div><div class="live-native-bar"><i style="width:${s.api_score/3*100}%"></i></div><p>${esc(s.why)}</p>${sourceMetrics(s)}<details class="live-occurrences"><summary>原始查询位次与处理依据</summary><p class="small">合并池 API 分数序 #${s.api_rank || i+1}；原始响应位次按每个查询分别记录</p>${(s.occurrences || []).map(o=>`<div><span class="mono">Q${o.query_index} · #${o.raw_rank}</span><span>API ${o.api_score.toFixed(3)} / 3</span><span>${o.truncated_fields?.length?'截断字段：'+esc(o.truncated_fields.join('、')):'字段均在保留长度内'}</span></div>`).join('') || '<p>此结果未记录逐查询位次</p>'}<p>${esc(s.language_basis || '')}；${esc(s.date)}</p></details></article>`).join('')}</div>`;
+    return `${live.rankingTabs()}<h2>按 DeepSeek 综合分排序</h2>${lead('各语言信源统一按 API 综合分排序，保留 1.50 分选用线，并遵守用户明确指定的语言条件。权威等级与日期保留原值。')}<p class="live-rank-state">${ds.ranking?.mode==='teaching'?'当前预览 API 顺序，已有回答采用六维教学实验。':'本次回答采用 DeepSeek 综合分排序。'}${ds.ranking?.mode==='teaching'?'<button type="button" class="linkbtn press" id="live-apply-api">按 DeepSeek 排序重新生成</button>':''}</p><div class="live-native-ranks">${rows.map(({s},i)=>`<article class="live-native-row" data-native-id="${esc(s.id)}"><div class="live-native-heading"><span class="mono">${String(i+1).padStart(2,'0')}</span><div><b>${sourceLink(s)}</b><span class="live-native-site">${esc(short(s))} · ${esc(s.language_label || '语言待确认')}${s.language_assessment?.uncertain?' · 规则判断待核对':''}</span></div><strong class="mono">${s.api_score.toFixed(2)}<small> / 3</small></strong></div><div class="live-native-bar"><i style="width:${s.api_score/3*100}%"></i></div><p>${esc(s.why)}</p>${sourceMetrics(s)}<details class="live-occurrences"><summary>原始查询位次与处理依据</summary><p class="small">合并池 API 分数序 #${s.api_rank || i+1}；原始响应位次按每个查询分别记录</p>${(s.occurrences || []).map(o=>`<div><span class="mono">Q${o.query_index} · #${o.raw_rank}</span><span>API ${o.api_score.toFixed(3)} / 3</span><span>${o.truncated_fields?.length?'截断字段：'+esc(o.truncated_fields.join('、')):'字段均在保留长度内'}</span></div>`).join('') || '<p>此结果未记录逐查询位次</p>'}<p>${esc(s.language_basis || '')}；${esc(s.date)}</p></details></article>`).join('')}</div>`;
   };
   function diagnosticPanel(ds) {
     const valid=/^[a-f0-9]{32}$/.test(ds.run_id || '');
@@ -351,9 +352,9 @@
   }
 
   const descriptions = [
-    '保留原问题并生成少量等义查询，优先匹配提问的英文或中文繁简字形，缺少可用资料时补充其他语言，实际搜索词保留记录。',
+    '保留原问题并生成少量等义查询，默认不限制信源语言；用户明确指定的语种与排除条件持续生效，实际搜索词保留记录。',
     '每组查询调用一次 DeepSeek Search，按实际返回数量汇总并校验链接并合并重复网址，保留跳过理由。',
-    '先通过 API 1.50 分选用线，按提问语言分组，默认在同组按 DeepSeek 综合分降序选择最多 5 个可用来源。六维实验单独预览和应用。',
+    '各语言信源通过 API 1.50 分选用线后，默认按 DeepSeek 综合分降序选择最多 5 个可用来源。用户明确指定的语言条件持续生效，六维实验单独预览和应用。',
     '过滤标题、导航与无效短标签，保留正文选段；使用摘要时单独标明依据类型。',
     '资料充足时生成回答并核对引用编号。资料不足时保留检索记录，请用户补充条件。',
     '引用与候选分别记录，每条引用都能追溯到已保存的选段和原始网页。'
@@ -361,7 +362,7 @@
   const guidance = [
     ['把推荐对象、场景和地区写清楚。', '保留原词，避免把工具、岗位和专家混为同一个需求。', '需要外语原文时，可以在问题里明确说明。'],
     ['让网页标题和正文围绕同一个具体问题。', '本次只展示 Search 的实际返回数量。', '搜索语言会影响可召回的资料范围。'],
-    ['默认使用 DeepSeek 综合分，语言与质量条件独立记录。', '权威等级、日期与结构信息用于核对，六维加权仅在教学实验中生效。', '公开原始查询位次和每一步排除理由，便于核对排序变化。'],
+    ['默认使用 DeepSeek 综合分，资料语言保留供核对。', '权威等级、日期与结构信息用于核对，六维加权仅在教学实验中生效。', '公开原始查询位次和每一步排除理由，便于核对排序变化。'],
     ['正文提供完整事实和上下文，减少纯导航内容。', '引用正文与引用搜索摘要分别标记。', '可用段落不足时，补充更具体的查询条件。'],
     ['每段回答关联已存在的证据编号。', '多源引用表示关联多个来源，具体结论可继续核对原文。', '检索证据不足时，先澄清需求。'],
     ['打开引用链接核对上下文。', '未被这次回答引用的来源仍可在候选记录中查看。', '一次查询的引用情况只代表这次运行。']
@@ -370,7 +371,7 @@
   const lead = text => `<p class="lead">${esc(text)}</p>`;
   const emptyStage = text => `<div class="surface live-stage-empty">${esc(text)}</div>`;
   const liveStages = {
-    understand: ds => `<h2>先读懂问题，再拆成子问题</h2>${lead('核对识别出的意图、实体与条件，再查看本次实际发出的搜索词。未说明的条件保留待确认。')}<div class="u-grid"><div class="u-card"><small>意图类型</small><div class="big">${esc(ds.intent.type || '综合问题')}</div></div><div class="u-card"><small>识别出的实体</small><div class="chips">${ds.intent.ents?.length?ds.intent.ents.map(e=>`<span>${esc(e)}</span>`).join(''):'<span>本次未单独识别</span>'}</div></div><div class="u-card"><small>问题条件</small><dl><dt>语言</dt><dd>${esc(languageLabel(ds))}</dd>${(ds.intent.cons||[]).map(c=>`<dt>${esc(c[0])}</dt><dd>${esc(c[1])}</dd>`).join('')}</dl></div><div class="u-card"><small>回答规划</small><div class="live-plan">${esc(ds.intent.plan || '先检索原始问题，精读达标来源，再依据选段回答。')}</div></div></div><p class="subh">查询扇出 · 1 个问题 → ${ds.searches.length} 组查询</p><div class="fan" id="fan"><svg class="wires" id="wires"></svg><div class="fan-q" id="fanq">${esc(ds.query)}</div><ul class="fan-list">${ds.searches.map((s, i) => `<li><span>Q${i + 1}</span>${esc(s.query)}</li>`).join('')}</ul></div>`,
+    understand: ds => `<h2>先读懂问题，再拆成子问题</h2>${lead('核对识别出的意图、实体与条件，再查看本次实际发出的搜索词。未说明的条件保留待确认。')}<div class="u-grid"><div class="u-card"><small>意图类型</small><div class="big">${esc(ds.intent.type || '综合问题')}</div></div><div class="u-card"><small>识别出的实体</small><div class="chips">${ds.intent.ents?.length?ds.intent.ents.map(e=>`<span>${esc(e)}</span>`).join(''):'<span>本次未单独识别</span>'}</div></div><div class="u-card"><small>问题条件</small><dl><dt>信源语言</dt><dd>${esc(sourceLanguageLabel(ds))}</dd>${(ds.intent.cons||[]).map(c=>`<dt>${esc(c[0])}</dt><dd>${esc(c[1])}</dd>`).join('')}</dl></div><div class="u-card"><small>回答规划</small><div class="live-plan">${esc(ds.intent.plan || '先检索原始问题，精读达标来源，再依据选段回答。')}</div></div></div><p class="subh">查询扇出 · 1 个问题 → ${ds.searches.length} 组查询</p><div class="fan" id="fan"><svg class="wires" id="wires"></svg><div class="fan-q" id="fanq">${esc(ds.query)}</div><ul class="fan-list">${ds.searches.map((s, i) => `<li><span>Q${i + 1}</span>${esc(s.query)}</li>`).join('')}</ul></div>`,
     retrieve: ds => {
       const max = Math.max(1, ...ds.searches.map(s => s.count));
       return `<h2>实际搜索结果汇入候选池</h2>${lead('每条横线表示查询实际返回数量。链接入口检查与重复合并分开计数，原始位次和截断信息随候选保留。')}<div class="r-legend"><span class="lg"><i style="background:var(--g1)"></i>Search 返回结果</span></div>${ds.searches.map((s, i) => `<div class="r-row"><span class="q" title="${esc(s.query)}"><span>Q${i + 1}</span>${esc(s.query)}</span><div class="bar"><i data-w="${s.count / max * 100}" style="background:var(--g1)"></i></div><span class="n mono">${s.count}</span></div>`).join('')}<div class="sum"><span>原始结果</span><b>${ds.total}</b><i>→</i><span>入口跳过</span><b>${ds.processing?.skipped_occurrences || 0}</b><i>→</i><span>重复出现</span><b>${ds.processing?.duplicate_occurrences || 0}</b><i>→</i><span>唯一网页</span><b>${ds.dedup}</b><em>过程页保留全部 ${ds.sources.length} 个可用候选，实际精读 ${selectedCount(ds)} 个来源。</em></div>`;

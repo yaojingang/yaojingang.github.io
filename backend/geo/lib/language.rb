@@ -54,19 +54,6 @@ module Geo
         "mixed" => mixed, "uncertain" => %w[other unknown zh].include?(detect(text)) || mixed }
     end
 
-    def self.query_matches?(query, policy, entities: [])
-      return true if policy["codes"].empty? || !%w[en zh-Hans zh-Hant zh].include?(policy["preferred"])
-      text = query.gsub(/(?<!\S)lang:[a-z,-]+/i, "").gsub(/-?site:\S+|(?:after|before):\S+/i, "")
-      han = text.scan(/\p{Han}/).length
-      if policy["preferred"] == "en"
-        Array(entities).select { |entity| entity.is_a?(String) && !entity.empty? }.each { |entity| text = text.gsub(entity, " ") }
-        return text.scan(/\p{Han}/).empty?
-      end
-      return false if han.zero?
-      script = detect(text)
-      policy["preferred"] == "zh" || script == policy["preferred"] || script == "zh"
-    end
-
     LANGUAGE_NAMES = /简体中文|簡體中文|繁体中文|繁體中文|中文|英文|英语|英語|simplified\s+Chinese|traditional\s+Chinese|English|Chinese/i
 
     def self.code(name)
@@ -107,7 +94,7 @@ module Geo
         preferred = "zh" if chinese_priority
       end
       provider = preferred.start_with?("zh") ? "zh" : %w[en ja ko].include?(preferred) ? preferred : nil
-      { "preferred" => preferred, "codes" => provider ? [provider] : [], "strict" => !!strict_request, "excluded" => excluded.uniq }
+      { "preferred" => preferred, "codes" => strict_request && provider ? [provider] : [], "strict" => !!strict_request, "excluded" => excluded.uniq }
     end
 
     def self.allowed?(language, policy)
@@ -120,12 +107,6 @@ module Geo
       return true if policy["codes"].empty? || (policy["codes"] - %w[zh en ja ko]).any?
       return language == preferred || language == "zh" if %w[zh-Hans zh-Hant].include?(preferred)
       policy["codes"].any? { |code| language == code || (code == "zh" && language.start_with?("zh")) }
-    end
-
-    def self.priority(language, policy)
-      return 0 if match?(language, policy)
-      return 1 if language.start_with?("zh") && policy["preferred"].start_with?("zh")
-      %w[unknown other].include?(language) ? 3 : 2
     end
 
     def self.label(code)

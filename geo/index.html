@@ -528,7 +528,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 @keyframes sheetin{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
 </style>
-<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.6.2">
+<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.7.0">
 
 <header class="top" id="top">
   <div class="top-in">
@@ -813,8 +813,8 @@ const f1=n=>n.toFixed(1);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 function score(s,w){let t=0,sw=0;SIG.forEach((g,i)=>{if(Number.isFinite(s.sig?.[i])){t+=w[g.k]*s.sig[i];sw+=w[g.k]}});return sw?Math.round(t/sw*1e6)/1e6:null}
-function sourceSelectable(s){return s.eligible&&s.language_allowed!==false&&!s.selection_blocked&&!s.selection_deferred}
-function rankBy(ds,w,mode){const native=ds.live&&(mode||ds.ranking?.mode||"api")==="api";return ds.sources.map(s=>({s,v:native?s.api_score:score(s,w)})).sort((a,b)=>ds.live?Number(!!sourceSelectable(b.s)&&b.v!=null)-Number(!!sourceSelectable(a.s)&&a.v!=null)||(a.s.language_priority||0)-(b.s.language_priority||0)||(b.v??-1)-(a.v??-1)||b.s.api_score-a.s.api_score||(a.s.url<b.s.url?-1:a.s.url>b.s.url?1:0):(b.v??-1)-(a.v??-1))}
+function sourceSelectable(s){return s.eligible&&s.language_allowed!==false&&!s.selection_blocked}
+function rankBy(ds,w,mode){const native=ds.live&&(mode||ds.ranking?.mode||"api")==="api";return ds.sources.map(s=>({s,v:native?s.api_score:score(s,w)})).sort((a,b)=>ds.live?Number(!!sourceSelectable(b.s)&&b.v!=null)-Number(!!sourceSelectable(a.s)&&a.v!=null)||(b.v??-1)-(a.v??-1)||b.s.api_score-a.s.api_score||(a.s.url<b.s.url?-1:a.s.url>b.s.url?1:0):(b.v??-1)-(a.v??-1))}
 function kind(sg){return !sg.f||!sg.f.length?'synth':sg.f.length>1?'merge':'extract'}
 function ico(s){return `<i class="ico" style="background:${s.tc}">${esc(s.ic)}</i>`}
 const short=s=>s.display_site||s.site.split(' · ')[0];
@@ -1018,7 +1018,7 @@ function closePop(){
 document.addEventListener('click',e=>{if(!e.target.closest('#pop')&&!e.target.closest('.seg'))closePop()});
 function sourceLanguage(s){
   const names={'en':'英文','zh-Hans':'简体中文','zh-Hant':'繁体中文','zh':'中文（字形未区分）','ja':'日文','ko':'韩文','other':'其他语言','unknown':'语言待确认'};
-  return s.language?`<div class="live-api-metrics live-source-language"><span title="本站根据可用正文、摘要或标题中的语言与字形特征判断，无法区分时单独标注。">资料语言 <b>${esc(names[s.language]||'语言待确认')}</b></span>${s.language_assessment?.mixed?'<span>混合文本 · 语言待核对</span>':s.language_assessment?.uncertain?'<span>语言规则判断待核对</span>':''}${s.language_supplement?'<span>补充信源</span>':''}</div>`:'';
+  return s.language?`<div class="live-api-metrics live-source-language"><span title="本站根据可用正文、摘要或标题中的语言与字形特征判断，无法区分时单独标注。">资料语言 <b>${esc(names[s.language]||'语言待确认')}</b></span>${s.language_assessment?.mixed?'<span>混合文本 · 语言待核对</span>':s.language_assessment?.uncertain?'<span>语言规则判断待核对</span>':''}</div>`:'';
 }
 function sourceMetrics(s){
   const authority=Number.isInteger(s.authority)&&s.authority>=0&&s.authority<=4?s.authority+' / 4':'未知';
@@ -1165,7 +1165,7 @@ function bindRankingLab(ds){
       el.style.transform=`translateY(${i*H}px)`;el.dataset.rank=String(i+1);el.dataset.selected=String(isIn);$('.rk',el).textContent=i+1;
       $$('.stack i',el).forEach((bar,j)=>{bar.style.width=(known&&Number.isFinite(x.s.sig?.[j])?w[SIG[j].k]*x.s.sig[j]/known:0)+'%';bar.title=`${SIG[j].n} ${x.s.sig?.[j]??'未知'}`});
       $('.scorev',el).textContent=x.v==null?'—':f1(x.v);
-      const badge=$('.badge',el);badge.className='badge '+(isIn?'in':'out');badge.textContent=!sw?'未设置':live&&!x.s.eligible?'未达标':live&&x.s.language_allowed===false?'语言候补':live&&x.s.selection_deferred?'待核实':live&&x.s.selection_blocked?'无有效段落':x.v==null?'未知':isIn?(live?'拟精读':'入选'):'候选';
+      const badge=$('.badge',el);badge.className='badge '+(isIn?'in':'out');badge.textContent=!sw?'未设置':live&&!x.s.eligible?'未达标':live&&x.s.language_allowed===false?'语言受限':live&&x.s.selection_blocked?'无有效段落':x.v==null?'未知':isIn?(live?'拟精读':'入选'):'候选';
       const delta=x.s.r0-i,dl=$('.delta',el);dl.className='delta '+(delta>0?'up':delta<0?'dn':'');dl.textContent=sw?(delta>0?`↑${delta}`:delta<0?`↓${-delta}`:''):'';
     });
     const cut=$('.cutline',board);cut.hidden=!selected.length||selected.length===r.length;cut.style.top=selected.length*H+'px';$('span',cut).textContent=live?'精读名额线':'模拟引用名额线';
@@ -1275,5 +1275,5 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
-<script src="/geo/live.js?v=geo-live-1.6.2" defer></script>
+<script src="/geo/live.js?v=geo-live-1.7.0" defer></script>
 {% include baidu-analytics.html %}

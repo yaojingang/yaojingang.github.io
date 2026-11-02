@@ -77,7 +77,7 @@ module Geo
     end
 
     def self.selectable?(source)
-      source["eligible"] && source["language_allowed"] != false && !source["selection_blocked"] && !source["selection_deferred"]
+      source["eligible"] && source["language_allowed"] != false && !source["selection_blocked"]
     end
 
     def self.order(sources, weights, mode: "api")
@@ -88,7 +88,7 @@ module Geo
         source["weighted_score"] = score(source, weights)
         source["sort_score"] = mode == "api" ? source["api_score"] : source["weighted_score"]
       end
-      sources.sort_by { |source| [selectable?(source) && !source["sort_score"].nil? ? 0 : 1, source["language_priority"] || 0, -(source["sort_score"] || -1), -source["api_score"], source["url"]] }
+      sources.sort_by { |source| [selectable?(source) && !source["sort_score"].nil? ? 0 : 1, -(source["sort_score"] || -1), -source["api_score"], source["url"]] }
     end
   end
 end

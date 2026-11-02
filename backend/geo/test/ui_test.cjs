@@ -23,7 +23,7 @@ const formattedAnswer=[
  {t:'p',kind:'paragraph',heading:'再比较接入与长期维护成本',segs:[{x:'用一份真实数据走完导入、分析和分享流程，记录各环节需要的人员与时间。短期演示完成之后，再判断持续使用的成本。',em:['一份真实数据','持续使用的成本'],f:refs}]},
  {t:'p',kind:'paragraph',segs:[{x:'资料不足的部分单独列出，带着具体问题核对产品原始文档，再做下一步比较。',em:['资料不足'],f:[refs[1]]}]}
 ];
-const data = {live:true,query:'企业应该怎样选择数据分析工具？',ranking:{mode:"api",weights:defaults,limit:5},intent:{type:'工具选型',ents:['分析工具'],cons:[['使用场景','团队协作']],plan:'先比较场景，再核对接入条件。'},searches:[{query:'企业应该怎样选择数据分析工具？ lang:zh',count:2},{query:'数据分析工具 团队协作 lang:zh',count:2}],sources,evidence,answer:[{t:'p',segs:[{x:text.repeat(4),f:refs}]},{t:'p',segs:[{x:text,f:[refs[0]]}]}],cited:['S1','S2'],trace:Array.from({length:6},(_,stage)=>({stage,message:['保留原始问题，生成搜索词。','实际检索 2 组查询。','按 1.50 分选用线筛选来源。','已记录 2 段正文。','已整理 2 段回答。','引用 2 个来源。'][stage]})),total:4,dedup:2,cached:false,status:'complete',quality:{min_score:1.5,eligible_count:2,read_count:2,language:'zh',preferred_language:'zh-Hans',language_fallback:false},warnings:[],created_at:'2026-11-01T19:00:00+08:00',elapsed_seconds:2.18,budget:{limit_cny:50,used_cny:0.12,remaining_cny:49.88}};
+const data = {live:true,query:'企业应该怎样选择数据分析工具？',ranking:{mode:"api",weights:defaults,limit:5},intent:{type:'工具选型',ents:['分析工具'],cons:[['使用场景','团队协作']],plan:'先比较场景，再核对接入条件。'},searches:[{query:'企业应该怎样选择数据分析工具？',count:2},{query:'数据分析工具 团队协作',count:2}],sources,evidence,answer:[{t:'p',segs:[{x:text.repeat(4),f:refs}]},{t:'p',segs:[{x:text,f:[refs[0]]}]}],cited:['S1','S2'],trace:Array.from({length:6},(_,stage)=>({stage,message:['保留原始问题，生成搜索词。','实际检索 2 组查询。','按 1.50 分选用线筛选来源。','已记录 2 段正文。','已整理 2 段回答。','引用 2 个来源。'][stage]})),total:4,dedup:2,cached:false,status:'complete',quality:{min_score:1.5,eligible_count:2,read_count:2,language:null,preferred_language:'zh-Hans',strict_language:false,excluded_languages:[],response_language:'zh-Hans',language_fallback:false},warnings:[],created_at:'2026-11-01T19:00:00+08:00',elapsed_seconds:2.18,budget:{limit_cny:50,used_cny:0.12,remaining_cny:49.88}};
 let loggedIn = false, waitingResponse;
 const files = {'/geo/':['geo/index.html','text/html'],'/geo/live.js':['geo/live.js','text/javascript'],'/geo/live.css':['geo/live.css','text/css'],'/geo/test-questions.json':['geo/test-questions.json','application/json']};
 const json = (res, value, code=200) => {res.writeHead(code, {'Content-Type':'application/json'});res.end(JSON.stringify(value));};
@@ -44,8 +44,10 @@ const server = http.createServer(async(req,res)=>{
 
     if(question==='多段证据测试'){const e={id:'S1-P2',source_id:'S1',text:'同一网页的第二段证据保留了适用条件与费用口径。',basis:'body',term_hits:2};output.evidence.push(e);output.answer[0].segs[0].f.push({id:'S1',q:e.text,evidence_id:e.id,basis:e.basis});}
 
-    if(question==='语言补充测试'){output.quality.language_fallback=true;output.sources=output.sources.map((s,i)=>({...s,language:i?'en':'zh-Hant',language_priority:i?2:1,language_supplement:true}));}
-    if(question==='数学分析师推荐')Object.assign(output,{status:'insufficient',answer:[],cited:[],evidence:[],quality:{min_score:1.5,eligible_count:0,read_count:0,language:'zh'},sources:output.sources.map(s=>({...s,api_score:1.2,read:false,eligible:false,type:'搜索结果',why:'API 排序分低于本站 1.50 分选用线。'})),diagnostic:'本次没有找到足够相关且内容可用的资料。请补充推荐对象、使用场景或地区，再继续检索。',searches:[{query:'数学分析师推荐 lang:zh',count:2},{query:'数学分析师 推荐 lang:zh',count:2}],trace:output.trace.map(row=>({...row,message:row.stage===3?'没有找到有效选段。':row.stage===4?'资料不足，没有调用回答模型。':row.stage===5?'没有形成引用。':row.message}))});
+    if(question==='多语言信源测试'){output.sources=output.sources.map((s,i)=>({...s,language:i?'en':'zh-Hant',language_priority:0,language_supplement:false}));}
+    if(question==='限定信源测试')Object.assign(output.quality,{strict_language:true,preferred_language:'en',language:'en'});
+    if(question==='排除英文测试')output.quality.excluded_languages=['en'];
+    if(question==='数学分析师推荐')Object.assign(output,{status:'insufficient',answer:[],cited:[],evidence:[],quality:{min_score:1.5,eligible_count:0,read_count:0,language:'zh'},sources:output.sources.map(s=>({...s,api_score:1.2,read:false,eligible:false,type:'搜索结果',why:'API 排序分低于本站 1.50 分选用线。'})),diagnostic:'本次没有找到足够相关且内容可用的资料。请补充推荐对象、使用场景或地区，再继续检索。',searches:[{query:'数学分析师推荐',count:2},{query:'数学分析师 推荐',count:2}],trace:output.trace.map(row=>({...row,message:row.stage===3?'没有找到有效选段。':row.stage===4?'资料不足，没有调用回答模型。':row.stage===5?'没有形成引用。':row.message}))});
     const bytes=Buffer.from('event: result\ndata: '+JSON.stringify(output)+'\n\n');
     for(let offset=0;offset<bytes.length;offset+=137)res.write(bytes.subarray(offset,offset+137));
     return res.end();
@@ -87,19 +89,23 @@ const server = http.createServer(async(req,res)=>{
   const realtime=await metrics();assert.deepEqual(realtime,teaching);assert.equal(await page.evaluate(()=>state.ds.byId.S2.display_site),'工具文档');assert.equal(await page.evaluate(()=>state.ds.byId.S2.ic),'工');
   assert.equal(await page.locator('#side .srcs > .src').count(),2);
   assert.equal(await page.locator('#side .src a.src-t').count(),2);
-  assert((await page.locator('#r-banner').innerText()).includes('简体中文优先'));
+  assert(!(await page.locator('#r-banner').innerText()).includes('简体中文优先'));
   assert(!(await page.locator('#r-banner').innerText()).includes('含补充语言信源'));
   assert((await page.locator('#side .srcs .live-source-language').nth(0).innerText()).includes('简体中文'));
   assert((await page.locator('#side .srcs .live-source-language').nth(1).innerText()).includes('简体中文'));
   assert(!(await page.locator('#side .srcs .live-source-language').nth(1).innerText()).includes('补充信源'));
   const languageRanking=await page.evaluate(()=>{
-    const rows=[{...state.ds.sources[0],id:'simple',language_priority:0,sig:[10,10,10,10,10,10]},
-      {...state.ds.sources[1],id:'foreign',language_priority:2,language_allowed:false,sig:[100,100,100,100,100,100]},
-      {...state.ds.sources[1],id:'traditional',language_priority:1,sig:[99,99,99,99,99,99]}];
-    const unknown={...rows[0],id:'unknown',sig:[null,null,null,null,null,null]};return {order:rankBy({live:true,sources:rows},DEFAULT_W).map(x=>x.s.id),selectable:rows.map(sourceSelectable),unknownOrder:rankBy({live:true,sources:[unknown,rows[2]]},DEFAULT_W,"teaching").map(x=>x.s.id)};
+    const rows=[{...state.ds.sources[0],id:'simple',api_score:1.6,language_priority:0,sig:[10,10,10,10,10,10]},
+      {...state.ds.sources[1],id:'foreign',api_score:3,language_priority:2,language_allowed:true,sig:[100,100,100,100,100,100]},
+      {...state.ds.sources[1],id:'traditional',api_score:2.9,language_priority:1,sig:[99,99,99,99,99,99]}];
+    const limited=rows.map(s=>({...s,language_allowed:s.id!=='foreign'}));
+    const unknown={...rows[0],id:'unknown',sig:[null,null,null,null,null,null]};
+    return {order:rankBy({live:true,sources:rows},DEFAULT_W).map(x=>x.s.id),teaching:rankBy({live:true,sources:rows},DEFAULT_W,'teaching').map(x=>x.s.id),limited:rankBy({live:true,sources:limited},DEFAULT_W).map(x=>x.s.id),unknownOrder:rankBy({live:true,sources:[unknown,rows[2]]},DEFAULT_W,'teaching').map(x=>x.s.id)};
   });
-  assert.deepEqual(languageRanking.order,['simple','traditional','foreign']);
-  assert.deepEqual(languageRanking.selectable,[true,false,true]);assert.deepEqual(languageRanking.unknownOrder,['traditional','unknown']);
+  assert.deepEqual(languageRanking.order,['foreign','traditional','simple']);
+  assert.deepEqual(languageRanking.teaching,['foreign','traditional','simple']);
+  assert.deepEqual(languageRanking.limited,['traditional','simple','foreign']);
+  assert.deepEqual(languageRanking.unknownOrder,['traditional','unknown']);
   assert.equal(await page.locator('#side .srcs [data-api-metric="authority"]').first().innerText(),'网页权威 3 / 4');
   assert(await page.locator('#side .srcs [data-api-metric="authority"]').first().isVisible());
   assert.equal(await page.locator('#side .srcs [data-api-metric="rerank"]').first().innerText(),'搜索排序 2.65 / 3');
@@ -189,15 +195,21 @@ const server = http.createServer(async(req,res)=>{
   await page.evaluate(()=>backToResults());await page.locator('#answer .seg').first().click();
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
   const sheet=await page.locator('#pop').boundingBox();assert(sheet.x>=-1 && sheet.x+sheet.width<=321 && sheet.y+sheet.height<=1001,'Mobile evidence sheet outside viewport: '+JSON.stringify(sheet));await page.evaluate(()=>closePop());
-  await resize(1440);await page.evaluate(()=>GeoLive.search('语言补充测试'));
-  assert((await page.locator('#r-banner').innerText()).includes('含补充语言信源'));
+  await resize(1440);await page.evaluate(()=>GeoLive.search('多语言信源测试'));
+  assert(!(await page.locator('#r-banner').innerText()).includes('优先'));
+  assert(!(await page.locator('#r-banner').innerText()).includes('补充语言'));
+  await page.evaluate(()=>openProcess(0));assert((await page.locator('#panel').innerText()).includes('信源语言'));assert((await page.locator('#panel').innerText()).includes('不限'));
+  await page.evaluate(()=>openProcess(2));assert(!(await page.locator('#panel').innerText()).includes('同语言组'));
+  await page.evaluate(()=>backToResults());
   assert((await page.locator('#side .srcs .live-source-language').nth(0).innerText()).includes('繁体中文'));
   assert((await page.locator('#side .srcs .live-source-language').nth(1).innerText()).includes('英文'));
-  assert.equal(await page.locator('#side .srcs .live-source-language').filter({hasText:'补充信源'}).count(),2);
-  await page.screenshot({path:path.join(artifacts,'language-fallback-desktop.png'),fullPage:true});
+  assert.equal(await page.locator('#side .srcs .live-source-language').filter({hasText:'补充信源'}).count(),0);
+  await page.screenshot({path:path.join(artifacts,'multilingual-desktop.png'),fullPage:true});
   for(const width of [390,320]){await resize(width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
-  await page.screenshot({path:path.join(artifacts,'language-fallback-mobile.png'),fullPage:true});
-  await resize(1440);await page.evaluate(()=>GeoLive.search('数学分析师推荐'));
+  await page.screenshot({path:path.join(artifacts,'multilingual-mobile.png'),fullPage:true});
+  await resize(1440);await page.evaluate(()=>GeoLive.search('限定信源测试'));assert((await page.locator('#r-banner').innerText()).includes('英文限定'));
+  await page.evaluate(()=>GeoLive.search('排除英文测试'));assert((await page.locator('#r-banner').innerText()).includes('排除英文'));
+  await page.evaluate(()=>GeoLive.search('数学分析师推荐'));
   assert(await page.locator('.live-empty').isVisible());assert(await page.locator('#legend').isHidden());assert.equal(await page.locator('#answer .cite').count(),0);
   for(let stage=0;stage<6;stage++){await page.evaluate(stage=>openProcess(stage),stage);assert((await page.locator('#panel').innerText()).length>20);if(stage===2){const counts=(await page.locator('.funnel .fn>div').allTextContents()).map(Number);assert(counts.every((n,i)=>i===0||n<=counts[i-1]),'Empty-result funnel must not reintroduce rejected candidates');}}
   await page.evaluate(()=>backToResults());await page.screenshot({path:path.join(artifacts,'insufficient-desktop.png'),fullPage:true});

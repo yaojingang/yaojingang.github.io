@@ -17,11 +17,11 @@ class GeoSearchQualityTest < Minitest::Test
     { "url" => "https://example.org/analysis", "title" => "数据分析工具选型", "site_name" => "研究资料", "content" => content, "summary" => summary, "rerank_score" => score, "authority" => 3 }
   end
 
-  def test_chinese_search_uses_documented_language_operator_and_keeps_unicode
+  def test_chinese_search_keeps_unicode_without_an_automatic_language_operator
     client = Geo::DeepSeek.new(@config, @store, transport: transport(no_results: true))
     client.search("数学分析师推荐", "数学分析师推荐")
     payload = @calls.last[1]
-    assert_equal "数学分析师推荐 lang:zh", payload["query"]
+    assert_equal "数学分析师推荐", payload["query"]
     assert_equal "数学分析师推荐", payload["ori_question"]
   end
 
@@ -36,7 +36,7 @@ class GeoSearchQualityTest < Minitest::Test
 
   def test_first_query_preserves_the_original_question
     data = pipeline.run("数学分析师推荐") { |*_| }
-    assert_equal "数学分析师推荐 lang:zh", data["searches"][0]["query"]
+    assert_equal "数学分析师推荐", data["searches"][0]["query"]
     queries = @calls.select { |path, _| path == "/v1/tools/search" }.map { |_, payload| payload["query"] }
     assert_equal queries, data["searches"].map { |item| item["query"] }
   end
@@ -94,11 +94,11 @@ class GeoSearchQualityTest < Minitest::Test
     assert_equal "insufficient", cached["status"]
     assert_equal calls, @calls.length
   end
-  def test_negated_english_sources_keep_chinese_searches
+  def test_language_exclusions_do_not_create_an_automatic_source_lock
     ["不要引用英文资料，请推荐数学分析师", "数学分析师推荐，不需要英文来源", "英文资料不要用，请查数学分析师"].each do |question|
-      assert_equal "zh", Geo::DeepSeek.search_language(question)
+      assert_nil Geo::DeepSeek.search_language(question)
     end
-    assert_equal "en", Geo::DeepSeek.search_language("不要只看中文，请提供英文资料")
+    assert_nil Geo::DeepSeek.search_language("不要只看中文，请提供英文资料")
   end
 
   def test_language_lists_are_deduplicated_and_oversize_input_is_rejected_before_paid_planning
