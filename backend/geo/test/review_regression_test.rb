@@ -42,6 +42,43 @@ class GeoReviewRegressionTest < Minitest::Test
     assert_equal "complete", data["status"]
   end
 
+  def test_operator_only_expansion_is_skipped_while_valid_short_queries_continue
+    question = "企业分析工具"
+    expansion = "data analysis tools for enterprise teams"
+    data = planned([question, "lang:en", expansion]).run(question) { |*_| }
+    assert_equal "complete", data["status"]
+    assert_equal [question, expansion], data["searches"].map { |query| query["query"] }
+    assert_equal 2, @calls.count { |path, _| path == "/v1/tools/search" }
+    assert_equal 2, @calls.count { |path, _| path == "/chat/completions" }
+    record = @store.diagnostics.read(data["run_id"])
+    plan = record["events"].find { |event| event["event"] == "plan" }["data"]
+    assert_includes plan["queries"], "lang:en"
+    assert_equal [question, expansion], plan["executed_queries"]
+    skipped = record["events"].find { |event| event["event"] == "planning_query_skipped" }
+    assert_equal({ "query" => "lang:en", "reason" => "invalid_search_query" }, skipped["data"])
+  end
+
+  def test_long_plan_is_normalized_before_deduplication_and_the_three_query_limit
+    main = "FineBI and Power BI enterprise collaboration"
+    cost = "FineBI and Power BI integration costs"
+    permissions = "FineBI and Power BI team permissions"
+    data = planned(["lang:en", main + " lang:zh", main + " lang:en", "lang:zh", cost, permissions, "FineBI extra"]).run(long_question) { |*_| }
+    assert_equal "complete", data["status"]
+    assert_equal [main, cost, permissions], data["searches"].map { |query| query["query"] }
+    assert_equal 3, @calls.count { |path, _| path == "/v1/tools/search" }
+    assert_equal 2, @calls.count { |path, _| path == "/chat/completions" }
+  end
+
+  def test_all_operator_only_queries_in_a_long_plan_stop_before_search
+    flow = planned(["lang:en", "lang:zh", "lang:zh,en"])
+    error = assert_raises(Geo::Error) { flow.run(long_question) { |*_| } }
+    assert_equal "invalid_plan", error.code
+    assert_empty @calls.select { |path, _| path == "/v1/tools/search" }
+    assert_equal 1, @calls.count { |path, _| path == "/chat/completions" }
+    record = @store.diagnostics.read(flow.run_id)
+    assert record["events"].any? { |event| event["event"] == "error" && event["data"]["code"] == "invalid_plan" }
+  end
+
   def test_cached_results_refresh_diagnostic_availability_without_paid_calls
     original = pipeline.run("企业分析工具缓存清理") { |*_| }
     file = @store.diagnostics.path(original["run_id"])

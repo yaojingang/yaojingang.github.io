@@ -8,7 +8,7 @@ require_relative "ranking"
 module Geo
   class Pipeline
     attr_reader :run_id
-    VERSION = "geo-live-1.7.1"
+    VERSION = "geo-live-1.7.2"
     MIN_SOURCE_SCORE = 1.5
     MAX_FETCHES = 5
     PLAN_PROMPT = <<~TEXT.freeze
@@ -241,7 +241,20 @@ module Geo
         plan = @client.json(PLAN_PROMPT, JSON.generate("date" => @clock.call.getlocal("+08:00").strftime("%Y-%m-%d"), "question" => question, "source_language_limits" => policy["codes"], "excluded_languages" => policy["excluded"]), 600)
         queries = plan["queries"]
         raise Error.new("invalid_plan", "搜索计划格式有误，请重新提问。", 502) unless queries.is_a?(Array)
-        queries = queries.select { |q| q.is_a?(String) && q.strip.length.between?(1, 128) }.map(&:strip).uniq.take(3)
+        candidates = queries.select { |q| q.is_a?(String) && q.strip.length.between?(1, 128) }.map(&:strip)
+        raise Error.new("invalid_plan", "模型没有生成可用的搜索词。", 502) if candidates.empty?
+        candidates[0] = question if question.length <= 120
+        queries = candidates.each_with_object([]) do |query, accepted|
+          break accepted if accepted.length >= 3
+          begin
+            normalized = DeepSeek.search_query(query, question)
+          rescue Error => error
+            raise unless error.code == "invalid_search_query"
+            run_log.record("planning_query_skipped", { "query" => query, "reason" => error.code })
+            next
+          end
+          accepted << normalized unless accepted.include?(normalized)
+        end
         raise Error.new("invalid_plan", "模型没有生成可用的搜索词。", 502) if queries.empty?
       rescue Error => error
         raise unless %w[invalid_answer invalid_plan].include?(error.code) && question.length <= 120
@@ -250,10 +263,8 @@ module Geo
         step.call(0, warning)
         run_log.record("planning_fallback", { "reason" => error.code, "query" => question })
         plan = { "intent" => "原问题检索", "entities" => [], "constraints" => [], "answer_plan" => warning }
-        queries = [question]
+        queries = [DeepSeek.search_query(question, question)]
       end
-      queries[0] = question if question.length <= 120
-      queries = queries.map { |query| DeepSeek.search_query(query, question) }.uniq
       run_log.record("plan", plan.merge("executed_queries" => queries))
       step.call(0, "已生成 #{queries.length} 个搜索词。")
       pool, searches, total, merges = {}, [], 0, []
