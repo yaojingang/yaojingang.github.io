@@ -15,6 +15,14 @@ const sources = [
 ].map((s,i)=>({...s,snip:text,tc:'#2d5bff',ic:s.site[0],r0:i,v0:s.api_score,type:'网页正文',read:true,eligible:true,why:'本次回答引用了此来源的选段。',sig:i?[71,100,99,80,50,60]:[88.33,25,99,95,80,80],sig_basis:Array.from({length:6},(_,j)=>'第 '+(j+1)+' 维分数的离线依据。'),weighted_score:i?79.15:76.599,language:'zh-Hans',language_priority:0,language_allowed:true,language_supplement:false,segments:[{text:'首页\n联系我们',index:0,picked:false,basis:'body',term_hits:0,reason:'导航标签，未采用。'},{text,index:1,picked:true,basis:'body',term_hits:3,reason:'完整语句，进入上下文。'}]}));
 const evidence = sources.map(s=>({id:s.id+'-P1',source_id:s.id,text:text.repeat(24),basis:'body',term_hits:2}));
 const refs = evidence.map(e=>({id:e.source_id,q:e.text,evidence_id:e.id,basis:e.basis}));
+const formattedAnswer=[
+ {t:'p',kind:'summary',segs:[{x:'先从使用场景和团队协作需求出发，再比较数据接入与长期维护成本。工具名称可以先放后，核心需求要先说清。',em:['使用场景','核心需求'],f:refs}]},
+ {t:'p',kind:'paragraph',heading:'先确认团队的使用场景',segs:[{x:'把日常报表、业务分析和跨部门协作分开讨论。先列出最常处理的问题，再核对使用人数、权限与数据来源。',em:['最常处理的问题'],f:[refs[0]]}]},
+ {t:'p',kind:'bullet',segs:[{x:'日常报表：重点观察更新频率、固定模板和团队分享方式。',em:['日常报表'],f:[refs[0]]}]},
+ {t:'p',kind:'bullet',segs:[{x:'深入分析：重点核对数据处理、计算表达和分析过程能否复用。',em:['深入分析'],f:[refs[1]]}]},
+ {t:'p',kind:'paragraph',heading:'再比较接入与长期维护成本',segs:[{x:'用一份真实数据走完导入、分析和分享流程，记录各环节需要的人员与时间。短期演示完成之后，再判断持续使用的成本。',em:['一份真实数据','持续使用的成本'],f:refs}]},
+ {t:'p',kind:'paragraph',segs:[{x:'资料不足的部分单独列出，带着具体问题核对产品原始文档，再做下一步比较。',em:['资料不足'],f:[refs[1]]}]}
+];
 const data = {live:true,query:'企业应该怎样选择数据分析工具？',ranking:{weights:defaults,limit:5},intent:{type:'工具选型',ents:['分析工具'],cons:[['使用场景','团队协作']],plan:'先比较场景，再核对接入条件。'},searches:[{query:'企业应该怎样选择数据分析工具？ lang:zh',count:2},{query:'数据分析工具 团队协作 lang:zh',count:2}],sources,evidence,answer:[{t:'p',segs:[{x:text.repeat(4),f:refs}]},{t:'p',segs:[{x:text,f:[refs[0]]}]}],cited:['S1','S2'],trace:Array.from({length:6},(_,stage)=>({stage,message:['保留原始问题，生成搜索词。','实际检索 2 组查询。','按 1.50 分选用线筛选来源。','已记录 2 段正文。','已整理 2 段回答。','引用 2 个来源。'][stage]})),total:4,dedup:2,cached:false,status:'complete',quality:{min_score:1.5,eligible_count:2,read_count:2,language:'zh',preferred_language:'zh-Hans',language_fallback:false},warnings:[],created_at:'2026-11-01T19:00:00+08:00',elapsed_seconds:2.18,budget:{limit_cny:50,used_cny:0.12,remaining_cny:49.88}};
 let loggedIn = false, waitingResponse;
 const files = {'/geo/':['geo/index.html','text/html'],'/geo/live.js':['geo/live.js','text/javascript'],'/geo/live.css':['geo/live.css','text/css'],'/geo/test-questions.json':['geo/test-questions.json','application/json']};
@@ -30,6 +38,7 @@ const server = http.createServer(async(req,res)=>{
     res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8'});
     if(question==='等待检索测试'){waitingResponse=res;res.write('event: step\ndata: {"stage":0,"message":"正在理解问题。"}\n\n');return;}
     const output=structuredClone(data);output.query=question;output.ranking.weights=payload.weights||defaults;
+    if(question==='回答排版测试')output.answer=structuredClone(formattedAnswer);
     if(question==='语言补充测试'){output.quality.language_fallback=true;output.sources=output.sources.map((s,i)=>({...s,language:i?'en':'zh-Hant',language_priority:i?2:1,language_supplement:true}));}
     if(question==='数学分析师推荐')Object.assign(output,{status:'insufficient',answer:[],cited:[],evidence:[],quality:{min_score:1.5,eligible_count:0,read_count:0,language:'zh'},sources:output.sources.map(s=>({...s,api_score:1.2,read:false,eligible:false,type:'搜索结果',why:'API 排序分低于本站 1.50 分选用线。'})),diagnostic:'本次没有找到足够相关且内容可用的资料。请补充推荐对象、使用场景或地区，再继续检索。',searches:[{query:'数学分析师推荐 lang:zh',count:2},{query:'数学分析师 推荐 lang:zh',count:2}],trace:output.trace.map(row=>({...row,message:row.stage===3?'没有找到有效选段。':row.stage===4?'资料不足，没有调用回答模型。':row.stage===5?'没有形成引用。':row.message}))});
     const bytes=Buffer.from('event: result\ndata: '+JSON.stringify(output)+'\n\n');
@@ -188,6 +197,24 @@ const server = http.createServer(async(req,res)=>{
   await resize(1440);
   await page.emulateMedia({colorScheme:'dark'});await page.evaluate(()=>GeoLive.search('企业应该怎样选择数据分析工具？'));
   assert(await page.locator('#side .src').count()===2);await page.screenshot({path:path.join(artifacts,'results-dark.png'),fullPage:true});await page.emulateMedia({colorScheme:'light'});
+  await page.evaluate(()=>GeoLive.search('回答排版测试'));await page.evaluate(()=>setXray(true,true));
+  assert.equal(await page.locator('#answer .live-answer-summary').count(),1);
+  assert.deepEqual(await page.locator('#answer .live-section-number').allTextContents(),['1.','2.']);
+  assert.equal(await page.locator('#answer .live-answer-points li').count(),2);
+  assert((await page.locator('#answer strong').count())>=6);
+  const plain=await page.locator('#answer .seg').allTextContents();
+  assert(plain[0].startsWith(formattedAnswer[0].segs[0].x));
+  const escaped=await page.evaluate(()=>emphasisHTML('<img src=x onerror="window.__geoXSS=1"> 参数说明',['参数说明']));
+  assert(escaped.includes('&lt;img'));assert(escaped.includes('<strong>参数说明</strong>'));assert(!escaped.includes('<img'));
+  await page.locator('#answer .live-answer-points strong').first().click();
+  assert(await page.locator('#pop').isVisible());assert((await page.locator('#pop .live-evidence-foot').first().innerText()).includes('S1-P1'));await page.evaluate(()=>closePop());
+  for(const width of [1440,1024,768,640,390,320]){
+    await resize(width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    if(width===1440||width===390)await page.screenshot({path:path.join(artifacts,'formatted-answer-'+width+'.png'),fullPage:true});
+  }
+  await page.evaluate(()=>setXray(false,true));assert((await page.locator('#answer strong').count())>=6);
+  await page.emulateMedia({colorScheme:'dark'});assert(await page.locator('#answer .live-answer-summary').isVisible());await page.screenshot({path:path.join(artifacts,'formatted-answer-dark.png'),fullPage:true});await page.emulateMedia({colorScheme:'light'});
+  await resize(1440);
   await page.getByRole('button',{name:'教学演示',exact:true}).click();await page.getByRole('button',{name:'数据分析推荐',exact:true}).click();await page.evaluate(()=>finishThink(false));
   assert.deepEqual(await metrics(),teaching);await page.evaluate(()=>openProcess(4));assert.equal(await page.locator('.mrow').count(),14);
   assert.deepEqual(errors,[]);

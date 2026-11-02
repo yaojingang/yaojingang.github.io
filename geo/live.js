@@ -251,6 +251,25 @@
     original.renderLegend();
     document.getElementById('legend').querySelectorAll('.lg').forEach(el => {if (el.textContent === '模型组织') el.remove();});
   };
+  function formattedAnswer(ds, anim) {
+    let html='',section='',sectionCount=0,inSection=false,inList=false;
+    const closeList=()=>{if(inList){html+='</ul>';inList=false;}};
+    const closeSection=()=>{closeList();if(inSection){html+='</section>';inSection=false;}};
+    ds.answer.forEach((block,index)=>{
+      const content=(block.segs||[]).map(segment=>segHTML(segment,ds,anim)).join('');
+      const heading=typeof block.heading==='string'?block.heading.trim():'';
+      if(index===0){html+=`<p class="live-answer-summary">${content}</p>`;return;}
+      if(heading&&heading!==section){
+        closeSection();section=heading;sectionCount++;inSection=true;
+        html+=`<section class="live-answer-section"><h3><span class="live-section-number" aria-hidden="true">${sectionCount}.</span><span>${esc(heading)}</span></h3>`;
+      }
+      if(block.kind==='bullet'){
+        if(!inList){html+='<ul class="live-answer-points">';inList=true;}
+        html+=`<li>${content}</li>`;
+      }else{closeList();html+=`<p>${content}</p>`;}
+    });
+    closeSection();return html;
+  }
   renderAnswer = function(anim) {
     const ds = state.ds;
     if (ds?.live && ds.status === 'insufficient') {
@@ -258,7 +277,8 @@
       document.getElementById('answer').innerHTML = `<div class="surface live-empty"><span class="live-empty-label">资料不足</span><h2>补充一点条件，再继续搜索</h2><p>${esc(ds.diagnostic)}</p><p class="live-note">${esc(suggestion)}</p></div>`;
       return;
     }
-    original.renderAnswer(anim);
+    if(ds?.live){revealN=0;document.getElementById('answer').innerHTML=formattedAnswer(ds,anim);}
+    else original.renderAnswer(anim);
     if (ds?.live) document.querySelectorAll('#answer .ktag').forEach((tag, i) => tag.textContent = ds.sents[i].f.length > 1 ? '多源引用' : '单源引用');
   };
   live.decoratePop = function(pop, sentence) {

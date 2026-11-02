@@ -528,7 +528,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 @keyframes sheetin{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
 </style>
-<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.4.3">
+<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.5">
 
 <header class="top" id="top">
   <div class="top-in">
@@ -945,9 +945,21 @@ function citeChip(f,ds){
   return `<button class="cite" data-src="${f.map(x=>x.id).join(',')}" data-sound="tap">${ico(s)}${esc(short(s))}${f.length>1?` +${f.length-1}`:''}</button>`;
 }
 let revealN=0;
+function emphasisHTML(text,marks){
+  const spans=[];
+  (Array.isArray(marks)?marks:[]).slice(0,8).forEach(mark=>{
+    if(typeof mark!=='string'||Array.from(mark).length<2||Array.from(mark).length>32||spans.length>=2)return;
+    const start=text.indexOf(mark),end=start+mark.length;
+    if(start>=0&&!spans.some(s=>start<s.end&&end>s.start))spans.push({start,end});
+  });
+  spans.sort((a,b)=>a.start-b.start);
+  let cursor=0,html='';
+  spans.forEach(span=>{html+=esc(text.slice(cursor,span.start))+'<strong>'+esc(text.slice(span.start,span.end))+'</strong>';cursor=span.end});
+  return html+esc(text.slice(cursor));
+}
 function segHTML(sg,ds,anim){
   const k=kind(sg),c=sg.f&&sg.f[0]?ds.color[sg.f[0].id]:0;
-  const txt=(sg.b?`<b>${esc(sg.b)}</b>`:'')+esc(sg.x);
+  const txt=(sg.b?`<b>${esc(sg.b)}</b>`:'')+(ds.live?emphasisHTML(sg.x,sg.em):esc(sg.x));
   const d=anim?`--d:${(revealN++)*70}ms;`:'';
   return `<span class="seg k-${k}${sg.hl?' hl':''}${anim?' rv':''}" data-i="${sg.i}" style="${d}--sc:var(--s${c})" tabindex="0">${txt}<i class="ktag">${KLABEL[k]}</i></span>${sg.f&&sg.f.length?citeChip(sg.f,ds):''}`;
 }
@@ -1260,5 +1272,5 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
-<script src="/geo/live.js?v=geo-live-1.4.3" defer></script>
+<script src="/geo/live.js?v=geo-live-1.5" defer></script>
 {% include baidu-analytics.html %}
