@@ -24,7 +24,7 @@ class GeoLanguageTest < Minitest::Test
         response
       end
     end)
-    Geo::Pipeline.new(client, @store).run(question, weights: weights) { |*_| }
+    Geo::Pipeline.new(client, @store).run(question, weights: weights, ranking_mode: weights ? "teaching" : "api") { |*_| }
   end
 
   def test_detects_question_language_and_script_with_mixed_technical_names

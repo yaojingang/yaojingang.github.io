@@ -150,7 +150,8 @@ class GeoSearchQualityTest < Minitest::Test
     assert_equal "complete", data["status"]
     assert_equal 6, data["evidence"].length
     assert_equal ["S1", "S2"], data["cited"]
-    assert_equal 2, data["answer"][0]["segs"][0]["f"].length
+    assert_equal 6, data["answer"][0]["segs"][0]["f"].length
+    assert_equal data["evidence"].map { |e| e["id"] }, data["answer"][0]["segs"][0]["f"].map { |ref| ref["evidence_id"] }
   end
 
 end

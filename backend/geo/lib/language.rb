@@ -43,6 +43,30 @@ module Geo
       text.match?(/[\p{L}]/) ? "other" : "unknown"
     end
 
+    def self.assessment(text)
+      text = text.to_s[0, 8000].gsub(%r{https?://\S+}, " ").gsub(/`[^`]*`/, " ")
+      han, latin = text.scan(/\p{Han}/).length, text.scan(/[A-Za-z]/).length
+      simple, traditional = text.scan(SIMPLIFIED).length, text.scan(TRADITIONAL).length
+      english = (text.downcase.scan(/[a-z]+/).uniq & ENGLISH).length
+      mixed = han >= 24 && latin >= 100 && english >= 4
+      { "basis" => "正文或实际选段的字形与常用词规则", "han_characters" => han,
+        "latin_characters" => latin, "simplified_markers" => simple, "traditional_markers" => traditional,
+        "mixed" => mixed, "uncertain" => %w[other unknown zh].include?(detect(text)) || mixed }
+    end
+
+    def self.query_matches?(query, policy, entities: [])
+      return true if policy["codes"].empty? || !%w[en zh-Hans zh-Hant zh].include?(policy["preferred"])
+      text = query.gsub(/(?<!\S)lang:[a-z,-]+/i, "").gsub(/-?site:\S+|(?:after|before):\S+/i, "")
+      han = text.scan(/\p{Han}/).length
+      if policy["preferred"] == "en"
+        Array(entities).select { |entity| entity.is_a?(String) && !entity.empty? }.each { |entity| text = text.gsub(entity, " ") }
+        return text.scan(/\p{Han}/).empty?
+      end
+      return false if han.zero?
+      script = detect(text)
+      policy["preferred"] == "zh" || script == policy["preferred"] || script == "zh"
+    end
+
     LANGUAGE_NAMES = /简体中文|簡體中文|繁体中文|繁體中文|中文|英文|英语|英語|simplified\s+Chinese|traditional\s+Chinese|English|Chinese/i
 
     def self.code(name)

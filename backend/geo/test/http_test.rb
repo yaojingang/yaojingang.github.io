@@ -73,10 +73,40 @@ class GeoHTTPTest < Minitest::Test
     assert_equal "invalid_weights", JSON.parse(bad.body)["error"]["code"]
     assert_empty @calls
     weights = {"rel"=>50,"auth"=>0,"fresh"=>0,"struct"=>0,"gain"=>0,"cons"=>0}
-    response = http("Post", "/geo/api/search", body:{question:"企业工具",weights:weights},cookie:cookie)
+    response = http("Post", "/geo/api/search", body:{question:"企业工具",weights:weights,ranking_mode:"teaching"},cookie:cookie)
     block = response.body.split("\n\n").find{|part|part.start_with?("event: result\n")}
     refute_nil block, response.body
     assert_equal weights, JSON.parse(block.split("data: ",2)[1])["ranking"]["weights"]
+  end
+
+  def test_diagnostic_download_requires_a_session_and_never_exposes_credentials
+    assert_equal "401", http("Get", "/geo/api/runs/" + "a" * 32).code
+    cookie = login
+    response = http("Post", "/geo/api/search", body: { question: "企业分析工具" }, cookie: cookie)
+    block = response.body.split("\n\n").find { |part| part.start_with?("event: result\n") }
+    data = JSON.parse(block.split("data: ", 2)[1])
+    assert_equal "api", data["ranking"]["mode"]
+    download = http("Get", "/geo/api/runs/#{data['run_id']}", cookie: cookie)
+    assert_equal "200", download.code
+    assert_includes download["Content-Disposition"], "attachment"
+    assert JSON.parse(download.body)["complete"]
+    refute_includes download.body, @config.api_key
+    refute_includes download.body, "fixture-password-123"
+    assert_equal "404", http("Get", "/geo/api/runs/" + "f" * 32, cookie: cookie).code
+    assert_equal "400", http("Get", "/geo/api/runs/not-a-run", cookie: cookie).code
+  end
+
+  def test_failed_run_exposes_its_record_id_without_a_paid_retry
+    @app.instance_variable_set(:@transport, transport(invalid_citation: true))
+    cookie = login
+    response = http("Post", "/geo/api/search", body: { question: "企业分析工具" }, cookie: cookie)
+    block = response.body.split("\n\n").find { |part| part.start_with?("event: error\n") }
+    error = JSON.parse(block.split("data: ", 2)[1])
+    assert_equal "invalid_citation", error["code"]
+    assert_match(/\A[a-f0-9]{32}\z/, error["run_id"])
+    record = JSON.parse(http("Get", "/geo/api/runs/#{error['run_id']}", cookie: cookie).body)
+    assert record["events"].any? { |event| event["event"] == "error" && event["data"]["code"] == "invalid_citation" }
+    assert_equal 2, @calls.count { |path, _| path == "/chat/completions" }
   end
 
   def test_static_routes_cannot_read_credentials_or_backend_files

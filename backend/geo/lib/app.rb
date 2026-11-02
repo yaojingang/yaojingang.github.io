@@ -86,6 +86,7 @@ module Geo
         payload = input(req)
         question = Pipeline.question(payload["question"])
         weights = Ranking.weights(payload["weights"])
+        ranking_mode = Ranking.mode(payload["ranking_mode"])
         raise Error.new("not_configured", "请先完成 DeepSeek API Key 配置。", 503) unless @config.configured?
         @store.rate_limit("search:#{Digest::SHA256.hexdigest(token)}", 5, 60)
         res["Content-Type"] = "text/event-stream; charset=utf-8"
@@ -101,10 +102,10 @@ module Geo
               claimed = true
             end
             pipeline = Pipeline.new(DeepSeek.new(@config, @store, transport: @transport), @store)
-            result = pipeline.run(question, weights: weights, &emit)
+            result = pipeline.run(question, weights: weights, ranking_mode: ranking_mode, &emit)
             emit.call("result", result)
           rescue Error => error
-            emit.call("error", { "code" => error.code, "message" => error.message, "budget" => @store.budget })
+            emit.call("error", { "code" => error.code, "message" => error.message, "budget" => @store.budget, "run_id" => pipeline && pipeline.run_id })
           rescue IOError, SystemCallError
             # Closing the browser ends the response and releases its concurrency slot.
           rescue StandardError => error
@@ -115,7 +116,15 @@ module Geo
           end
         end
       else
-        serve_static(req, res)
+        if req.request_method == "GET" && req.path.start_with?("/geo/api/runs/")
+          authenticate!(req)
+          id = req.path.delete_prefix("/geo/api/runs/")
+          data = @store.diagnostics.read(id)
+          res["Content-Disposition"] = "attachment; filename=geo-run-#{id}.json"
+          json(res, data)
+        else
+          serve_static(req, res)
+        end
       end
     rescue Error => error
       json(res, { "error" => { "code" => error.code, "message" => error.message } }, error.status)

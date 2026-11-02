@@ -23,7 +23,7 @@ const formattedAnswer=[
  {t:'p',kind:'paragraph',heading:'再比较接入与长期维护成本',segs:[{x:'用一份真实数据走完导入、分析和分享流程，记录各环节需要的人员与时间。短期演示完成之后，再判断持续使用的成本。',em:['一份真实数据','持续使用的成本'],f:refs}]},
  {t:'p',kind:'paragraph',segs:[{x:'资料不足的部分单独列出，带着具体问题核对产品原始文档，再做下一步比较。',em:['资料不足'],f:[refs[1]]}]}
 ];
-const data = {live:true,query:'企业应该怎样选择数据分析工具？',ranking:{weights:defaults,limit:5},intent:{type:'工具选型',ents:['分析工具'],cons:[['使用场景','团队协作']],plan:'先比较场景，再核对接入条件。'},searches:[{query:'企业应该怎样选择数据分析工具？ lang:zh',count:2},{query:'数据分析工具 团队协作 lang:zh',count:2}],sources,evidence,answer:[{t:'p',segs:[{x:text.repeat(4),f:refs}]},{t:'p',segs:[{x:text,f:[refs[0]]}]}],cited:['S1','S2'],trace:Array.from({length:6},(_,stage)=>({stage,message:['保留原始问题，生成搜索词。','实际检索 2 组查询。','按 1.50 分选用线筛选来源。','已记录 2 段正文。','已整理 2 段回答。','引用 2 个来源。'][stage]})),total:4,dedup:2,cached:false,status:'complete',quality:{min_score:1.5,eligible_count:2,read_count:2,language:'zh',preferred_language:'zh-Hans',language_fallback:false},warnings:[],created_at:'2026-11-01T19:00:00+08:00',elapsed_seconds:2.18,budget:{limit_cny:50,used_cny:0.12,remaining_cny:49.88}};
+const data = {live:true,query:'企业应该怎样选择数据分析工具？',ranking:{mode:"api",weights:defaults,limit:5},intent:{type:'工具选型',ents:['分析工具'],cons:[['使用场景','团队协作']],plan:'先比较场景，再核对接入条件。'},searches:[{query:'企业应该怎样选择数据分析工具？ lang:zh',count:2},{query:'数据分析工具 团队协作 lang:zh',count:2}],sources,evidence,answer:[{t:'p',segs:[{x:text.repeat(4),f:refs}]},{t:'p',segs:[{x:text,f:[refs[0]]}]}],cited:['S1','S2'],trace:Array.from({length:6},(_,stage)=>({stage,message:['保留原始问题，生成搜索词。','实际检索 2 组查询。','按 1.50 分选用线筛选来源。','已记录 2 段正文。','已整理 2 段回答。','引用 2 个来源。'][stage]})),total:4,dedup:2,cached:false,status:'complete',quality:{min_score:1.5,eligible_count:2,read_count:2,language:'zh',preferred_language:'zh-Hans',language_fallback:false},warnings:[],created_at:'2026-11-01T19:00:00+08:00',elapsed_seconds:2.18,budget:{limit_cny:50,used_cny:0.12,remaining_cny:49.88}};
 let loggedIn = false, waitingResponse;
 const files = {'/geo/':['geo/index.html','text/html'],'/geo/live.js':['geo/live.js','text/javascript'],'/geo/live.css':['geo/live.css','text/css'],'/geo/test-questions.json':['geo/test-questions.json','application/json']};
 const json = (res, value, code=200) => {res.writeHead(code, {'Content-Type':'application/json'});res.end(JSON.stringify(value));};
@@ -37,8 +37,10 @@ const server = http.createServer(async(req,res)=>{
     if(question==='错误状态测试') return json(res,{error:{message:'离线限流测试，请稍后再试。'}},429);
     res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8'});
     if(question==='等待检索测试'){waitingResponse=res;res.write('event: step\ndata: {"stage":0,"message":"正在理解问题。"}\n\n');return;}
-    const output=structuredClone(data);output.query=question;output.ranking.weights=payload.weights||defaults;
+    const output=structuredClone(data);output.query=question;output.ranking.weights=payload.weights||defaults;output.ranking.mode=payload.ranking_mode||"api";
     if(question==='回答排版测试')output.answer=structuredClone(formattedAnswer);
+    if(question==='多段证据测试'){const e={id:'S1-P2',source_id:'S1',text:'同一网页的第二段证据保留了适用条件与费用口径。',basis:'body',term_hits:2};output.evidence.push(e);output.answer[0].segs[0].f.push({id:'S1',q:e.text,evidence_id:e.id,basis:e.basis});}
+
     if(question==='语言补充测试'){output.quality.language_fallback=true;output.sources=output.sources.map((s,i)=>({...s,language:i?'en':'zh-Hant',language_priority:i?2:1,language_supplement:true}));}
     if(question==='数学分析师推荐')Object.assign(output,{status:'insufficient',answer:[],cited:[],evidence:[],quality:{min_score:1.5,eligible_count:0,read_count:0,language:'zh'},sources:output.sources.map(s=>({...s,api_score:1.2,read:false,eligible:false,type:'搜索结果',why:'API 排序分低于本站 1.50 分选用线。'})),diagnostic:'本次没有找到足够相关且内容可用的资料。请补充推荐对象、使用场景或地区，再继续检索。',searches:[{query:'数学分析师推荐 lang:zh',count:2},{query:'数学分析师 推荐 lang:zh',count:2}],trace:output.trace.map(row=>({...row,message:row.stage===3?'没有找到有效选段。':row.stage===4?'资料不足，没有调用回答模型。':row.stage===5?'没有形成引用。':row.message}))});
     const bytes=Buffer.from('event: result\ndata: '+JSON.stringify(output)+'\n\n');
@@ -91,7 +93,7 @@ const server = http.createServer(async(req,res)=>{
     const rows=[{...state.ds.sources[0],id:'simple',language_priority:0,sig:[10,10,10,10,10,10]},
       {...state.ds.sources[1],id:'foreign',language_priority:2,language_allowed:false,sig:[100,100,100,100,100,100]},
       {...state.ds.sources[1],id:'traditional',language_priority:1,sig:[99,99,99,99,99,99]}];
-    const unknown={...rows[0],id:'unknown',sig:[null,null,null,null,null,null]};return {order:rankBy({live:true,sources:rows},DEFAULT_W).map(x=>x.s.id),selectable:rows.map(sourceSelectable),unknownOrder:rankBy({live:true,sources:[unknown,rows[2]]},DEFAULT_W).map(x=>x.s.id)};
+    const unknown={...rows[0],id:'unknown',sig:[null,null,null,null,null,null]};return {order:rankBy({live:true,sources:rows},DEFAULT_W).map(x=>x.s.id),selectable:rows.map(sourceSelectable),unknownOrder:rankBy({live:true,sources:[unknown,rows[2]]},DEFAULT_W,"teaching").map(x=>x.s.id)};
   });
   assert.deepEqual(languageRanking.order,['simple','traditional','foreign']);
   assert.deepEqual(languageRanking.selectable,[true,false,true]);assert.deepEqual(languageRanking.unknownOrder,['traditional','unknown']);
@@ -117,7 +119,22 @@ const server = http.createServer(async(req,res)=>{
   assert(edgeMetrics[1].includes('0 / 4'));assert(edgeMetrics[1].includes('3.00 / 3'));
   assert(!edgeMetrics[2].includes('null'));assert(!edgeMetrics[2].includes('NaN'));
   await page.screenshot({path:path.join(artifacts,'results-desktop.png'),fullPage:true});
-  await page.evaluate(()=>openProcess(2));assert.equal(await page.locator('.weights input[type=range]').count(),6);
+  assert.equal(requests[0].ranking_mode,'api');
+  assert.equal(await page.locator('#side .src-x .scorev').count(),0);
+  await page.evaluate(()=>openProcess(2));assert.equal(await page.locator('.weights input[type=range]').count(),0);
+  assert.equal(await page.locator('.live-native-row').count(),2);
+  await page.screenshot({path:path.join(artifacts,'native-ranking-desktop.png'),fullPage:true});
+  const beforeModePreview=requests.length;
+  await page.getByRole('button',{name:'六维教学实验',exact:true}).click();
+  assert.equal(requests.length,beforeModePreview);assert.equal(await page.locator('.weights input[type=range]').count(),6);
+  await page.getByRole('button',{name:'DeepSeek 排序',exact:true}).click();
+  for(const width of [1440,1024,768,640,390,320]){
+    await resize(width);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Native ranking overflow at '+width);
+    assert.equal(await page.locator('.live-native-row').count(),2);
+    if(width===390)await page.screenshot({path:path.join(artifacts,'native-ranking-mobile.png'),fullPage:true});
+  }
+  assert.deepEqual(errors,[],'Switching back to API must discard detached teaching callbacks');
+  await resize(1440);await page.getByRole('button',{name:'六维教学实验',exact:true}).click();
   await page.locator('#rank-source').focus();await page.keyboard.press('ArrowRight');
   const selectStage=await page.evaluate(()=>state.stage);
   await page.evaluate(()=>openProcess(2));await page.locator('#rank-source').selectOption('S2');
@@ -135,7 +152,7 @@ const server = http.createServer(async(req,res)=>{
   assert.equal(requests.length,beforePreview);assert.equal(await page.evaluate(()=>JSON.stringify(state.ds.answer)),originalAnswer);
   assert.equal(await page.locator('#rank-breakdown>div').count(),6);
   await page.locator('#rank-apply').click();await page.waitForFunction(()=>!!state.ds&&!state.thinking);
-  assert.equal(requests.length,beforePreview+1);assert.equal(requests.at(-1).weights.auth,40);
+  assert.equal(requests.length,beforePreview+1);assert.equal(requests.at(-1).weights.auth,40);assert.equal(requests.at(-1).ranking_mode,"teaching");
   await page.evaluate(()=>openProcess(2));assert(await page.locator('#rank-apply').isDisabled());
   await page.locator('#w-rel').focus();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#w-rel').inputValue(),'35');assert.equal(await page.evaluate(()=>state.stage),2);
   await page.evaluate(()=>{for(const g of SIG){const input=document.querySelector('#w-'+g.k);input.value=0;input.dispatchEvent(new Event('input',{bubbles:true}));}});
@@ -215,6 +232,11 @@ const server = http.createServer(async(req,res)=>{
   await page.evaluate(()=>setXray(false,true));assert((await page.locator('#answer strong').count())>=6);
   await page.emulateMedia({colorScheme:'dark'});assert(await page.locator('#answer .live-answer-summary').isVisible());await page.screenshot({path:path.join(artifacts,'formatted-answer-dark.png'),fullPage:true});await page.emulateMedia({colorScheme:'light'});
   await resize(1440);
+  await page.evaluate(()=>GeoLive.search('多段证据测试'));assert.equal(requests.at(-1).ranking_mode,'api');
+  await page.evaluate(()=>setXray(true,true));await page.locator('#answer .seg').first().click();
+  assert.equal(await page.locator('#pop .tsrc').count(),2);assert.equal(await page.locator('#pop blockquote').count(),3);
+  assert((await page.locator('#pop').innerText()).includes('S1-P2'));
+  assert.equal(await page.evaluate(()=>state.ds.sents[0].evidence_refs.length),3);await page.evaluate(()=>closePop());
   await page.getByRole('button',{name:'教学演示',exact:true}).click();await page.getByRole('button',{name:'数据分析推荐',exact:true}).click();await page.evaluate(()=>finishThink(false));
   assert.deepEqual(await metrics(),teaching);await page.evaluate(()=>openProcess(4));assert.equal(await page.locator('.mrow').count(),14);
   assert.deepEqual(errors,[]);

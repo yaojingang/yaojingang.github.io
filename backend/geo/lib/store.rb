@@ -4,11 +4,14 @@ require "sqlite3"
 require "digest"
 require "securerandom"
 require_relative "config"
+require_relative "diagnostics"
 
 module Geo
   class Store
+    attr_reader :diagnostics
     def initialize(directory, limit: Config::BUDGET_MICROS, initial_spend: 0)
       FileUtils.mkdir_p(directory, mode: 0700)
+      @diagnostics = Diagnostics.new(directory)
       @retired_file = File.join(directory, "server-installed")
       @limit, @mutex = limit, Mutex.new
       @db = SQLite3::Database.new(File.join(directory, "geo.sqlite3"))

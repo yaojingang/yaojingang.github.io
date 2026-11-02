@@ -528,7 +528,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 @keyframes sheetin{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
 </style>
-<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.5">
+<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.6">
 
 <header class="top" id="top">
   <div class="top-in">
@@ -814,7 +814,7 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 function score(s,w){let t=0,sw=0;SIG.forEach((g,i)=>{if(Number.isFinite(s.sig?.[i])){t+=w[g.k]*s.sig[i];sw+=w[g.k]}});return sw?Math.round(t/sw*1e6)/1e6:null}
 function sourceSelectable(s){return s.eligible&&s.language_allowed!==false&&!s.selection_blocked&&!s.selection_deferred}
-function rankBy(ds,w){return ds.sources.map(s=>({s,v:score(s,w)})).sort((a,b)=>ds.live?Number(!!sourceSelectable(b.s)&&b.v!=null)-Number(!!sourceSelectable(a.s)&&a.v!=null)||(a.s.language_priority||0)-(b.s.language_priority||0)||(b.v??-1)-(a.v??-1)||b.s.api_score-a.s.api_score||(a.s.url<b.s.url?-1:a.s.url>b.s.url?1:0):(b.v??-1)-(a.v??-1))}
+function rankBy(ds,w,mode){const native=ds.live&&(mode||ds.ranking?.mode||"api")==="api";return ds.sources.map(s=>({s,v:native?s.api_score:score(s,w)})).sort((a,b)=>ds.live?Number(!!sourceSelectable(b.s)&&b.v!=null)-Number(!!sourceSelectable(a.s)&&a.v!=null)||(a.s.language_priority||0)-(b.s.language_priority||0)||(b.v??-1)-(a.v??-1)||b.s.api_score-a.s.api_score||(a.s.url<b.s.url?-1:a.s.url>b.s.url?1:0):(b.v??-1)-(a.v??-1))}
 function kind(sg){return !sg.f||!sg.f.length?'synth':sg.f.length>1?'merge':'extract'}
 function ico(s){return `<i class="ico" style="background:${s.tc}">${esc(s.ic)}</i>`}
 const short=s=>s.display_site||s.site.split(' · ')[0];
@@ -1018,7 +1018,7 @@ function closePop(){
 document.addEventListener('click',e=>{if(!e.target.closest('#pop')&&!e.target.closest('.seg'))closePop()});
 function sourceLanguage(s){
   const names={'en':'英文','zh-Hans':'简体中文','zh-Hant':'繁体中文','zh':'中文（字形未区分）','ja':'日文','ko':'韩文','other':'其他语言','unknown':'语言待确认'};
-  return s.language?`<div class="live-api-metrics live-source-language"><span title="本站根据可用正文、摘要或标题中的语言与字形特征判断，无法区分时单独标注。">资料语言 <b>${esc(names[s.language]||'语言待确认')}</b></span>${s.language_supplement?'<span>补充信源</span>':''}</div>`:'';
+  return s.language?`<div class="live-api-metrics live-source-language"><span title="本站根据可用正文、摘要或标题中的语言与字形特征判断，无法区分时单独标注。">资料语言 <b>${esc(names[s.language]||'语言待确认')}</b></span>${s.language_assessment?.mixed?'<span>混合文本 · 语言待核对</span>':s.language_assessment?.uncertain?'<span>语言规则判断待核对</span>':''}${s.language_supplement?'<span>补充信源</span>':''}</div>`:'';
 }
 function sourceMetrics(s){
   const authority=Number.isInteger(s.authority)&&s.authority>=0&&s.authority<=4?s.authority+' / 4':'未知';
@@ -1033,8 +1033,8 @@ function srcCard(s,ds,i){
   return `<div class="src" data-id="${s.id}" style="--sc:var(--s${c})">
     <div class="src-site">${ico(s)}<span title="${esc(s.site)}">${esc(ds.live?short(s):s.site)}</span><span class="n">${i+1}</span></div>
     ${title}<div class="src-s">${esc(s.snip)}</div>${ds.live?sourceMetrics(s):''}
-    <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span><span class="scorev" title="${ds.live?'本站六维加权分 / 100；API 原分 '+s.api_score.toFixed(2)+' / 3':'教学加权分'}">${ds.live?(s.weighted_score==null?'未知':f1(s.weighted_score)):f1(s.v0)}</span></div>
-      <div class="stack">${stack}</div><div class="src-why">${esc(s.why)}</div></div>
+    <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span>${ds.live&&ds.ranking?.mode!=="teaching"?'':`<span class="scorev" title="${ds.live?'本站六维加权分 / 100；API 原分 '+s.api_score.toFixed(2)+' / 3':'教学加权分'}">${ds.live?(s.weighted_score==null?'未知':f1(s.weighted_score)):f1(s.v0)}</span>`}</div>
+      ${ds.live&&ds.ranking?.mode!=="teaching"?'':`<div class="stack">${stack}</div>`}<div class="src-why">${esc(s.why)}</div></div>
   </div>`;
 }
 function renderSide(loading){
@@ -1095,7 +1095,7 @@ function renderProcess(){
   $('#proc').innerHTML=`
   <div class="proc-h"><div><button class="back" id="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>返回回答</button>
     <h1>“<em>${esc(state.q||ds.query)}</em>”的回答是怎样生成的</h1>
-    <div class="meta">${ds.live?'本次实际运行记录 · 本站六维精排 · 选段与引用可追溯':`示例数据 · 评分和权重为教学简化模型${state.fallback?` · 使用示例「${esc(ds.query)}」`:''}`} · 键盘 ← → 切换步骤</div></div>
+    <div class="meta">${ds.live?`本次实际运行记录 · ${ds.ranking?.mode==='teaching'?'六维教学实验':'DeepSeek 综合分排序'} · 选段与引用可追溯`:`示例数据 · 评分和权重为教学简化模型${state.fallback?` · 使用示例「${esc(ds.query)}」`:''}`} · 键盘 ← → 切换步骤</div></div>
     <div class="ctrl"><button class="play press" id="play">${state.play?'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>暂停':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>自动演示'}</button></div></div>
   <div class="proc-grid">
     <ol class="rail" id="rail" aria-label="回答生成的六个环节">${STAGES.map((s,i)=>`<li><button class="st${i===S?' on':''}${i<S?' past':''}" ${i===S?'aria-current="step"':''} data-i="${i}" data-sound="none"><span class="num">${i<S?'✓':i+1}${i===S?`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11"${state.play?' class="run"':''}/></svg>`:''}</span><span><small>${s.en}</small><b>${s.n}</b></span></button></li>`).join('')}</ol>
@@ -1129,17 +1129,20 @@ function contentChecklist(ds){
 }
 function rankingLab(ds){
   const live=!!ds.live;
+  if(live&&GeoLive.rankingView==='api')return GeoLive.apiRanking(ds);
   const fun=[['召回结果',ds.total],['去重后候选',ds.dedup],[live?'相关性达标':'粗排保留',live?(ds.quality?.eligible_count||0):ds.coarse],['进入精排',live?ds.sources.filter(s=>sourceSelectable(s)&&s.weighted_score!=null).length:ds.sources.length],[live?'实际精读':'模拟入选',live?ds.sources.filter(s=>s.read).length:CITE_N]];
-  return `<h2>多维打分，按权重加总</h2><p class="lead">${live?'拖动六项权重，免费预览候选排名；应用后按新权重重新检索与生成回答。':'拖动六项权重，观察前五个模拟入选来源怎样变化。示例回答保留，方便对照。'}</p>
+  return `${live?GeoLive.rankingTabs():''}<h2>${live?'六维教学实验':'多维打分，按权重加总'}</h2><p class="lead">${live?'拖动六项权重，免费预览本次候选。明确应用后生成教学实验回答，默认搜索继续使用 DeepSeek 综合分。':'拖动六项权重，观察前五个模拟入选来源怎样变化。示例回答保留，方便对照。'}</p>
     <div class="funnel">${fun.map((f,i)=>`<div class="fn"><span>${f[0]}</span><div style="width:${Math.max(8,Math.sqrt(f[1]/Math.max(1,ds.total))*100)}%">${fmt(f[1])}</div></div>`).join('')}</div>
     <div class="lab"><div class="lab-h"><b>权重实验台</b><div class="presets" id="presets">${PRESETS.map((p,i)=>`<button data-p="${i}" type="button">${p.n}</button>`).join('')}</div></div>
-    <p class="hint">${live?'与教学版采用相同维度和归一化加权公式。先过 API 1.50 分门槛，再选择最多 5 个精读来源。预览使用本次候选，重新检索时资料可能变化。':ds.rankHint}</p>
-    <div class="weights">${SIG.map((g,i)=>`<div class="wt"><label for="w-${g.k}"><span><i style="background:var(--g${i+1})"></i>${g.n}</span><span class="v" id="wv-${g.k}"></span></label><input type="range" id="w-${g.k}" min="0" max="50" step="5" value="${state.w[g.k]}" style="--c:var(--g${i+1})"><p>${live?['API 综合分映射，作为相关性代理','API 权威等级，未知项单独标记','按 API 发布时间估计新旧程度','按完整语句与标题、列表标记估计','按其他主机未出现的词项比例估计','按其他主机共有的词项比例估计'][i]:g.d}</p></div>`).join('')}</div>
-    <div class="rank-summary"><span id="rank-status" role="status"></span>${live?'<button class="play press" id="rank-apply" type="button">按此权重重新检索</button>':''}</div>
+    <p class="hint">${live?'实验使用本站估计与归一化加权公式。词项独特度和共现度互补，同权时区分作用抵消；共现不能说明事实一致。语言与 API 1.50 分门槛持续生效。':ds.rankHint}</p>
+    <div class="weights">${SIG.map((g,i)=>`<div class="wt"><label for="w-${g.k}"><span><i style="background:var(--g${i+1})"></i>${live?GeoLive.dimensionName(i):g.n}</span><span class="v" id="wv-${g.k}"></span></label><input type="range" id="w-${g.k}" min="0" max="50" step="5" value="${state.w[g.k]}" style="--c:var(--g${i+1})"><p>${live?['API 综合分映射，作为相关性代理','API 权威等级，未知项单独标记','按 API 发布时间估计新旧程度','按完整语句与标题、列表标记估计','按其他主机未出现的词项比例估计','按其他主机共有的词项比例估计'][i]:g.d}</p></div>`).join('')}</div>
+    <div class="rank-summary"><span id="rank-status" role="status"></span>${live?'<button class="play press" id="rank-apply" type="button">按实验排序重新生成</button>':''}</div>
     <div class="board" id="board"></div>
     ${live?'<div class="rank-basis"><div class="rank-basis-h"><b>查看分数依据</b><select id="rank-source" aria-label="查看哪个来源的六维依据"></select></div><dl id="rank-breakdown"></dl><p class="hint">六维分数为本站可解释估计。API 综合分也含权威和时效因素；跨站共现需要结合原文核对事实。未知项从该页面的加权分母中排除。</p></div>':''}</div>`;
 }
 function bindRankingLab(ds){
+  if(ds.live&&GeoLive.rankingView==='api'){state.rankUpdate=null;GeoLive.bindRankingTabs(ds);return;}
+  if(ds.live)GeoLive.bindRankingTabs(ds);
   const board=$('#board'),live=!!ds.live;
   board.innerHTML=ds.sources.map(s=>`<div class="brow" data-id="${esc(s.id)}"><span class="rk"></span><div class="nm">${ico(s)}<div><b title="${esc(s.site)}">${esc(short(s))}</b><small>${esc(s.type)} · ${esc(s.date)}</small></div></div><div class="stack">${SIG.map((g,j)=>`<i style="background:var(--g${j+1})"></i>`).join('')}</div><span class="scorev"></span><span class="stat"><span class="delta"></span><span class="badge"></span></span></div>`).join('')+'<div class="cutline"><span></span></div>';
   let prevTop=null;
@@ -1152,7 +1155,7 @@ function bindRankingLab(ds){
   const update=first=>{
     const H=innerWidth<=640?58:48;
     board.style.height=(ds.sources.length*H+18)+'px';
-    const w=state.w,sw=SIG.reduce((a,g)=>a+w[g.k],0),r=rankBy(ds,w);
+    const w=state.w,sw=SIG.reduce((a,g)=>a+w[g.k],0),r=rankBy(ds,w,"teaching");
     const selected=r.filter(x=>(!live||sourceSelectable(x.s))&&x.v!=null).slice(0,CITE_N);
     const top=selected.map(x=>x.s.id).join();
     if(!first&&prevTop!==null&&top!==prevTop)Sound.play('toggle');prevTop=top;
@@ -1166,9 +1169,9 @@ function bindRankingLab(ds){
       const delta=x.s.r0-i,dl=$('.delta',el);dl.className='delta '+(delta>0?'up':delta<0?'dn':'');dl.textContent=sw?(delta>0?`↑${delta}`:delta<0?`↓${-delta}`:''):'';
     });
     const cut=$('.cutline',board);cut.hidden=!selected.length||selected.length===r.length;cut.style.top=selected.length*H+'px';$('span',cut).textContent=live?'精读名额线':'模拟引用名额线';
-    const changed=live&&SIG.some(g=>w[g.k]!==ds.ranking?.weights?.[g.k]);
-    $('#rank-status').textContent=!sw?'至少保留一个非零权重。':live?(changed?`预览中 · ${selected.length} 个拟精读来源，当前回答保留原权重结果。`:'当前为本次实际使用的权重。'):`模拟选中 ${selected.length} 个来源 · 权重按总和归一化。`;
-    if(live){$('#rank-apply').disabled=!sw||!changed;$('#rank-apply').onclick=()=>{stopPlay();GeoLive.search(ds.query,{weights:{...state.w}})};}
+    const changed=live&&(ds.ranking?.mode!=="teaching"||SIG.some(g=>w[g.k]!==ds.ranking?.weights?.[g.k]));
+    $('#rank-status').textContent=!sw?'至少保留一个非零权重。':live?(changed?`预览中 · ${selected.length} 个拟精读来源，当前回答保留原排序结果。`:'当前为本次教学实验实际使用的权重。'):`模拟选中 ${selected.length} 个来源 · 权重按总和归一化。`;
+    if(live){$('#rank-apply').disabled=!sw||!changed;$('#rank-apply').onclick=()=>{stopPlay();GeoLive.search(ds.query,{weights:{...state.w},ranking_mode:"teaching"})};}
     $$('#presets button').forEach((b,i)=>{const on=SIG.every(g=>PRESETS[i].w[g.k]===w[g.k]);b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
   };
   SIG.forEach(g=>$('#w-'+g.k).addEventListener('input',e=>{state.w[g.k]=+e.target.value;Sound.play('tick');update()}));
@@ -1272,5 +1275,5 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
-<script src="/geo/live.js?v=geo-live-1.5" defer></script>
+<script src="/geo/live.js?v=geo-live-1.6" defer></script>
 {% include baidu-analytics.html %}

@@ -141,3 +141,32 @@
  .live-mode .chunk .cs{display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap}
  .chunk .live-chunk-reason{margin-top:0}
 }
+
+/* Actual API order and teaching previews share the existing page tokens. */
+.live-ranking-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 22px}
+.live-ranking-tabs button{padding:8px 14px;min-height:38px;border-radius:9px;background:var(--soft2);color:var(--fg2);font-size:12px}
+.live-ranking-tabs button[aria-pressed=true]{background:var(--accent-tint);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent-ring)}
+.live-ranking-tabs button:active{transform:scale(.98)}
+.live-rank-state{font-size:12px;color:var(--fg2);display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:0 0 18px}
+.live-native-row{padding:18px 0;border-top:1px solid var(--line)}
+.live-native-heading{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:12px;align-items:start}
+.live-native-heading>span{font-size:11px;color:var(--fg3);padding-top:3px}
+.live-native-heading b{display:block;font-size:13px;font-weight:500;line-height:1.6}
+.live-native-heading a{color:var(--fg);text-decoration:none;overflow-wrap:anywhere}
+.live-native-site{display:block;font-size:11px;color:var(--fg3);margin-top:4px}
+.live-native-heading strong{font-size:16px;font-weight:500;white-space:nowrap}
+.live-native-heading small{font-size:11px;color:var(--fg3);font-weight:400}
+.live-native-bar{height:4px;background:var(--soft2);margin:12px 0 10px;overflow:hidden;border-radius:2px}
+.live-native-bar i{display:block;height:100%;background:var(--accent)}
+.live-native-row>p{font-size:12px;color:var(--fg2);margin:8px 0}
+.live-occurrences{font-size:11px;color:var(--fg3);margin-top:12px;line-height:1.6}
+.live-occurrences summary{cursor:pointer;color:var(--fg2);padding:4px 0}
+.live-occurrences div{display:flex;flex-wrap:wrap;gap:6px 18px;padding:6px 0;border-top:1px solid var(--line)}
+.live-occurrences p{margin:8px 0}
+.live-evidence-passages>div+div{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.live-evidence-passages small{font-size:10px;color:var(--fg3);overflow-wrap:anywhere}
+.live-evidence-passages blockquote{white-space:pre-wrap;overflow-wrap:anywhere}
+.live-run-record{margin:24px 0;font-size:12px;color:var(--fg2);line-height:1.7;border-top:1px solid var(--line);padding-top:14px}
+.live-run-record summary{cursor:pointer;font-weight:500;color:var(--fg)}
+.live-run-record p{margin:10px 0}
+@media(max-width:640px){.live-native-heading{grid-template-columns:20px minmax(0,1fr) auto;gap:8px}.live-native-heading strong{font-size:14px}.live-native-row{padding:14px 0}}

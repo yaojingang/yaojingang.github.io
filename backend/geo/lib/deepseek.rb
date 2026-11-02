@@ -7,6 +7,7 @@ require_relative "language"
 
 module Geo
   class DeepSeek
+    attr_writer :run_log
     PRICE_DATE = "2026-11-01"
     def self.search_language(question)
       language = Language.preference(question)["codes"].join(",")
@@ -27,6 +28,8 @@ module Geo
     end
 
     def post(path, payload, reservation, kind)
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      id = status = data = settled = nil
       raise Error.new("not_configured", "本机付费调用已关闭，请使用网站内测入口。", 503) unless @config.configured?
       remaining = @deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
       raise Error.new("deadline", "本次搜索已到时间上限，请缩小问题范围后再试。", 504) if remaining <= 0
@@ -49,7 +52,10 @@ module Geo
         data = JSON.parse(response.body)
       end
       if status != 200
-        @store.settle(id, 0) if status.between?(400, 499)
+        if status.between?(400, 499)
+          @store.settle(id, 0)
+          settled = 0
+        end
         code, message = case status
                         when 401 then ["invalid_key", "DeepSeek 密钥无效，请重新配置。"]
                         when 402 then ["insufficient_balance", "DeepSeek 账户余额不足，请充值后再试。"]
@@ -60,10 +66,25 @@ module Geo
         raise Error.new(code, message, 502)
       end
       amount = yield(data)
-      @store.settle(id, amount) unless amount.nil?
+      unless amount.nil?
+        begin
+          @store.settle(id, amount)
+          settled = amount
+        rescue Error => error
+          # The ledger records observed anomalous usage before halting further calls.
+          settled = amount if error.code == "price_limit"
+          raise
+        end
+      end
       data
     rescue JSON::ParserError, IOError, SystemCallError, Timeout::Error, OpenSSL::SSL::SSLError
       raise Error.new("upstream_connection", "上游连接中断，未确认的费用已保守预留，请稍后再试。", 502)
+    ensure
+      @run_log.call("kind" => kind, "path" => path, "request" => payload, "response" => data,
+                    "http_status" => status, "charge_id" => id, "reserved_micros" => id ? reservation : 0,
+                    "settled_micros" => settled, "charge_state" => id.nil? ? "not_sent" : ($!.respond_to?(:code) && $!.code == "price_limit" ? "anomaly" : settled.nil? ? "reserved" : "settled"),
+                    "elapsed_seconds" => (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).round(3),
+                    "error" => $! && ($!.respond_to?(:code) ? $!.code : $!.class.name)) if @run_log
     end
 
     def search(query, question, language: :preferred)

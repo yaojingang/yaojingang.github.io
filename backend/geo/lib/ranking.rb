@@ -7,6 +7,12 @@ module Geo
   class Ranking
     DEFAULT = {"rel"=>30,"auth"=>20,"fresh"=>15,"struct"=>15,"gain"=>10,"cons"=>10}.freeze
 
+    def self.mode(value)
+      value = "api" if value.nil?
+      raise Error.new("invalid_ranking_mode", "请选择 DeepSeek 排序或六维教学实验。", 400) unless %w[api teaching].include?(value)
+      value
+    end
+
     def self.weights(value)
       return DEFAULT.dup if value.nil?
       valid = value.is_a?(Hash) && value.keys.sort == DEFAULT.keys.sort &&
@@ -74,9 +80,15 @@ module Geo
       source["eligible"] && source["language_allowed"] != false && !source["selection_blocked"] && !source["selection_deferred"]
     end
 
-    def self.order(sources, weights)
-      sources.each { |source| source["weighted_score"] = score(source, weights) }
-      sources.sort_by { |source| [selectable?(source) && !source["weighted_score"].nil? ? 0 : 1, source["language_priority"] || 0, -(source["weighted_score"] || -1), -source["api_score"], source["url"]] }
+    def self.order(sources, weights, mode: "api")
+      mode = self.mode(mode)
+      api_order = sources.sort_by { |source| [-source["api_score"], source["url"]] }
+      api_order.each_with_index { |source, index| source["api_rank"] = index + 1 }
+      sources.each do |source|
+        source["weighted_score"] = score(source, weights)
+        source["sort_score"] = mode == "api" ? source["api_score"] : source["weighted_score"]
+      end
+      sources.sort_by { |source| [selectable?(source) && !source["sort_score"].nil? ? 0 : 1, source["language_priority"] || 0, -(source["sort_score"] || -1), -source["api_score"], source["url"]] }
     end
   end
 end

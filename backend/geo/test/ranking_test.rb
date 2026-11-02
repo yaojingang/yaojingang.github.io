@@ -52,15 +52,15 @@ class GeoRankingTest < Minitest::Test
     flow = Geo::Pipeline.new(Geo::DeepSeek.new(@config,@store,transport:provider),@store)
     rel = {"rel"=>50,"auth"=>0,"fresh"=>0,"struct"=>0,"gain"=>0,"cons"=>0}
     auth = rel.merge("rel"=>0,"auth"=>50)
-    first = flow.run("企业分析工具", weights: rel) { |*_| }
-    second = flow.run("企业分析工具", weights: auth) { |*_| }
+    first = flow.run("企业分析工具", weights: rel, ranking_mode: "teaching") { |*_| }
+    second = flow.run("企业分析工具", weights: auth, ranking_mode: "teaching") { |*_| }
     refute_equal first["sources"].select{|s|s["read"]}.map{|s|s["url"]}, second["sources"].select{|s|s["read"]}.map{|s|s["url"]}
     assert_equal "资料5", second["sources"].find{|s|s["read"]}["site"]
     refute second["sources"].find{|s|s["site"]=="资料6"}["read"]
     assert_equal auth, second["ranking"]["weights"]
     assert second["sources"].all?{|s|s["sig"].length==6 && s["sig_basis"].length==6}
     calls = @calls.length
-    cached = flow.run("企业分析工具", weights: auth) { |*_| }
+    cached = flow.run("企业分析工具", weights: auth, ranking_mode: "teaching") { |*_| }
     assert cached["cached"]
     assert_equal calls, @calls.length
     refute first["cached"]
@@ -97,10 +97,10 @@ class GeoRankingTest < Minitest::Test
     flow=Geo::Pipeline.new(Geo::DeepSeek.new(@config,@store,transport:provider),@store)
     rel={"rel"=>50,"auth"=>0,"fresh"=>0,"struct"=>0,"gain"=>0,"cons"=>0}
     auth=rel.merge("rel"=>0,"auth"=>50)
-    first=flow.run("企业分析工具",weights:rel){|*_|}
+    first=flow.run("企业分析工具",weights:rel,ranking_mode:"teaching"){|*_|}
     assert_equal 20,first["sources"].length
-    preview=Geo::Ranking.order(Marshal.load(Marshal.dump(first["sources"])),auth).first(5).map{|s|s["url"]}
-    applied=flow.run("企业分析工具",weights:auth){|*_|}
+    preview=Geo::Ranking.order(Marshal.load(Marshal.dump(first["sources"])),auth,mode:"teaching").first(5).map{|s|s["url"]}
+    applied=flow.run("企业分析工具",weights:auth,ranking_mode:"teaching"){|*_|}
     assert_equal preview,applied["sources"].select{|s|s["read"]}.map{|s|s["url"]}
     assert_equal "资料19",applied["sources"].first["site"]
   end
