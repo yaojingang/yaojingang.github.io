@@ -113,6 +113,52 @@ class GeoNativeRankingTest < Minitest::Test
     refute Geo::Language.query_matches?("企业数据分析工具对比", policy, entities: ["腾讯云", "阿里云"])
   end
 
+  def test_malformed_planning_json_uses_the_original_short_question_without_model_retry
+    pipeline = flow do |path, payload, response|
+      if path == "/chat/completions" && payload["max_tokens"] == 600
+        response[1]["choices"][0]["message"]["content"] = '{"queries":["企业分析工具"],["格式错误的第二组"]]}'
+      end
+      response
+    end
+    data = pipeline.run("企业分析工具") { |*_| }
+    assert_equal "complete", data["status"]
+    assert_equal ["企业分析工具 lang:zh"], data["searches"].map { |search| search["query"] }
+    assert_match(/按原问题/, data["warnings"].first)
+    assert_equal 2, @calls.count { |path, _| path == "/chat/completions" }
+    record = @store.diagnostics.read(data["run_id"])
+    assert record["events"].any? { |event| event["event"] == "planning_fallback" && event["data"]["reason"] == "invalid_answer" }
+  end
+
+  def test_planning_fallback_is_limited_to_short_questions_and_planning_validation
+    [:long_question, :answer, :network, :nested_queries].each do |scenario|
+      pipeline = flow do |path, payload, response|
+        if path == "/chat/completions"
+          planning = payload["max_tokens"] == 600
+          if planning && scenario == :network
+            next [429, { "error" => {} }]
+          end
+          if (planning && scenario == :long_question) || (!planning && scenario == :answer)
+            response[1]["choices"][0]["message"]["content"] = '{invalid'
+          elsif planning && scenario == :nested_queries
+            response[1]["choices"][0]["message"]["content"] = '{"queries":[["nested"]]}'
+          end
+        end
+        response
+      end
+      if scenario == :nested_queries
+        data = pipeline.run("企业分析工具嵌套查询") { |*_| }
+        assert_equal "complete", data["status"]
+        assert_match(/按原问题/, data["warnings"].first)
+      else
+        question = scenario == :long_question ? "企业分析工具" * 25 : "企业分析工具#{scenario}"
+        error = assert_raises(Geo::Error) { pipeline.run(question) { |*_| } }
+        assert_equal scenario == :network ? "upstream_busy" : "invalid_answer", error.code
+        record = @store.diagnostics.read(pipeline.run_id)
+        refute record["events"].any? { |event| event["event"] == "planning_fallback" }
+      end
+    end
+  end
+
   def test_unknown_mode_is_rejected_before_paid_calls
     error = assert_raises(Geo::Error) { pipeline.run("企业分析工具", ranking_mode: "unknown") { |*_| } }
     assert_equal "invalid_ranking_mode", error.code
