@@ -125,13 +125,27 @@
   const languageLabel = ds => ({'zh-Hans':'简体中文','zh-Hant':'繁体中文',zh:'中文',en:'英文','zh,en':'中英文'})[ds.quality?.preferred_language||ds.quality?.language] || '按问题语言';
   const stageRows = events => STAGES.map((_, index) => events.filter(event => event.stage === index).slice(-1)[0]).filter(Boolean);
   function progress() {
-    const rows = stageRows(live.events);
-    const current = rows[rows.length - 1] || {stage:0,message:'正在连接内测服务。'};
+    const current = live.events[live.events.length - 1] || {stage:0};
     const el = document.getElementById('think');
     el.className = 'think running live-progress';
-    el.innerHTML = `<div class="live-progress-head"><div class="live-progress-title"><span class="live-pulse" aria-hidden="true"></span><b>${esc(STAGES[current.stage].n)}</b><span class="mono">0${current.stage+1} / 06</span></div><button class="live-cancel press" type="button" id="live-cancel">停止搜索</button></div><p class="live-progress-message" role="status" aria-live="polite">${esc(current.message)}</p><ol class="live-phase-list" aria-label="实时检索进度">${STAGES.map((stage,i)=>`<li class="live-phase ${i<current.stage?'done':i===current.stage?'cur':'waiting'}" ${i===current.stage?'aria-current="step"':''}><span class="live-phase-num">${i<current.stage?'✓':i+1}</span><span>${esc(stage.n)}</span></li>`).join('')}</ol><p class="live-progress-foot">完成后可逐步查看选段、排序依据与引用原文。</p>`;
-    document.getElementById('live-cancel').onclick = () => live.controller?.abort();
+    if (!el.querySelector('.live-progress-head')) {
+      el.innerHTML = `<div class="live-progress-head"><div class="live-progress-title"><span class="live-spinner" aria-hidden="true"></span><b></b><span class="mono"></span></div><button class="live-cancel press" type="button" id="live-cancel">停止搜索</button></div><span class="live-progress-status" role="status" aria-live="polite" aria-atomic="true"></span><ol class="live-phase-list" aria-label="实时检索进度">${STAGES.map(stage=>`<li class="live-phase"><span class="live-phase-num"></span><span>${esc(stage.n)}</span></li>`).join('')}</ol>`;
+      document.getElementById('live-cancel').onclick = () => live.controller?.abort();
+    }
+    const label = STAGES[current.stage].n;
+    el.querySelector('.live-progress-title b').textContent = label;
+    el.querySelector('.live-progress-title .mono').textContent = `0${current.stage + 1} / 06`;
+    const status = el.querySelector('.live-progress-status');
+    const announcement = `正在${label}，第 ${current.stage + 1} 步，共 6 步。`;
+    if (status.textContent !== announcement) status.textContent = announcement;
+    el.querySelectorAll('.live-phase').forEach((phase, index) => {
+      phase.className = `live-phase ${index < current.stage ? 'done' : index === current.stage ? 'cur' : 'waiting'}`;
+      if (index === current.stage) phase.setAttribute('aria-current', 'step');
+      else phase.removeAttribute('aria-current');
+      phase.querySelector('.live-phase-num').textContent = index < current.stage ? '✓' : index + 1;
+    });
   }
+
   function renderRunMeta(data) {
     const meta = [data.quality?.strict_language?`${languageLabel(data)}限定`:`${languageLabel(data)}优先`, ...(data.quality?.language_fallback?['含补充语言信源']:[]), data.cached ? '相同问题缓存' : '实时联网检索', `${data.cached ? '原检索' : '用时'} ${data.elapsed_seconds} 秒`, `累计 ¥${money(data.budget.used_cny)} / ¥${money(data.budget.limit_cny)}`];
     document.getElementById('r-banner').innerHTML = `<div class="live-run-meta">${meta.map(item => `<span>${esc(item)}</span>`).join('')}</div>${(data.warnings || []).map(text => `<div class="banner">${esc(text)}</div>`).join('')}`;

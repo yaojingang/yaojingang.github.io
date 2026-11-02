@@ -75,22 +75,22 @@
 @media(min-width:641px){.live-mode .pop{max-height:min(560px,calc(100dvh - 220px));overflow-y:auto;overscroll-behavior:contain}}
 
 /* Shared ranking lab and recorded progress follow the teaching component scale. */
-.live-progress{padding:18px 20px 16px;border-radius:14px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line2);margin:4px 0 26px}
+.live-progress{padding:18px 20px;border-radius:14px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line2);margin:4px 0 26px}
 .live-progress-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .live-progress-title{display:flex;align-items:center;gap:9px;font-size:13px;min-width:0}
 .live-progress-title b{font-weight:600}
 .live-progress-title .mono{font-size:10.5px;color:var(--fg3);margin-left:3px}
-.live-pulse{width:8px;height:8px;flex:none;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-tint);animation:live-pulse 1.8s ease-in-out infinite}
-@keyframes live-pulse{50%{opacity:.35}}
+.live-spinner{box-sizing:border-box;width:20px;height:20px;flex:none;border:2px solid var(--accent-ring);border-top-color:var(--accent);border-right-color:var(--accent);border-radius:50%;animation:live-spin .9s linear infinite}
+@keyframes live-spin{to{transform:rotate(360deg)}}
+.live-progress-status{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.live-spinner{animation:none}}
 .live-progress .live-cancel{font-size:11.5px;color:var(--fg2);background:var(--soft);padding:0 12px;min-height:36px;white-space:nowrap}
-.live-progress-message{font-size:13px;line-height:1.7;color:var(--fg2);margin:12px 0 18px;overflow-wrap:anywhere}
-.live-phase-list{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px;margin:0;padding:0}
+.live-phase-list{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px;margin:20px 0 0;padding:0}
 .live-phase{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--fg3);min-width:0}
 .live-phase-num{display:grid;place-items:center;width:21px;height:21px;flex:none;border-radius:50%;font:10px var(--mono);box-shadow:inset 0 0 0 1px var(--line2)}
 .live-phase.cur{color:var(--fg);font-weight:500}
 .live-phase.cur .live-phase-num{color:var(--accent);background:var(--accent-tint);box-shadow:inset 0 0 0 1px var(--accent-ring)}
 .live-phase.done .live-phase-num{color:var(--good);background:var(--good-tint);box-shadow:none}
-.live-progress-foot{margin:18px 0 0;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--fg3);line-height:1.6}
 .live-source-placeholder{padding:8px 12px;opacity:.65}
 .live-source-placeholder i{display:block;border-radius:4px;background:var(--soft2);height:8px;margin:10px 0;max-width:85%}
 .live-source-placeholder i:first-child{width:32%;height:12px;margin-bottom:18px}

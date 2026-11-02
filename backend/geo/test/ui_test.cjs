@@ -16,7 +16,7 @@ const sources = [
 const evidence = sources.map(s=>({id:s.id+'-P1',source_id:s.id,text:text.repeat(24),basis:'body',term_hits:2}));
 const refs = evidence.map(e=>({id:e.source_id,q:e.text,evidence_id:e.id,basis:e.basis}));
 const data = {live:true,query:'企业应该怎样选择数据分析工具？',ranking:{weights:defaults,limit:5},intent:{type:'工具选型',ents:['分析工具'],cons:[['使用场景','团队协作']],plan:'先比较场景，再核对接入条件。'},searches:[{query:'企业应该怎样选择数据分析工具？ lang:zh',count:2},{query:'数据分析工具 团队协作 lang:zh',count:2}],sources,evidence,answer:[{t:'p',segs:[{x:text.repeat(4),f:refs}]},{t:'p',segs:[{x:text,f:[refs[0]]}]}],cited:['S1','S2'],trace:Array.from({length:6},(_,stage)=>({stage,message:['保留原始问题，生成搜索词。','实际检索 2 组查询。','按 1.50 分选用线筛选来源。','已记录 2 段正文。','已整理 2 段回答。','引用 2 个来源。'][stage]})),total:4,dedup:2,cached:false,status:'complete',quality:{min_score:1.5,eligible_count:2,read_count:2,language:'zh',preferred_language:'zh-Hans',language_fallback:false},warnings:[],created_at:'2026-11-01T19:00:00+08:00',elapsed_seconds:2.18,budget:{limit_cny:50,used_cny:0.12,remaining_cny:49.88}};
-let loggedIn = false;
+let loggedIn = false, waitingResponse;
 const files = {'/geo/':['geo/index.html','text/html'],'/geo/live.js':['geo/live.js','text/javascript'],'/geo/live.css':['geo/live.css','text/css'],'/geo/test-questions.json':['geo/test-questions.json','application/json']};
 const json = (res, value, code=200) => {res.writeHead(code, {'Content-Type':'application/json'});res.end(JSON.stringify(value));};
 const server = http.createServer(async(req,res)=>{
@@ -28,7 +28,7 @@ const server = http.createServer(async(req,res)=>{
     const payload=JSON.parse(body);requests.push(payload);const question=payload.question;
     if(question==='错误状态测试') return json(res,{error:{message:'离线限流测试，请稍后再试。'}},429);
     res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8'});
-    if(question==='等待检索测试'){res.write('event: step\ndata: {"stage":0,"message":"正在理解问题。"}\n\n');return;}
+    if(question==='等待检索测试'){waitingResponse=res;res.write('event: step\ndata: {"stage":0,"message":"正在理解问题。"}\n\n');return;}
     const output=structuredClone(data);output.query=question;output.ranking.weights=payload.weights||defaults;
     if(question==='语言补充测试'){output.quality.language_fallback=true;output.sources=output.sources.map((s,i)=>({...s,language:i?'en':'zh-Hant',language_priority:i?2:1,language_supplement:true}));}
     if(question==='数学分析师推荐')Object.assign(output,{status:'insufficient',answer:[],cited:[],evidence:[],quality:{min_score:1.5,eligible_count:0,read_count:0,language:'zh'},sources:output.sources.map(s=>({...s,api_score:1.2,read:false,eligible:false,type:'搜索结果',why:'API 排序分低于本站 1.50 分选用线。'})),diagnostic:'本次没有找到足够相关且内容可用的资料。请补充推荐对象、使用场景或地区，再继续检索。',searches:[{query:'数学分析师推荐 lang:zh',count:2},{query:'数学分析师 推荐 lang:zh',count:2}],trace:output.trace.map(row=>({...row,message:row.stage===3?'没有找到有效选段。':row.stage===4?'资料不足，没有调用回答模型。':row.stage===5?'没有形成引用。':row.message}))});
@@ -177,7 +177,12 @@ const server = http.createServer(async(req,res)=>{
   await page.evaluate(()=>GeoLive.search('错误状态测试'));assert((await page.locator('#answer [role=alert]').innerText()).includes('离线限流测试'));
   await page.locator('#q-res').fill('等待检索测试');await page.locator('#f-res').getByRole('button',{name:'搜索',exact:true}).click();
   await page.locator('#live-cancel').waitFor({state:'visible'});assert.equal(await page.locator('.live-phase').count(),6);assert.equal(await page.locator('.live-phase.cur').count(),1);assert(await page.locator('#legend').isHidden());await page.screenshot({path:path.join(artifacts,'loading-mobile.png'),fullPage:true});
+  await page.locator('#live-cancel').focus();
+  waitingResponse.write('event: step\ndata: '+JSON.stringify({stage:1,message:'正在检索资料。'})+'\n\n');
+  await page.waitForFunction(()=>document.querySelector('.live-phase.cur')?.textContent.includes('检索召回'));
+  assert(await page.locator('#live-cancel').evaluate(el=>document.activeElement===el),'Progress updates must preserve the focused cancel action');
   await page.locator('#live-cancel').click();await page.waitForFunction(()=>!state.thinking);
+  assert.equal(await page.locator('.live-spinner').count(),0);
   assert((await page.locator('#answer [role=alert]').innerText()).includes('已停止'));
   await resize(1440);
   await page.emulateMedia({colorScheme:'dark'});await page.evaluate(()=>GeoLive.search('企业应该怎样选择数据分析工具？'));
