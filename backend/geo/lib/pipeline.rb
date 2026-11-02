@@ -8,7 +8,7 @@ require_relative "ranking"
 module Geo
   class Pipeline
     attr_reader :run_id
-    VERSION = "geo-live-1.7.0"
+    VERSION = "geo-live-1.7.1"
     MIN_SOURCE_SCORE = 1.5
     MAX_FETCHES = 5
     PLAN_PROMPT = <<~TEXT.freeze
@@ -299,8 +299,11 @@ module Geo
       else
         step.call(4, "根据选段整理回答，并核对引用编号。")
         provenance = sources.select { |source| source["read"] }.map { |source| source.select { |key, _| %w[id url title site date authority language language_label language_supplement].include?(key) } }
-        input = JSON.generate("question" => question, "response_language" => Language.detect(question, question: true), "date" => @clock.call.getlocal("+08:00").iso8601, "sources" => provenance, "evidence" => evidence)
-        response = @client.json(ANSWER_PROMPT, input, 3000)
+        response_language = Language.detect(question, question: true)
+        language_name = response_language == "zh-Hant" ? "繁體中文" : Language.label(response_language)
+        answer_prompt = "#{ANSWER_PROMPT}\n本次回答语言：#{language_name}（#{response_language}）。所有 text、heading、emphasis 必须使用该语言及字形。资料原文的语言和字形不改变本次回答语言，输出前检查全文字形。"
+        input = JSON.generate("question" => question, "response_language" => response_language, "date" => @clock.call.getlocal("+08:00").iso8601, "sources" => provenance, "evidence" => evidence)
+        response = @client.json(answer_prompt, input, 3000)
         paragraphs = response["paragraphs"]
         raise Error.new("invalid_answer", "模型没有返回完整的带来源回答。", 502) unless paragraphs.is_a?(Array) && paragraphs.length.between?(1, 12)
         by_evidence = evidence.each_with_object({}) { |item, map| map[item["id"]] = item }
