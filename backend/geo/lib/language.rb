@@ -12,8 +12,12 @@ module Geo
       测測 试試 历歷 规規 范範 压壓 缩縮 势勢 获獲 听聽 声聲 办辦 导導 医醫 药藥 护護 养養 龄齡 鱼魚 龙龍
       齐齊 万萬 亿億 复復 杂雜 难難 轻輕 远遠 迁遷 针針 钟鐘 随隨 让讓 还還 没沒 无無 于於 从從 众眾 传傳
       伤傷 际際 队隊 协協 联聯 帐帳 账賬 户戶 隐隱 访訪 劝勸 议議 订訂 评評 内內 创創 场場 础礎 项項 类類
-      请請 给給 带帶 间間 种種 样樣 够夠 义義 显顯 图圖 属屬 扩擴 绍紹 帮幫].freeze
-    SHARED = %w[台 布 于 云 范 准].freeze
+      请請 给給 带帶 间間 种種 样樣 够夠 义義 显顯 图圖 属屬 扩擴 绍紹 帮幫
+      们們 么麼 寻尋 职職 两兩 气氣 后後 则則 虽雖 却卻 将將 区區 块塊 链鏈 码碼 硕碩
+      约約 红紅 绿綠 蓝藍 黄黃 颜顏 边邊 细細 节節 维維 丝絲 绘繪 绝絕 纸紙 纯純 纳納
+      终終 续續 绩績 兴興 趋趨 惯慣 劳勞 灵靈 头頭 笔筆 画畫 监監 视視 觉覺 厅廳 卫衛
+      阶階 层層 县縣 乡鄉 礼禮 风風 飞飛 亲親 儿兒 里裏 里裡 制製 锐銳 谢謝 讲講 许許].freeze
+    SHARED = %w[台 布 于 云 范 准 后 里 制].freeze
     SIMPLIFIED = Regexp.new("[#{(PAIRS.map { |pair| pair[0] } - SHARED).join}]").freeze
     TRADITIONAL = Regexp.new("[#{PAIRS.map { |pair| pair[1] }.join}]").freeze
     ENGLISH = %w[the a an and or of to for in on with is are was be this that these those it its

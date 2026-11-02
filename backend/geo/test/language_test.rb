@@ -176,7 +176,7 @@ class GeoLanguageTest < Minitest::Test
   end
 
   def test_shared_traditional_characters_do_not_cancel_distinct_traditional_signals
-    ["台灣教育", "台灣生活", "台灣美食", "台灣AI", "發布資料", "雲端服務的使用規范"].each do |question|
+    ["台灣教育", "台灣生活", "台灣美食", "台灣AI", "發布資料", "雲端服務的使用規范", "搜尋引擎", "我們", "什麼是AI", "兩個方案", "區塊鏈"].each do |question|
       assert_equal "zh-Hant", Geo::Language.preference(question)["preferred"], question
     end
   end
