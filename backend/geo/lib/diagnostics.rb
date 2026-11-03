@@ -114,4 +114,55 @@ module Geo
       end
     end
   end
+
+  class MemoryDiagnostics < Diagnostics
+    class MemoryRun < Run
+      def summary
+        super.merge("storage" => "memory", "expires_at" => @owner.expires_at.iso8601)
+      end
+    end
+    attr_reader :expires_at
+
+    def initialize(max_bytes: 2 * 1024 * 1024)
+      @max_bytes, @bytes, @records, @active, @mutex, @clock = max_bytes, 0, {}, {}, Mutex.new, -> { Time.now }
+      @expires_at = Time.now + 3600
+    end
+
+    def start(metadata, redact = nil)
+      run = MemoryRun.new(self, SecureRandom.hex(16), @clock.call, redact)
+      @mutex.synchronize { @active[run.id] = true }
+      run.record("start", metadata)
+      run
+    end
+
+    def write(id, type, data)
+      line = JSON.generate("event" => type, "at" => @clock.call.iso8601(3), "data" => data)
+      @mutex.synchronize do
+        @records.keys.each do |old|
+          break if @bytes + line.bytesize <= @max_bytes
+          next if @active[old]
+          @bytes -= @records.delete(old).sum(&:bytesize)
+        end
+        return false if @bytes + line.bytesize > @max_bytes
+        (@records[id] ||= []) << line
+        @bytes += line.bytesize
+      end
+      true
+    rescue JSON::JSONError
+      false
+    end
+
+    def available?(id)
+      @mutex.synchronize { @records.key?(id) }
+    end
+
+    def read(id)
+      raise Error.new("invalid_run", "检索记录编号无效。", 400) unless id.match?(/\A[a-f0-9]{32}\z/)
+      @mutex.synchronize do
+        raise Error.new("run_not_found", "当前连接没有这条记录，或记录已清理。", 404) unless @records.key?(id)
+        events = @records[id].map { |line| JSON.parse(line) }
+        { "run_id" => id, "events" => events, "complete" => events.last && events.last["event"] == "finish" && events.last["data"]["complete"] }
+      end
+    end
+  end
 end

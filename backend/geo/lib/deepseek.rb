@@ -9,6 +9,31 @@ module Geo
   class DeepSeek
     attr_writer :run_log
     PRICE_DATE = "2026-11-01"
+    def self.validate_key(key, transport: nil)
+      unless key.is_a?(String) && key.match?(/\Ask-[A-Za-z0-9_-]{16,200}\z/)
+        raise Error.new("invalid_key_format", "请粘贴完整的 DeepSeek API Key，以 sk- 开头。", 400)
+      end
+      if transport
+        status, data = transport.call("/user/balance", {})
+      else
+        uri = URI("https://api.deepseek.com/user/balance")
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+        http.open_timeout, http.read_timeout, http.write_timeout = 5, 10, 5
+        request = Net::HTTP::Get.new(uri.request_uri)
+        request["Authorization"] = "Bearer #{key}"
+        response = http.request(request)
+        status = response.code.to_i
+        raise Error.new("invalid_balance", "Key 验证暂未完成，请稍后再试。", 502) if response.body.bytesize > 65536
+        data = JSON.parse(response.body)
+      end
+      raise Error.new("invalid_key", "DeepSeek Key 无效或已被撤销，请核对后重试。", 401) if status == 401
+      raise Error.new("key_verification_failed", "DeepSeek 暂时无法验证 Key，请稍后再试。", 502) unless status == 200 && data.is_a?(Hash) && [true, false].include?(data["is_available"])
+      raise Error.new("insufficient_balance", "DeepSeek 账户暂无可用余额，请在官方平台充值后重试。", 402) unless data["is_available"]
+      true
+    rescue JSON::ParserError, IOError, SystemCallError, Timeout::Error, OpenSSL::SSL::SSLError
+      raise Error.new("key_verification_failed", "连接 DeepSeek 超时，请稍后再试。", 502)
+    end
     def self.search_language(question)
       language = Language.preference(question)["codes"].join(",")
       raise Error.new("invalid_language", "语言条件较长，请减少语言数量后重试。", 400) if " lang:#{language}".length >= 128
@@ -22,8 +47,8 @@ module Geo
       suffix = language ? " lang:#{language}" : ""
       "#{text[0, 128 - suffix.length].rstrip}#{suffix}"
     end
-    def initialize(config, store, transport: nil)
-      @config, @store, @transport = config, store, transport
+    def initialize(config, store, transport: nil, authorize: nil)
+      @config, @store, @transport, @authorize = config, store, transport, authorize
       @deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 150
     end
 
@@ -34,6 +59,7 @@ module Geo
     def post(path, payload, reservation, kind)
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       id = status = data = settled = nil
+      @authorize.call if @authorize
       raise Error.new("not_configured", "本机付费调用已关闭，请使用网站内测入口。", 503) unless @config.configured?
       remaining = @deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
       raise Error.new("deadline", "本次搜索已到时间上限，请缩小问题范围后再试。", 504) if remaining <= 0

@@ -528,7 +528,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 @keyframes sheetin{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
 </style>
-<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.8.0">
+<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.9.0">
 
 <header class="top" id="top">
   <div class="top-in">
@@ -564,6 +564,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
         <button type="submit" class="send" aria-label="搜索" data-sound="none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
       </div>
     </form>
+    <div class="personal-start"><a class="press" href="/geo/api/connect">使用自己的 DeepSeek Key <span aria-hidden="true">→</span></a><span>体验真实联网搜索，费用由自己的账户承担</span></div>
     <div class="sugg" id="sugg"></div>
     <details class="live-tests" id="live-tests" hidden><summary>内测问题清单</summary><div id="live-test-list"></div></details>
     <div class="flow" id="flow"></div>
@@ -1280,5 +1281,5 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
-<script src="/geo/live.js?v=geo-live-1.8.0" defer></script>
+<script src="/geo/live.js?v=geo-live-1.9.0" defer></script>
 {% include baidu-analytics.html %}

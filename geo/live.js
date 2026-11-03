@@ -8,22 +8,23 @@
   const original = {search, renderSide, renderThink, renderPipe, renderAnswer, renderLegend};
   const originalStages = {...STAGE_R};
   const originalAfter = {...STAGE_AFTER};
-  const live = window.GeoLive = {active: false, controller: null, generation: 0, events: [], budget: null, rankingView: "api", weights: {...DEFAULT_W}};
+  const live = window.GeoLive = {active: false, controller: null, generation: 0, events: [], budget: null, accessMode: "team", connectionId: null, rankingView: "api", weights: {...DEFAULT_W}};
   const money = value => Number(value || 0).toFixed(3);
   const safeURL = sourceURL;
   const sourceLink = s => `<a href="${esc(safeURL(s.url))}" target="_blank" rel="noopener noreferrer">${esc(s.title || s.site)}</a>`;
   const statusLabel = () => {
     if (!live.budget) return '内部试用 · 本次预算上限 50 元';
-    return `内测预算 ¥${money(live.budget.limit_cny)} · 保守计费 ¥${money(live.budget.used_cny)} · 可用 ¥${money(live.budget.remaining_cny)}`;
+    return live.accessMode==='personal' ? `个人 Key · 本次连接保守计费 ¥${money(live.budget.used_cny)} / ¥${money(live.budget.limit_cny)} 保护额度` : `内测预算 ¥${money(live.budget.limit_cny)} · 保守计费 ¥${money(live.budget.used_cny)} · 可用 ¥${money(live.budget.remaining_cny)}`;
   };
   function updateBudget(budget) {
     if (budget) live.budget = budget;
     meter.textContent = statusLabel();
     if (live.active) {
       const logout = document.createElement('button');
-      logout.type = 'button'; logout.className = 'live-logout'; logout.textContent = '退出内测';
-      logout.onclick = async () => {try {await request('/session', {method: 'DELETE'}); showMode(false);} catch (error) {toast(error.message);}};
+      logout.type = 'button'; logout.className = 'live-logout'; logout.textContent = live.accessMode==='personal'?'断开 Key':'退出内测';
+      logout.onclick = async () => {try {await request('/session', {method: 'DELETE'});try{sessionStorage.removeItem('geo-provider');}catch(_){}showMode(false);} catch (error) {toast(error.message);}};
       meter.append(' · ', logout);
+      if(live.accessMode==='personal'){const manage=document.createElement('a');manage.href='/geo/api/connect';manage.className='live-key-manage';manage.textContent='管理连接';meter.append(' · ',manage);}
     }
   }
   async function request(path, options = {}) {
@@ -36,11 +37,11 @@
   function showMode(on) {
     live.active = on;
     document.body.classList.toggle('live-mode', on);
-    try {sessionStorage.setItem('geo-mode', on ? 'live' : 'demo');} catch (_) {}
+    try {sessionStorage.setItem('geo-mode', on ? 'live' : 'demo');if(on)sessionStorage.setItem('geo-provider',live.accessMode);} catch (_) {}
     modeButton.setAttribute('aria-pressed', String(on));
     modeButton.dataset.short = on ? '教学' : '内测';
     modeButton.querySelector('span').textContent = on ? '教学演示' : '实时内测';
-    document.querySelector('.brand small').textContent = on ? '内测版' : '教学版';
+    document.querySelector('.brand small').textContent = on ? (live.accessMode==='personal'?'个人版':'内测版') : '教学版';
     meter.hidden = !on;
     tests.hidden = !on;
     document.getElementById('q-home').placeholder = on ? '输入真实问题，开始联网检索…' : '问任何问题…';
@@ -62,12 +63,14 @@
   dialog.innerHTML = `<form id="live-login"><h2 id="live-dialog-title">进入实时内测</h2><p id="live-dialog-copy">输入团队内测口令。登录状态保留 12 小时。</p><div id="live-password-wrap"><label for="live-password">内测访问口令</label><input id="live-password" type="password" autocomplete="current-password" maxlength="256" required></div><div class="live-error" id="live-login-error" role="alert"></div><div class="live-actions"><button type="button" id="live-close">返回</button><button type="submit" id="live-login-submit">进入内测</button></div></form>`;
   document.body.append(dialog);
   document.getElementById('live-close').onclick = () => dialog.close();
-  async function enterLive() {
+  async function enterLive(automatic=false) {
     modeButton.disabled = true;
     try {
       const status = await request('/status');
+      live.accessMode=status.access_mode||'team';live.connectionId=status.connection_id||null;
       updateBudget(status.budget);
       if (status.authenticated) {showMode(true); return;}
+      if(automatic&&sessionStorage.getItem('geo-provider')==='personal'){showMode(false);toast('个人连接已过期，可重新连接自己的 Key。');return;}
       const configured = status.configured;
       document.getElementById('live-dialog-copy').textContent = configured
         ? '输入团队内测口令。登录状态保留 12 小时。'
@@ -94,6 +97,7 @@
     try {
       const data = await request('/session', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({password: password.value})});
       password.value = '';
+      live.accessMode='team';live.connectionId=data.connection_id||null;
       updateBudget(data.budget);
       dialog.close();
       showMode(true);
@@ -148,7 +152,7 @@
   }
 
   function renderRunMeta(data) {
-    const meta = [data.ranking?.mode==='teaching'?'六维教学实验回答':'DeepSeek 综合分排序',...(data.quality?.strict_language||data.quality?.excluded_languages?.length?[sourceLanguageLabel(data)]:[]), data.cached ? '相同问题缓存' : '实时联网检索', `${data.cached ? '原检索' : '用时'} ${data.elapsed_seconds} 秒`, `累计 ¥${money(data.budget.used_cny)} / ¥${money(data.budget.limit_cny)}`];
+    const meta = [data.ranking?.mode==='teaching'?'六维教学实验回答':'DeepSeek 综合分排序',...(data.quality?.strict_language||data.quality?.excluded_languages?.length?[sourceLanguageLabel(data)]:[]), data.cached ? '相同问题缓存' : '实时联网检索', `${data.cached ? '原检索' : '用时'} ${data.elapsed_seconds} 秒`, `${data.access_mode==='personal'?'个人连接保守计费':'累计'} ¥${money(data.budget.used_cny)} / ¥${money(data.budget.limit_cny)}`];
     document.getElementById('r-banner').innerHTML = `<div class="live-run-meta">${meta.map(item => `<span>${esc(item)}</span>`).join('')}</div>${(data.warnings || []).map(text => `<div class="banner">${esc(text)}</div>`).join('')}`;
   }
   function prepare(data) {
@@ -213,10 +217,10 @@
     progress();
     let completed = false;
     try {
-      const response = await fetch(api + '/search', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question, weights, ranking_mode: rankingMode}), signal: controller.signal});
+      const response = await fetch(api + '/search', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question, weights, ranking_mode: rankingMode,connection_id:live.connectionId||undefined}), signal: controller.signal});
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error?.message || '内测服务暂未完成请求。');
+        const error=new Error(data.error?.message || '搜索服务暂未完成请求。');error.code=data.error?.code;throw error;
       }
       if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) throw new Error('服务器未返回可用的搜索进度。');
       const reader = response.body.getReader(), decoder = new TextDecoder();
@@ -227,8 +231,9 @@
         if (!raw || generation !== live.generation) return;
         const data = JSON.parse(raw);
         if (event === 'step') {live.events.push(data); progress();}
-        if (event === 'error') {updateBudget(data.budget);const error=new Error(data.message || '搜索未完成。');error.runId=data.run_id;throw error;}
+        if (event === 'error') {updateBudget(data.budget);const error=new Error(data.message || '搜索未完成。');error.runId=data.run_id;error.code=data.code;throw error;}
         if (event === 'result') {
+          live.accessMode=data.access_mode||live.accessMode;document.querySelector('.brand small').textContent=live.accessMode==='personal'?'个人版':'内测版';
           state.ds = prepare(data); state.thinking = false;
           completed = true;
           updateBudget(data.budget);
@@ -250,7 +255,7 @@
       if (generation !== live.generation) return;
       const message = error.name === 'AbortError' ? '已停止本次搜索。已发出的请求可能计费，用量会保守记录。' : error.message;
       document.getElementById('think').innerHTML = '';
-      document.getElementById('answer').innerHTML = `<p class="live-answer-error" role="alert">${esc(message)}</p>${/^[a-f0-9]{32}$/.test(error.runId||'')?`<a class="linkbtn" href="/geo/api/runs/${error.runId}" download>下载本次诊断记录</a>`:''}`;
+      document.getElementById('answer').innerHTML = `<p class="live-answer-error" role="alert">${esc(message)}</p>${(error.code==='connection_changed'||live.accessMode==='personal'&&['unauthorized','invalid_key','insufficient_balance','budget_exhausted'].includes(error.code))?'<a class="linkbtn" href="/geo/api/connect">管理或重新连接 Key →</a>':''}${/^[a-f0-9]{32}$/.test(error.runId||'')?`<a class="linkbtn" href="/geo/api/runs/${error.runId}" download>下载本次诊断记录</a>`:''}`;
       document.getElementById('side').innerHTML = '';
     } finally {
       if (generation === live.generation) {state.thinking = false; live.controller = null; document.getElementById('f-res').classList.remove('busy');}
@@ -352,7 +357,7 @@
     const costOrigin=ds.cached?'original':'current';
     const recordState=audit?.available?(audit.complete?'complete':'partial'):'unavailable';
     const recordLabel=recordState==='complete'?'处理留档完整':recordState==='partial'?'处理留档不完整，无法追溯的项目保持未知':'处理留档已清理或暂不可用';
-    return `<details class="live-run-record"><summary>本次处理记录与引用核对范围</summary><p>引用编号与来源对应已检查，结论的证据支持程度可继续核对原文。</p><p>本次保留 ${(ds.evidence || []).length} 段输入证据，${ds.sents.reduce((n,s)=>n+s.evidence_refs.length,0)} 条证据引用关联。来源按钮按网页合并，弹层保留全部选段。</p>${audit?`<p data-run-cost-origin="${costOrigin}">${ds.cached?'原检索':'本次'}调用已结算 ¥${Number(audit.settled_cny).toFixed(4)}${audit.pending_cny?`，另有待确认预留 ¥${Number(audit.pending_cny).toFixed(4)}`:''}${ds.cached?'；本次缓存读取无新增调用':''}；全站累计单独显示</p><p data-run-record-state="${recordState}">${recordLabel}，记录最长保留 7 天，容量达到上限时优先清理旧记录。</p>`:''}${valid&&audit?.available?`<a class="linkbtn" href="/geo/api/runs/${ds.run_id}" download="geo-run-${ds.run_id}.json">下载本次诊断记录</a>`:'<p>本次诊断记录暂不可下载</p>'}</details>`;
+    return `<details class="live-run-record"><summary>本次处理记录与引用核对范围</summary><p>引用编号与来源对应已检查，结论的证据支持程度可继续核对原文。</p><p>本次保留 ${(ds.evidence || []).length} 段输入证据，${ds.sents.reduce((n,s)=>n+s.evidence_refs.length,0)} 条证据引用关联。来源按钮按网页合并，弹层保留全部选段。</p>${audit?`<p data-run-cost-origin="${costOrigin}">${ds.cached?'原检索':'本次'}调用已结算 ¥${Number(audit.settled_cny).toFixed(4)}${audit.pending_cny?`，另有待确认预留 ¥${Number(audit.pending_cny).toFixed(4)}`:''}${ds.cached?'；本次缓存读取无新增调用':''}；全站累计单独显示</p><p data-run-record-state="${recordState}">${recordLabel}，${ds.access_mode==='personal'?'记录仅保留在当前个人连接内存中，断开、过期或服务重启后不可读取。':'记录最长保留 7 天，容量达到上限时优先清理旧记录。'}</p>`:''}${valid&&audit?.available?`<a class="linkbtn" href="/geo/api/runs/${ds.run_id}" download="geo-run-${ds.run_id}.json">下载本次诊断记录</a>`:'<p>本次诊断记录暂不可下载</p>'}</details>`;
   }
 
   const descriptions = [
@@ -398,5 +403,5 @@
   Object.keys(originalAfter).forEach(key => STAGE_AFTER[key] = ds => {
     if (!ds.live || ['understand', 'retrieve', 'rank', 'cite'].includes(key)) return originalAfter[key](ds);
   });
-  try {if (sessionStorage.getItem('geo-mode') === 'live') enterLive();} catch (_) {}
+  try {if(new URLSearchParams(location.search).get('personal')==='1'){sessionStorage.setItem('geo-provider','personal');enterLive(true);history.replaceState(null,'','/geo/');}else if(sessionStorage.getItem('geo-mode')==='live')enterLive(true);}catch(_){}
 })();

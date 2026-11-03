@@ -2,6 +2,7 @@
 
 require "webrick"
 require_relative "pipeline"
+require_relative "personal_sessions"
 require "ipaddr"
 
 module Geo
@@ -23,6 +24,7 @@ module Geo
     def initialize(config, store, transport: nil, root: ROOT)
       @config, @store, @transport, @root = config, store, transport, root
       @mutex, @active = Mutex.new, 0
+      @personal, @key_checks = PersonalSessions.new, 0
     end
 
     def session(req)
@@ -37,8 +39,27 @@ module Geo
 
     def authenticate!(req)
       token = session(req)
-      raise Error.new("unauthorized", "请先输入内测访问口令。", 401) unless @store.session_valid?(token)
+      raise Error.new("unauthorized", "请先连接自己的 DeepSeek Key，或输入团队内测口令。", 401) unless @personal.find(token) || @store.session_valid?(token)
       token
+    end
+
+    def with_access(token, exclusive: false)
+      if @personal.find(token)
+        @personal.use(token, exclusive: exclusive) { |entry| yield entry.config, entry.store, "personal", entry.expires }
+      else
+        raise Error.new("unauthorized", "连接已过期，请重新连接。", 401) unless @store.session_valid?(token)
+        yield @config, @store, "team", nil
+      end
+    end
+
+    def set_cookie(res, token, ttl)
+      secure = ENV["APP_ENV"] == "production" ? "; Secure" : ""
+      res["Set-Cookie"] = "#{COOKIE}=#{token}; Path=/geo/api/; Max-Age=#{ttl}; HttpOnly; SameSite=Strict#{secure}"
+    end
+
+    def forget_session(token)
+      @personal.delete(token)
+      @store.session_delete(token)
     end
 
     def input(req)
@@ -63,23 +84,54 @@ module Geo
       case [req.request_method, req.path]
       when ["GET", "/geo/api/health"]
         json(res, { "ok" => true })
+      when ["GET", "/geo/api/connect"]
+        res["Content-Type"] = "text/html; charset=utf-8"
+        res["Content-Security-Policy"] = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+        res["Referrer-Policy"] = "no-referrer"
+        res["X-Frame-Options"] = "DENY"
+        res.body = File.read(File.expand_path("../views/connect.html", __dir__))
       when ["GET", "/geo/api/status"]
-        logged_in = @store.session_valid?(session(req))
-        data = { "configured" => @config.configured?, "authenticated" => logged_in, "version" => Pipeline::VERSION }
-        data["budget"] = @store.budget if logged_in
+        token = session(req)
+        logged_in = !!@personal.find(token) || @store.session_valid?(token)
+        data = { "configured" => @config.configured?, "personal_available" => true, "authenticated" => logged_in, "version" => Pipeline::VERSION }
+        if logged_in
+          with_access(token) do |_, store, mode, expires|
+            data.merge!("budget" => store.budget, "access_mode" => mode, "expires_at" => expires, "connection_id" => Digest::SHA256.hexdigest(token))
+          end
+        end
         json(res, data)
+      when ["POST", "/geo/api/personal-session"]
+        @store.rate_limit("key-connect-global", 60, 300)
+        @store.rate_limit("key-connect:#{client_ip(req)}", 8, 300)
+        key = input(req)["api_key"]
+        checking = false
+        begin
+          @mutex.synchronize do
+            raise Error.new("busy", "正在验证其他连接，请稍后重试。", 429) if @key_checks >= 2
+            @key_checks += 1
+            checking = true
+          end
+          DeepSeek.validate_key(key, transport: @transport)
+          token, entry = @personal.create(key, client_ip(req), replace: session(req))
+          forget_session(session(req))
+          set_cookie(res, token, PersonalSessions::TTL)
+          json(res, { "authenticated" => true, "access_mode" => "personal", "connection_id" => Digest::SHA256.hexdigest(token), "expires_at" => entry.expires, "budget" => entry.store.budget })
+        ensure
+          key = nil
+          @mutex.synchronize { @key_checks -= 1 } if checking
+        end
       when ["POST", "/geo/api/session"]
         @store.rate_limit("login:#{client_ip(req)}", 8, 300)
         password = input(req)["password"]
         raise Error.new("not_configured", "内测尚待配置，请先在电脑上运行密钥设置程序。", 503) unless @config.configured?
         raise Error.new("invalid_password", "内测口令不正确。", 401) unless password.is_a?(String) && @config.password_valid?(password)
         token = @store.session_create
-        secure = ENV["APP_ENV"] == "production" ? "; Secure" : ""
-        res["Set-Cookie"] = "#{COOKIE}=#{token}; Path=/geo/api/; Max-Age=43200; HttpOnly; SameSite=Strict#{secure}"
-        json(res, { "authenticated" => true, "budget" => @store.budget })
+        forget_session(session(req))
+        set_cookie(res, token, 43_200)
+        json(res, { "authenticated" => true, "access_mode" => "team", "connection_id" => Digest::SHA256.hexdigest(token), "budget" => @store.budget })
       when ["DELETE", "/geo/api/session"]
-        @store.session_delete(session(req))
-        res["Set-Cookie"] = "#{COOKIE}=; Path=/geo/api/; Max-Age=0; HttpOnly; SameSite=Strict"
+        forget_session(session(req))
+        set_cookie(res, "", 0)
         json(res, { "authenticated" => false })
       when ["POST", "/geo/api/search"]
         token = authenticate!(req)
@@ -87,8 +139,11 @@ module Geo
         question = Pipeline.question(payload["question"])
         weights = Ranking.weights(payload["weights"])
         ranking_mode = Ranking.mode(payload["ranking_mode"])
-        raise Error.new("not_configured", "请先完成 DeepSeek API Key 配置。", 503) unless @config.configured?
-        @store.rate_limit("search:#{Digest::SHA256.hexdigest(token)}", 5, 60)
+        connection_id = payload["connection_id"]
+        if (@personal.find(token) || connection_id) && connection_id != Digest::SHA256.hexdigest(token)
+          raise Error.new("connection_changed", "浏览器连接已更换，请重新确认使用的 Key 或团队账户后再搜索。", 409)
+        end
+        @store.rate_limit("personal-search:#{client_ip(req)}", 5, 60) if @personal.find(token)
         res["Content-Type"] = "text/event-stream; charset=utf-8"
         res["X-Accel-Buffering"] = "no"
         res.chunked = true
@@ -101,27 +156,43 @@ module Geo
               @active += 1
               claimed = true
             end
-            pipeline = Pipeline.new(DeepSeek.new(@config, @store, transport: @transport), @store)
-            result = pipeline.run(question, weights: weights, ranking_mode: ranking_mode, &emit)
-            emit.call("result", result)
+            with_access(token, exclusive: true) do |config, store, mode, _|
+              begin
+                raise Error.new("not_configured", "请先完成 DeepSeek API Key 配置。", 503) unless config.configured?
+                store.rate_limit("search:#{Digest::SHA256.hexdigest(token)}", 5, 60)
+                authorize = if mode == "personal"
+                              lambda do
+                                raise Error.new("unauthorized", "个人连接已断开或过期，后续调用已停止。", 401) unless @personal.find(token)
+                              end
+                            end
+                pipeline = Pipeline.new(DeepSeek.new(config, store, transport: @transport, authorize: authorize), store)
+                result = pipeline.run(question, weights: weights, ranking_mode: ranking_mode, &emit)
+                result["access_mode"] = mode
+                emit.call("result", result)
+              rescue Error => error
+                emit.call("error", { "code" => error.code, "message" => error.message, "budget" => store.budget, "run_id" => pipeline && pipeline.run_id })
+              end
+            end
           rescue Error => error
-            emit.call("error", { "code" => error.code, "message" => error.message, "budget" => @store.budget, "run_id" => pipeline && pipeline.run_id })
+            emit.call("error", { "code" => error.code, "message" => error.message })
           rescue IOError, SystemCallError
             # Closing the browser ends the response and releases its concurrency slot.
           rescue StandardError => error
             warn "GEO pipeline error: #{error.class}"
-            emit.call("error", { "code" => "internal_error", "message" => "本次处理未完成，请稍后再试。", "budget" => @store.budget })
+            emit.call("error", { "code" => "internal_error", "message" => "本次处理未完成，请稍后再试。" })
           ensure
             @mutex.synchronize { @active -= 1 } if claimed
           end
         end
       else
         if req.request_method == "GET" && req.path.start_with?("/geo/api/runs/")
-          authenticate!(req)
+          token = authenticate!(req)
           id = req.path.delete_prefix("/geo/api/runs/")
-          data = @config.redact_secrets(@store.diagnostics.read(id))
-          res["Content-Disposition"] = "attachment; filename=geo-run-#{id}.json"
-          json(res, data)
+          with_access(token) do |config, store, _, _|
+            data = config.redact_secrets(store.diagnostics.read(id))
+            res["Content-Disposition"] = "attachment; filename=geo-run-#{id}.json"
+            json(res, data)
+          end
         else
           serve_static(req, res)
         end
@@ -150,6 +221,7 @@ module Geo
     def serve_static(req, res)
       files = { "/geo/" => ["geo/index.html", "text/html"], "/geo/index.html" => ["geo/index.html", "text/html"],
                 "/geo/live.js" => ["geo/live.js", "text/javascript"], "/geo/live.css" => ["geo/live.css", "text/css"],
+                "/geo/connect.js" => ["geo/connect.js", "text/javascript"], "/geo/connect.css" => ["geo/connect.css", "text/css"],
                 "/geo/test-questions.json" => ["geo/test-questions.json", "application/json"] }
       if req.request_method == "GET" && %w[/ /geo].include?(req.path)
         res.status, res["Location"], res.body = 302, "/geo/", ""

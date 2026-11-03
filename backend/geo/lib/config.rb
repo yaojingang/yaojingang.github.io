@@ -17,7 +17,11 @@ module Geo
     BUDGET_MICROS = 50_000_000
     attr_reader :api_key, :password, :data_dir, :initial_spend
 
-    def initialize(api_key: nil, password: nil, data_dir: nil, file: nil)
+    def initialize(api_key: nil, password: nil, data_dir: nil, file: nil, personal: false)
+      if personal
+        @api_key, @password, @data_dir, @initial_spend, @personal = api_key.dup, "", nil, 0, true
+        return
+      end
       file ||= ENV.fetch("GEO_CONFIG_FILE", File.expand_path("~/.config/laoyao-geo/credentials.json"))
       values = {}
       if File.file?(file)
@@ -39,6 +43,7 @@ module Geo
     end
 
     def configured?
+      return !@api_key.empty? if @personal
       credentials_present? && !File.exist?(File.join(@data_dir, "server-installed"))
     end
 

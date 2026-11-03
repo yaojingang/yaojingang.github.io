@@ -180,3 +180,8 @@
 .live-empty-reasons small{display:block;font-size:12px;line-height:1.7;color:var(--fg3);overflow-wrap:anywhere}
 
 .live-mode .answer .live-empty-reasons p{margin:0 0 3px}
+
+.personal-start{display:flex;align-items:center;justify-content:center;gap:8px 16px;flex-wrap:wrap;margin:18px 0 4px;font-size:11px;color:var(--fg3)}
+.personal-start a{display:inline-flex;align-items:center;gap:12px;padding:8px 12px;border-radius:9px;box-shadow:inset 0 0 0 1px var(--accent-ring);color:var(--accent);font-size:12px;text-decoration:none}
+.personal-start a:active{transform:scale(.98)}
+.live-key-manage{font-size:inherit;color:var(--accent)}

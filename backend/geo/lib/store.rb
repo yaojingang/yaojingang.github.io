@@ -9,14 +9,16 @@ require_relative "diagnostics"
 module Geo
   class Store
     attr_reader :diagnostics
-    def initialize(directory, limit: Config::BUDGET_MICROS, initial_spend: 0)
-      FileUtils.mkdir_p(directory, mode: 0700)
-      @diagnostics = Diagnostics.new(directory)
-      @retired_file = File.join(directory, "server-installed")
+    def initialize(directory, limit: Config::BUDGET_MICROS, initial_spend: 0, memory: false)
+      FileUtils.mkdir_p(directory, mode: 0700) unless memory
+      @diagnostics = memory ? MemoryDiagnostics.new : Diagnostics.new(directory)
+      @retired_file = memory ? nil : File.join(directory, "server-installed")
       @limit, @mutex = limit, Mutex.new
-      @db = SQLite3::Database.new(File.join(directory, "geo.sqlite3"))
+      @cache_limit = memory ? 2 * 1024 * 1024 : nil
+      @db = SQLite3::Database.new(memory ? ":memory:" : File.join(directory, "geo.sqlite3"))
       @db.busy_timeout = 5000
       @db.execute("PRAGMA journal_mode=WAL")
+      @db.execute("PRAGMA temp_store=MEMORY") if memory
       @db.execute_batch(<<~SQL)
         CREATE TABLE IF NOT EXISTS charges (id TEXT PRIMARY KEY, kind TEXT NOT NULL, amount INTEGER NOT NULL, state TEXT NOT NULL, created INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS cache (id TEXT PRIMARY KEY, value TEXT NOT NULL, expires INTEGER NOT NULL);
@@ -24,7 +26,7 @@ module Geo
         CREATE TABLE IF NOT EXISTS requests (id TEXT NOT NULL, created INTEGER NOT NULL);
         CREATE INDEX IF NOT EXISTS requests_by_id ON requests(id, created);
       SQL
-      File.chmod(0600, File.join(directory, "geo.sqlite3"))
+      File.chmod(0600, File.join(directory, "geo.sqlite3")) unless memory
       transaction do
         if initial_spend.positive? && @db.get_first_value("SELECT COUNT(*) FROM charges").to_i.zero?
           @db.execute("INSERT INTO charges VALUES (?,?,?,?,?)", ["local-verification", "initial", initial_spend, "settled", Time.now.to_i])
@@ -43,10 +45,10 @@ module Geo
     def reserve(kind, amount)
       raise ArgumentError, "Invalid reservation" unless amount.is_a?(Integer) && amount.positive?
       transaction do
-        raise Error.new("local_retired", "本机付费调用已关闭，请使用网站内测入口。", 503) if File.exist?(@retired_file)
+        raise Error.new("local_retired", "本机付费调用已关闭，请使用网站内测入口。", 503) if @retired_file && File.exist?(@retired_file)
         raise Error.new("billing_halted", "发现计费用量异常，后续调用已暂停，请核对官方账单。", 503) if @db.get_first_value("SELECT id FROM charges WHERE state='anomaly' LIMIT 1")
         used = @db.get_first_value("SELECT COALESCE(SUM(amount),0) FROM charges").to_i
-        raise Error.new("budget_exhausted", "本次内测的 50 元额度已到上限，后续调用已暂停。", 402) if used + amount > @limit
+        raise Error.new("budget_exhausted", "本次使用的保护额度已到上限，后续调用已暂停。", 402) if used + amount > @limit
         id = SecureRandom.hex(16)
         @db.execute("INSERT INTO charges VALUES (?,?,?,?,?)", [id, kind, amount, "reserved", Time.now.to_i])
         id
@@ -96,6 +98,11 @@ module Geo
       @mutex.synchronize do
         @db.execute("DELETE FROM cache WHERE expires<?", [Time.now.to_i])
         @db.execute("INSERT OR REPLACE INTO cache VALUES (?,?,?)", [id, JSON.generate(data), Time.now.to_i + 900])
+        if @cache_limit
+          while @db.get_first_value("SELECT COALESCE(SUM(length(CAST(value AS BLOB))),0) FROM cache").to_i > @cache_limit
+            @db.execute("DELETE FROM cache WHERE id=(SELECT id FROM cache ORDER BY expires, rowid LIMIT 1)")
+          end
+        end
       end
     end
 

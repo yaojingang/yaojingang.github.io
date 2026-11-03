@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>连接自己的 DeepSeek Key · GEO 透镜</title>
+  <link rel="stylesheet" href="/geo/connect.css?v=geo-live-1.9.0">
+  <script src="/geo/connect.js?v=geo-live-1.9.0" defer></script>
+</head>
+<body>
+  <header><a class="brand" href="/geo/">GEO 透镜</a><a class="back" href="/geo/">返回 GEO 透镜</a></header>
+  <main>
+    <div class="intro"><span class="eyebrow">真实联网搜索</span><h1>用自己的 Key，<br>看见答案怎样生成</h1><p>连接 DeepSeek，搜索真实问题，逐步查看信源、排序与引用。</p></div>
+    <div class="layout">
+      <section id="instructions" aria-labelledby="guide-title"><h2 id="guide-title">三步准备好</h2><ol>
+        <li><span>1</span><div><h3>打开 DeepSeek 开放平台</h3><p>注册或登录账号，确认账户有可用余额。</p><a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">前往开放平台 ↗</a></div></li>
+        <li><span>2</span><div><h3>创建并复制 API Key</h3><p>在 API Keys 中创建新密钥，复制完整的 sk- 开头内容。</p><a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener noreferrer">打开 API Keys ↗</a></div></li>
+        <li><span>3</span><div><h3>粘贴 Key 并连接</h3><p>验证通过后，输入问题即可开始搜索。</p></div></li>
+      </ol></section>
+      <section class="panel" aria-labelledby="connect-title">
+        <div id="connected" hidden><h2>个人连接已就绪</h2><p>可以继续搜索，也可以验证并更换 Key。</p><a class="primary resume" href="/geo/?personal=1">继续搜索 →</a><button type="button" class="secondary" id="replace-key">更换 Key</button><button type="button" class="secondary" id="disconnect">断开连接</button></div>
+        <form id="key-form" autocomplete="off">
+          <h2 id="connect-title">连接 DeepSeek</h2><label for="api-key">API Key</label>
+          <div class="key-field"><input id="api-key" name="api_key" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="sk-…" maxlength="203" required><button type="button" id="reveal" aria-pressed="false" aria-label="显示 API Key">显示</button></div>
+          <p class="privacy">Key 仅在服务器内存中临时保存，页面不把 Key 写入浏览器存储。连接 1 小时有效，支持随时断开，服务重启后需重新输入。</p>
+          <p class="cost">调用费用由你的 DeepSeek 账户承担。本次连接保护额度 ¥5，用量单独计算；实际扣费以官方账单为准。</p>
+          <p id="key-error" role="alert"></p>
+          <button class="primary" type="submit" id="connect"><i class="spinner" hidden aria-hidden="true"></i><span>验证并开始搜索 →</span></button>
+          <button type="button" class="secondary" id="cancel-replace" hidden>保留原连接</button>
+          <p class="hint">验证仅查询账户是否可用，通过后才可发起搜索。</p>
+        </form>
+      </section>
+    </div>
+    <footer>个人 Key 与团队内测分别使用。此连接页不加载统计脚本。</footer>
+  </main>
+</body>
+</html>
