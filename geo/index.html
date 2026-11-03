@@ -528,7 +528,7 @@ input[type=range]:active::-webkit-slider-thumb{transform:scale(1.2)}
 @keyframes sheetin{from{transform:translateY(100%)}to{transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
 </style>
-<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.7.2">
+<link rel="stylesheet" href="/geo/live.css?v=geo-live-1.8.0">
 
 <header class="top" id="top">
   <div class="top-in">
@@ -814,7 +814,7 @@ const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
 function score(s,w){let t=0,sw=0;SIG.forEach((g,i)=>{if(Number.isFinite(s.sig?.[i])){t+=w[g.k]*s.sig[i];sw+=w[g.k]}});return sw?Math.round(t/sw*1e6)/1e6:null}
 function sourceSelectable(s){return s.eligible&&s.language_allowed!==false&&!s.selection_blocked}
-function rankBy(ds,w,mode){const native=ds.live&&(mode||ds.ranking?.mode||"api")==="api";return ds.sources.map(s=>({s,v:native?s.api_score:score(s,w)})).sort((a,b)=>ds.live?Number(!!sourceSelectable(b.s)&&b.v!=null)-Number(!!sourceSelectable(a.s)&&a.v!=null)||(b.v??-1)-(a.v??-1)||b.s.api_score-a.s.api_score||(a.s.url<b.s.url?-1:a.s.url>b.s.url?1:0):(b.v??-1)-(a.v??-1))}
+function rankBy(ds,w,mode){const native=ds.live&&(mode||ds.ranking?.mode||"api")==="api";return ds.sources.map(s=>({s,v:native?s.api_score:score(s,w)})).sort((a,b)=>ds.live?Number(!!sourceSelectable(b.s)&&b.v!=null)-Number(!!sourceSelectable(a.s)&&a.v!=null)||Number(!!sourceSelectable(a.s)&&a.v!=null&&a.s.score_tier==="fallback")-Number(!!sourceSelectable(b.s)&&b.v!=null&&b.s.score_tier==="fallback")||(b.v??-1)-(a.v??-1)||b.s.api_score-a.s.api_score||(a.s.url<b.s.url?-1:a.s.url>b.s.url?1:0):(b.v??-1)-(a.v??-1))}
 function kind(sg){return !sg.f||!sg.f.length?'synth':sg.f.length>1?'merge':'extract'}
 function ico(s){return `<i class="ico" style="background:${s.tc}">${esc(s.ic)}</i>`}
 const short=s=>s.display_site||s.site.split(' · ')[0];
@@ -1020,10 +1020,15 @@ function sourceLanguage(s){
   const names={'en':'英文','zh-Hans':'简体中文','zh-Hant':'繁体中文','zh':'中文（字形未区分）','ja':'日文','ko':'韩文','other':'其他语言','unknown':'语言待确认'};
   return s.language?`<div class="live-api-metrics live-source-language"><span title="本站根据可用正文、摘要或标题中的语言与字形特征判断，无法区分时单独标注。">资料语言 <b>${esc(names[s.language]||'语言待确认')}</b></span>${s.language_assessment?.mixed?'<span>混合文本 · 语言待核对</span>':s.language_assessment?.uncertain?'<span>语言规则判断待核对</span>':''}</div>`:'';
 }
+function apiScoreText(value){
+  if(!Number.isFinite(value)||value<0||value>3)return '未知';
+  const rounded=Number(value.toFixed(2));
+  return [1,1.5].some(line=>value<line&&rounded>=line)?(Math.floor(value*1000)/1000).toFixed(3):value.toFixed(2);
+}
 function sourceMetrics(s){
   const authority=Number.isInteger(s.authority)&&s.authority>=0&&s.authority<=4?s.authority+' / 4':'未知';
-  const rerank=Number.isFinite(s.api_score)&&s.api_score>=0&&s.api_score<=3?s.api_score.toFixed(2)+' / 3':'未知';
-  return `<div class="live-api-metrics" aria-label="DeepSeek 返回的网页评分"><span data-api-metric="authority" title="DeepSeek 返回的网页权威性，0～4；未知时单独标注。">网页权威 <b>${authority}</b></span><span data-api-metric="rerank" title="DeepSeek 综合排序分，0～3，综合考虑相关性、权威性和时效性。">搜索排序 <b>${rerank}</b></span></div>${sourceLanguage(s)}`;
+  const rerank=apiScoreText(s.api_score)==='未知'?'未知':apiScoreText(s.api_score)+' / 3';
+  return `<div class="live-api-metrics" aria-label="DeepSeek 返回的网页评分"><span data-api-metric="authority" title="DeepSeek 返回的网页权威性，0～4；未知时单独标注。">网页权威 <b>${authority}</b></span><span data-api-metric="rerank" title="DeepSeek 综合排序分，0～3；原始值 ${Number.isFinite(s.api_score)?s.api_score:'未知'}。综合考虑相关性、权威性和时效性。">搜索排序 <b>${rerank}</b></span></div>${sourceLanguage(s)}${s.score_tier==='fallback'&&s.read?'<div class="live-source-tier">补充资料</div>':''}`;
 }
 function srcCard(s,ds,i){
   const c=ds.color[s.id];
@@ -1033,7 +1038,7 @@ function srcCard(s,ds,i){
   return `<div class="src" data-id="${s.id}" style="--sc:var(--s${c})">
     <div class="src-site">${ico(s)}<span title="${esc(s.site)}">${esc(ds.live?short(s):s.site)}</span><span class="n">${i+1}</span></div>
     ${title}<div class="src-s">${esc(s.snip)}</div>${ds.live?sourceMetrics(s):''}
-    <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span>${ds.live&&ds.ranking?.mode!=="teaching"?'':`<span class="scorev" title="${ds.live?'本站六维加权分 / 100；API 原分 '+s.api_score.toFixed(2)+' / 3':'教学加权分'}">${ds.live?(s.weighted_score==null?'未知':f1(s.weighted_score)):f1(s.v0)}</span>`}</div>
+    <div class="src-x"><div class="src-x-h"><span class="rank">#${s.r0+1}</span><span>${esc(s.date)} · ${esc(s.type)}</span>${ds.live&&ds.ranking?.mode!=="teaching"?'':`<span class="scorev" title="${ds.live?'本站六维加权分 / 100；API 原分 '+apiScoreText(s.api_score)+' / 3':'教学加权分'}">${ds.live?(s.weighted_score==null?'未知':f1(s.weighted_score)):f1(s.v0)}</span>`}</div>
       ${ds.live&&ds.ranking?.mode!=="teaching"?'':`<div class="stack">${stack}</div>`}<div class="src-why">${esc(s.why)}</div></div>
   </div>`;
 }
@@ -1134,7 +1139,7 @@ function rankingLab(ds){
   return `${live?GeoLive.rankingTabs():''}<h2>${live?'六维教学实验':'多维打分，按权重加总'}</h2><p class="lead">${live?'拖动六项权重，免费预览本次候选。明确应用后生成教学实验回答，默认搜索继续使用 DeepSeek 综合分。':'拖动六项权重，观察前五个模拟入选来源怎样变化。示例回答保留，方便对照。'}</p>
     <div class="funnel">${fun.map((f,i)=>`<div class="fn"><span>${f[0]}</span><div style="width:${Math.max(8,Math.sqrt(f[1]/Math.max(1,ds.total))*100)}%">${fmt(f[1])}</div></div>`).join('')}</div>
     <div class="lab"><div class="lab-h"><b>权重实验台</b><div class="presets" id="presets">${PRESETS.map((p,i)=>`<button data-p="${i}" type="button">${p.n}</button>`).join('')}</div></div>
-    <p class="hint">${live?'实验使用本站估计与归一化加权公式。词项独特度和共现度互补，同权时区分作用抵消；共现不能说明事实一致。语言与 API 1.50 分门槛持续生效。':ds.rankHint}</p>
+    <p class="hint">${live?'实验使用本站估计与归一化加权公式。词项独特度和共现度互补，同权时区分作用抵消；共现不能说明事实一致。1.50 分优先、1.00 分兜底，明确的语言条件持续生效。':ds.rankHint}</p>
     <div class="weights">${SIG.map((g,i)=>`<div class="wt"><label for="w-${g.k}"><span><i style="background:var(--g${i+1})"></i>${live?GeoLive.dimensionName(i):g.n}</span><span class="v" id="wv-${g.k}"></span></label><input type="range" id="w-${g.k}" min="0" max="50" step="5" value="${state.w[g.k]}" style="--c:var(--g${i+1})"><p>${live?['API 综合分映射，作为相关性代理','API 权威等级，未知项单独标记','按 API 发布时间估计新旧程度','按完整语句与标题、列表标记估计','按其他主机未出现的词项比例估计','按其他主机共有的词项比例估计'][i]:g.d}</p></div>`).join('')}</div>
     <div class="rank-summary"><span id="rank-status" role="status"></span>${live?'<button class="play press" id="rank-apply" type="button">按实验排序重新生成</button>':''}</div>
     <div class="board" id="board"></div>
@@ -1165,7 +1170,7 @@ function bindRankingLab(ds){
       el.style.transform=`translateY(${i*H}px)`;el.dataset.rank=String(i+1);el.dataset.selected=String(isIn);$('.rk',el).textContent=i+1;
       $$('.stack i',el).forEach((bar,j)=>{bar.style.width=(known&&Number.isFinite(x.s.sig?.[j])?w[SIG[j].k]*x.s.sig[j]/known:0)+'%';bar.title=`${SIG[j].n} ${x.s.sig?.[j]??'未知'}`});
       $('.scorev',el).textContent=x.v==null?'—':f1(x.v);
-      const badge=$('.badge',el);badge.className='badge '+(isIn?'in':'out');badge.textContent=!sw?'未设置':live&&!x.s.eligible?'未达标':live&&x.s.language_allowed===false?'语言受限':live&&x.s.selection_blocked?'无有效段落':x.v==null?'未知':isIn?(live?'拟精读':'入选'):'候选';
+      const badge=$('.badge',el);badge.className='badge '+(isIn?'in':'out');badge.textContent=!sw?'未设置':live&&!x.s.eligible?'低于兜底线':live&&x.s.language_allowed===false?'语言受限':live&&x.s.relevance_blocked?'主题待核实':live&&x.s.selection_blocked?'无有效段落':x.v==null?'未知':isIn?(live?(x.s.score_tier==='fallback'?'拟补充':'拟精读'):'入选'):'候选';
       const delta=x.s.r0-i,dl=$('.delta',el);dl.className='delta '+(delta>0?'up':delta<0?'dn':'');dl.textContent=sw?(delta>0?`↑${delta}`:delta<0?`↓${-delta}`:''):'';
     });
     const cut=$('.cutline',board);cut.hidden=!selected.length||selected.length===r.length;cut.style.top=selected.length*H+'px';$('span',cut).textContent=live?'精读名额线':'模拟引用名额线';
@@ -1275,5 +1280,5 @@ if(document.fonts)document.fonts.ready.then(moveThumb);
 const h=location.hash.slice(1);
 if(h==='results'||h==='process'){search(DATA[0].query,DATA[0].id);if(h==='process')openProcess(0)}
 </script>
-<script src="/geo/live.js?v=geo-live-1.7.2" defer></script>
+<script src="/geo/live.js?v=geo-live-1.8.0" defer></script>
 {% include baidu-analytics.html %}

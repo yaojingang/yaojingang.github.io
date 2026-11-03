@@ -171,3 +171,12 @@
 .live-run-record summary{cursor:pointer;font-weight:500;color:var(--fg)}
 .live-run-record p{margin:10px 0}
 @media(max-width:640px){.live-native-heading{grid-template-columns:20px minmax(0,1fr) auto;gap:8px}.live-native-heading strong{font-size:14px}.live-native-row{padding:14px 0}}
+
+.live-source-tier{font-size:11px;line-height:1.7;color:var(--fg2);margin:4px 0 2px}
+.live-empty-reasons{list-style:none;margin:0;padding:0}
+.live-empty-reasons li{padding:12px 0;border-bottom:1px solid var(--line)}
+.live-empty-reasons li:first-child{padding-top:0}
+.live-empty-reasons li:last-child{border-bottom:0}
+.live-empty-reasons small{display:block;font-size:12px;line-height:1.7;color:var(--fg3);overflow-wrap:anywhere}
+
+.live-mode .answer .live-empty-reasons p{margin:0 0 3px}

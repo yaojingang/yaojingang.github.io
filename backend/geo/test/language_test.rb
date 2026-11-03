@@ -143,11 +143,11 @@ class GeoLanguageTest < Minitest::Test
   end
 
   def test_quality_threshold_and_fetch_limit_still_apply_across_languages
-    rows = 5.times.map { |i| result("empty#{i}", "", 3, title: "工具资料") } + [result("english", ENGLISH, 2.5), result("low", SIMPLE, 1.49)]
+    rows = 5.times.map { |i| result("empty#{i}", "", 3, title: "工具资料") } + [result("english", ENGLISH, 2.5), result("low", SIMPLE, 0.99)]
     data = run_with("数据分析工具怎么选择？", rows: rows, fetch: "首页\n联系我们")
     assert_equal 5, data["processing"]["fetch_attempts"]
     assert_equal [ENGLISH], data["evidence"].map { |item| item["text"] }
-    refute data["sources"].find { |source| source["api_score"] == 1.49 }["read"]
+    refute data["sources"].find { |source| source["api_score"] == 0.99 }["read"]
     assert_equal 2, data["searches"].length
   end
 

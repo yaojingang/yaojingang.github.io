@@ -50,13 +50,13 @@ class GeoSearchQualityTest < Minitest::Test
     assert_empty data["evidence"]
     assert_equal 1, @calls.count { |path, _| path == "/chat/completions" }
     assert_equal 0, @calls.count { |path, _| path == "/v1/tools/fetch" }
-    assert_match(/1.50/, data["sources"][0]["why"])
+    assert_match(/主题词/, data["sources"][0]["why"])
     assert_equal [0, 1, 2, 3, 4, 5], data["trace"].map { |step| step["stage"] }.uniq
   end
 
   def test_only_eligible_sources_are_read_and_threshold_is_inclusive
-    lower = source(score: 1.49).merge("url" => "https://example.net/low")
-    data = with_results([source(score: 1.5), lower]).run("选择数据分析工具") { |*_| }
+    lower = source(score: 0.99).merge("url" => "https://example.net/low")
+    data = with_results([source(score: 1.0), lower]).run("选择数据分析工具") { |*_| }
     assert_equal 1, data["quality"]["read_count"]
     assert_equal 1, data["quality"]["eligible_count"]
     assert_equal ["S1"], data["evidence"].map { |item| item["source_id"] }.uniq
@@ -84,7 +84,7 @@ class GeoSearchQualityTest < Minitest::Test
   def test_old_cached_answers_cannot_bypass_the_new_quality_gate
     question = "数学分析师推荐"
     @store.cache_put(Digest::SHA256.hexdigest("geo-live-1.1:#{question}"), { "status" => "old-unfiltered" })
-    flow = with_results([source(score: 1.2)])
+    flow = with_results([source(score: 0.99)])
     fresh = flow.run(question) { |*_| }
     assert_equal "insufficient", fresh["status"]
     refute fresh["cached"]

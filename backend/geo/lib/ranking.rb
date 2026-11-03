@@ -88,7 +88,10 @@ module Geo
         source["weighted_score"] = score(source, weights)
         source["sort_score"] = mode == "api" ? source["api_score"] : source["weighted_score"]
       end
-      sources.sort_by { |source| [selectable?(source) && !source["sort_score"].nil? ? 0 : 1, -(source["sort_score"] || -1), -source["api_score"], source["url"]] }
+      sources.sort_by do |source|
+        available = selectable?(source) && !source["sort_score"].nil?
+        [available ? 0 : 1, available && source["score_tier"] == "fallback" ? 1 : 0, -(source["sort_score"] || -1), -source["api_score"], source["url"]]
+      end
     end
   end
 end
