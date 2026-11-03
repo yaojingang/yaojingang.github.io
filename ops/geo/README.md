@@ -6,15 +6,19 @@
 
 首页“使用自己的 DeepSeek Key”打开独立的 `/geo/api/connect` 页面。页面提供开放平台与 API Keys 的官方入口、三步引导、密码形式的输入框和显示开关。点击“验证并开始搜索”后，服务端通过固定的 `GET https://api.deepseek.com/user/balance` 检查 Key 是否有效、账户是否可用；验证阶段不调用 Search、Fetch 或回答模型。验证成功后回到真实搜索，继续使用原生评分排序、1.50 优先与 1.00 兜底、六步过程透视和教学权重实验。
 
-个人连接无需团队口令。费用由对应的 DeepSeek 账户承担，每次连接设置 5 元保守计费保护额度，1 小时有效。页面展示本次连接用量，实际扣费以 DeepSeek 官方账单为准；重新连接会开始新的保护额度，这个数字覆盖本次连接内本站发起的请求。团队模式继续使用原有 50 元账本。不要把个人模式的保护额度理解为整个 DeepSeek 账户的余额或总消费上限。
+个人连接无需团队口令。费用由对应的 DeepSeek 账户承担，每个保存连接设置 5 元保守计费保护额度。Key 在当前浏览器的加密 HttpOnly Cookie 中保存 30 天，到期时间从验证成功时计算，不因浏览或恢复而延长。恢复连接、服务重启和内存回收均保留同一连接标识及累计用量。新 Key 验证成功会替换原保存项，验证失败时保留原 Key；主动清除后重新连接会生成新连接和保护额度。实际扣费以 DeepSeek 官方账单为准。团队模式继续使用原有 50 元账本。
 
-个人 Key 只存在服务器进程内存中。页面不会将 Key 写入 localStorage、sessionStorage、Cookie 或 URL，Key 不写入服务器文件、缓存或诊断。浏览器 Cookie 只携带随机会话凭据，并使用 HttpOnly、SameSite=Strict 和生产环境 Secure。独立连接页不加载百度统计，响应采用仅允许本站脚本和样式的 CSP，禁止嵌入；教学页原有统计保留。输入框在验证结束及离开页面时清空。
+保存内容使用 AES-256-GCM 加密，包含 Key、随机连接凭据和到期时间；浏览器 Cookie 具有 HttpOnly、SameSite=Strict，生产环境启用 Secure。页面脚本与统计脚本无法通过 document.cookie 读取它，API 不返回解密后的 Key。浏览器 localStorage、sessionStorage 与 URL 中均不写入 Key。独立连接页继续不加载统计脚本，响应保留本站脚本/样式 CSP 与禁止嵌入策略；教学页原有统计保留。连接页标题按容器宽度自然换行，去掉标题下描述。
 
-个人 SQLite 账本与缓存使用内存数据库，临时存储也在内存中；每个连接的缓存和诊断分别上限 2 MiB。个人记录只能由对应连接下载，团队与其他个人连接均无法访问。断开、过期或服务重启后，原会话失效；到期记录在后续会话维护时释放。服务器最多容纳 32 个个人连接，同一 IP 最多 4 个；验证最多同时 2 个，全站每 5 分钟最多验证 60 次，同一 IP 每 5 分钟最多 8 次。个人检索同时受每连接、每 IP 每分钟 5 次限制，全站检索继续最多并行 2 个问题。
+服务端加密密钥为数据卷内 `personal-browser.key` 的独立随机 32 字节文件，权限 600，原子创建并在发布间保留；此文件不含用户的 DeepSeek Key。服务器数据库仅持久化个人费用金额、状态、随机连接标识的哈希和撤销期限，不保存用户 Key 或加密 Cookie。个人账本单独使用 `personal_charges` 表，不计入团队 50 元账本。已清除连接的哈希与期限保存于 `revoked_personal`，用于在服务重启后继续阻止旧 Cookie 重放。
+
+个人检索缓存及诊断保持在运行内存中，各自上限 2 MiB。最多保留 32 个运行连接，同一 IP 最多 4 个；达到容量时回收最久未用的空闲连接，已有加密 Cookie 可自动恢复，累计用量保留。正在执行的连接不会被回收。个人记录只能由对应连接下载，团队与其他个人连接无法访问；记录在服务重启或空闲回收后清理，Key 的浏览器保存不受影响。验证最多并行 2 个，全站每 5 分钟最多 60 次，同一 IP 每 5 分钟最多 8 次；检索继续受每连接、每 IP 每分钟 5 次及全站并行 2 个问题限制。
+
+“清除已保存 Key”会撤销当前保存凭据、移除相应 Cookie，并停止后续付费调用；已发出请求继续结算。清除浏览器中本网站的 Cookie/站点数据，也会移除保存内容。切换到团队模式会保留浏览器保存的个人 Key，连接页“继续搜索”通过显式恢复切回个人模式；只清除个人 Key 时保留当前团队登录。30 天过期或加密内容被篡改时，需要重新输入 Key。
 
 每次个人付费调用开始前重新检查连接有效性。断开或过期后阻止后续调用，已发出的请求仍正常结算，保留其密钥直至响应完成脱敏。Key 更换失败时保留原连接。每次搜索携带从已确认会话取得的非认证 `connection_id`；当其他标签页更换 Key 或切换团队连接时，旧页面收到 409，要求重新确认，防止按其他账户静默计费。该标识无法替代 HttpOnly Cookie 登录。
 
-新增接口：`POST /geo/api/personal-session` 接收 `api_key`；成功后返回 `access_mode=personal`、`connection_id`、过期时间与独立用量。`GET /geo/api/status` 为已登录用户返回当前模式和连接标识；`POST /geo/api/search` 的个人请求必须携带匹配的 `connection_id`。`DELETE /geo/api/session` 同时支持断开个人连接和退出团队。Key 验证仅访问固定的 DeepSeek 官方域名，用户无法指定代理或上游地址。
+新增接口：`POST /geo/api/personal-session/restore` 恢复已保存 Key，`DELETE /geo/api/personal-session` 清除保存项；`POST /geo/api/personal-session` 接收 `api_key`；成功后返回 `access_mode=personal`、`connection_id`、过期时间与独立用量。`GET /geo/api/status` 为已登录用户返回当前模式和连接标识；`POST /geo/api/search` 的个人请求必须携带匹配的 `connection_id`。`DELETE /geo/api/session` 保留兼容退出行为。Key 验证仅访问固定的 DeepSeek 官方域名，用户无法指定代理或上游地址。
 
 ## 使用与验收
 
@@ -142,3 +146,5 @@ docker run --rm --network none -v "$PWD:/repo:ro" ruby:3.3-alpine ruby /repo/ops
 在本机已配置 Playwright 的 Node 环境中，运行 `node backend/geo/test/ui_test.cjs` 可检查教学与实时版的组件规格、六种宽度、六个过程页及资料不足、错误和停止状态。`node backend/geo/test/personal_ui_test.cjs` 另行检查独立连接页、CSP 下的真实本地后端集成、验证失败、个人搜索、跨标签身份变化和断开后团队入口。两种脚本均启动独立的本地假数据服务，不调用真实 API，截图保存在终端输出的临时目录。
 
 接口说明：[Search](https://api-docs.deepseek.com/zh-cn/api/search/)、[Fetch](https://api-docs.deepseek.com/zh-cn/api/fetch/)。
+
+加密与恢复测试使用生产 Ruby 3.3/OpenSSL 运行。macOS 系统 Ruby 2.6 的 LibreSSL 无法设置 GCM AAD 时，使用 `docker run --rm --network none -v "$PWD:/repo:ro" -w /repo laoyao-geo:internal ruby -Ibackend/geo/test -e 'Dir["backend/geo/test/*_test.rb"].sort.each { |path| require File.expand_path(path) }'`。实际后端浏览器测试可设置 `GEO_UI_IMAGE=laoyao-geo:internal` 后运行 `node backend/geo/test/personal_ui_test.cjs`，测试服务仅映射本机回环端口，测试结束删除容器。

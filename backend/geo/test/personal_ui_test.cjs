@@ -1,12 +1,12 @@
 /* Browser checks against the actual app with fake DeepSeek responses. */
 const {chromium}=require('playwright');
-const {spawn}=require('node:child_process');
+const {spawn,execFileSync}=require('node:child_process');
 const path=require('node:path'),fs=require('node:fs'),os=require('node:os'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../../..'),artifacts=fs.mkdtempSync(path.join(os.tmpdir(),'geo-personal-ui-'));
 const key='sk-browser-fixture-12345678901234567890';
 const ruby=String.raw`
 require 'tmpdir'
-require File.expand_path('backend/geo/lib/app',Dir.pwd)
+require ENV.fetch('GEO_FIXTURE_APP',File.expand_path('backend/geo/lib/app',Dir.pwd))
 STDOUT.sync=true
 Dir.mktmpdir('geo-personal-http-') do |directory|
  config=Geo::Config.new(api_key:'sk-team-fixture-1234567890123456',password:'fixture-password-123',data_dir:directory,file:File.join(directory,'none'))
@@ -27,19 +27,21 @@ Dir.mktmpdir('geo-personal-http-') do |directory|
   end
  end
  app=Geo::App.new(config,store,transport:provider)
- server=WEBrick::HTTPServer.new(Port:0,BindAddress:'127.0.0.1',AccessLog:[],Logger:WEBrick::Log.new(File::NULL))
+ server=WEBrick::HTTPServer.new(Port:ENV.fetch('GEO_FIXTURE_PORT','0').to_i,BindAddress:ENV.fetch('GEO_FIXTURE_BIND','127.0.0.1'),AccessLog:[],Logger:WEBrick::Log.new(File::NULL))
  server.mount('/',Geo::Servlet,app)
  Thread.new{STDIN.read;server.shutdown}
  puts server.listeners[0].addr[1]
  begin server.start;ensure store.close;end
 end
 `;
-const child=spawn('ruby',['-e',ruby],{cwd:root,stdio:['pipe','pipe','pipe']});let serverErrors='';child.stderr.on('data',v=>serverErrors+=v);
+const image=process.env.GEO_UI_IMAGE,name='geo-ui-'+process.pid+'-'+Date.now();
+const child=image?spawn('docker',['run','--rm','-i','--name',name,'-p','127.0.0.1::4010','-e','APP_ENV=test','-e','GEO_FIXTURE_PORT=4010','-e','GEO_FIXTURE_APP=/app/lib/app.rb','-e','GEO_FIXTURE_BIND=0.0.0.0',image,'ruby','-e',ruby],{stdio:['pipe','pipe','pipe']}):spawn(process.env.GEO_TEST_RUBY||'ruby',['-e',ruby],{cwd:root,stdio:['pipe','pipe','pipe']});let serverErrors='';child.stderr.on('data',v=>serverErrors+=v);
 (async()=>{
  let browser;
  try{
   const port=await new Promise((resolve,reject)=>{child.stdout.once('data',b=>resolve(Number(String(b).trim())));child.once('exit',code=>reject(new Error('Fixture exited '+code+': '+serverErrors)));});assert(port>0);
-  const base='http://127.0.0.1:'+port;
+  const hostPort=image?Number(execFileSync('docker',['port',name,'4010/tcp'],{encoding:'utf8'}).trim().split(':').at(-1)):port;
+  const base='http://127.0.0.1:'+hostPort;
   const nodes=new Map();const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:id==='connected',value:'',textContent:'',type:'password',disabled:false,onclick:null,onsubmit:null,setAttribute(){},removeAttribute(){},addEventListener(){},focus(){},querySelector:s=>node(id+s)});return nodes.get(id);};
   let statusResolve,verifyResolve;
   const initial=new Promise(r=>statusResolve=r),validation=new Promise(r=>verifyResolve=r);
@@ -49,11 +51,19 @@ const child=spawn('ruby',['-e',ruby],{cwd:root,stdio:['pipe','pipe','pipe']});le
   statusResolve({ok:true,json:async()=>({authenticated:true,access_mode:'personal'})});await new Promise(r=>setImmediate(r));
   verifyResolve({ok:false,json:async()=>({error:{message:'新 Key 无效'}})});await submission;
   assert.equal(node('key-form').hidden,false,'A late status response must keep a new Key failure visible');assert.equal(node('connected').hidden,true);assert.equal(node('key-error').textContent,'新 Key 无效');
+  nodes.clear();const navigations=[];let releaseRestore;const restoring=new Promise(r=>releaseRestore=r);
+  sandbox.window.location.replace=url=>navigations.push(url);
+  sandbox.fetch=url=>url.endsWith('/status')?Promise.resolve({ok:true,json:async()=>({saved_key:true})}):url.endsWith('/restore')?restoring:Promise.reject(Error('Unexpected concurrent action'));
+  require('node:vm').runInNewContext(fs.readFileSync(path.join(root,'geo/connect.js'),'utf8'),sandbox);await new Promise(r=>setImmediate(r));
+  const resume=node('resume-key').onclick();assert(node('replace-key').disabled);assert(node('disconnect').disabled);node('replace-key').onclick();await node('disconnect').onclick();assert(node('key-form').hidden);
+  releaseRestore({ok:true,json:async()=>({authenticated:true})});await resume;assert.deepEqual(navigations,['/geo/?personal=1']);
+
 
   browser=await chromium.launch({headless:true});const ctx=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'}),page=await ctx.newPage(),errors=[],requests=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));
   await page.goto(base+'/geo/');await page.getByRole('link',{name:'使用自己的 DeepSeek Key'}).click();
   await page.locator('#api-key').waitFor();
+  assert.equal(await page.locator('.intro h1 br').count(),0);assert.equal(await page.locator('.intro > p').count(),0);assert((await page.locator('.privacy').innerText()).includes('30 天'));
   assert.equal(await page.locator('#api-key').getAttribute('type'),'password');assert.equal(await page.locator('#api-key').getAttribute('autocomplete'),'off');
   assert.equal(await page.getByRole('link',{name:'打开 API Keys ↗'}).getAttribute('href'),'https://platform.deepseek.com/api_keys');
   assert(!requests.some(u=>u.includes('baidu')||u.includes('google-analytics')));
@@ -66,8 +76,10 @@ const child=spawn('ruby',['-e',ruby],{cwd:root,stdio:['pipe','pipe','pipe']});le
   await page.unroute('**/geo/api/personal-session');await page.locator('#api-key').fill(key);await page.locator('#connect').click();await page.waitForURL('**/geo/');await page.waitForFunction(()=>GeoLive.active);
   assert.equal(await page.locator('.brand small').innerText(),'个人版');assert((await page.locator('#live-status').innerText()).includes('个人 Key'));assert((await page.locator('#live-status').innerText()).includes('5.000'));
   assert(!(await page.evaluate(()=>JSON.stringify({...sessionStorage,...localStorage}))).includes(key));
+  const savedCookie=(await ctx.cookies()).find(c=>c.name==='geo_personal_key');assert(savedCookie&&savedCookie.httpOnly);assert(savedCookie.expires>Date.now()/1000+29*86400);assert(!savedCookie.value.includes(key));assert(!(await page.evaluate(()=>document.cookie)).includes('geo_personal_key'));
   const firstId=await page.evaluate(()=>GeoLive.connectionId);
   await page.getByRole('link',{name:'管理连接',exact:true}).click();await page.locator('#connected').waitFor({state:'visible'});
+  await page.locator('#resume-key').click();await page.waitForURL('**/geo/');await page.waitForFunction(()=>GeoLive.active);assert.equal(await page.evaluate(()=>GeoLive.connectionId),firstId);await page.getByRole('link',{name:'管理连接',exact:true}).click();await page.locator('#connected').waitFor({state:'visible'});
   await page.locator('#replace-key').click();await page.locator('#api-key').fill(key);
   await page.route('**/geo/api/personal-session',r=>r.fulfill({status:401,contentType:'application/json',body:JSON.stringify({error:{message:'新 Key 无效'}})}));
   await page.locator('#connect').click();await page.locator('#key-error').filter({hasText:'无效'}).waitFor();
@@ -83,11 +95,11 @@ const child=spawn('ruby',['-e',ruby],{cwd:root,stdio:['pipe','pipe','pipe']});le
   const denied=await ctx.request.post(base+'/geo/api/search',{data:{question:'企业分析工具',connection_id:pin},headers:{Origin:base}});assert.equal(denied.status(),409);
   const teamStatus=await(await ctx.request.get(base+'/geo/api/status')).json();assert.equal(teamStatus.budget.used_cny,0);
   await page.goto(base+'/geo/');await page.waitForFunction(()=>GeoLive.active);assert.equal(await page.locator('.brand small').innerText(),'内测版');
-  await ctx.request.delete(base+'/geo/api/session',{headers:{Origin:base}});
+  await ctx.clearCookies();assert.equal((await ctx.cookies()).length,0);
   await page.evaluate(()=>{sessionStorage.setItem('geo-provider','personal');sessionStorage.setItem('geo-mode','live');});await page.reload();await page.waitForFunction(()=>window.GeoLive&&!GeoLive.active);
   await page.getByRole('button',{name:'实时内测',exact:true}).click();await page.locator('.live-dialog').waitFor({state:'visible'});assert(await page.locator('.live-dialog').isVisible());
   await page.locator('#live-close').click();await page.getByRole('link',{name:'使用自己的 DeepSeek Key'}).click();await page.locator('#api-key').fill(key);await page.locator('#connect').click();await page.waitForURL('**/geo/');await page.waitForFunction(()=>GeoLive.active);
-  await page.getByRole('button',{name:'断开 Key',exact:true}).click();await page.waitForFunction(()=>!GeoLive.active);assert.equal(await page.evaluate(()=>sessionStorage.getItem('geo-provider')),null);
+  await page.getByRole('button',{name:'清除已保存 Key',exact:true}).click();await page.waitForFunction(()=>!GeoLive.active);assert.equal(await page.evaluate(()=>sessionStorage.getItem('geo-provider')),null);
   await page.getByRole('button',{name:'实时内测',exact:true}).click();await page.locator('.live-dialog').waitFor({state:'visible'});assert(await page.locator('.live-dialog').isVisible());
   assert.deepEqual(errors,[]);console.log(JSON.stringify({result:'PASS',widths:[1440,768,640,390,320],modes:['personal','team','expired','disconnected'],artifacts}));
  }finally{if(browser)await browser.close();child.stdin.end();}

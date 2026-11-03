@@ -4,13 +4,14 @@ require_relative "deepseek"
 module Geo
   # Personal credentials and their scoped data live only in this process.
   class PersonalSessions
-    TTL = 3600
+    TTL = 30 * 86_400
     LIMIT = 32
     BUDGET = 5_000_000
-    Entry = Struct.new(:config, :store, :expires, :ip, :revoked, :active)
+    Entry = Struct.new(:config, :store, :expires, :ip, :revoked, :active, :touched)
 
-    def initialize(clock: -> { Time.now.to_i })
+    def initialize(clock: -> { Time.now.to_i }, ledger: nil)
       @clock, @mutex, @entries = clock, Mutex.new, {}
+      @ledger = ledger
     end
 
     def prune
@@ -22,17 +23,30 @@ module Geo
       end
     end
 
-    def create(key, ip, replace: nil)
+    def create(key, ip, replace: nil, token: nil, expires: nil)
       @mutex.synchronize do
         prune
+        if token && (existing = @entries[Digest::SHA256.hexdigest(token)])
+          raise Error.new("busy", "原连接正在结束，请稍后重试。", 429) if existing.revoked
+          return [token, existing]
+        end
         old = @entries[Digest::SHA256.hexdigest(replace.to_s)]
         current = @entries.values.reject { |entry| entry.revoked || entry.equal?(old) }
-        raise Error.new("connection_capacity", "个人连接较多，请稍后再试。", 503) if current.length >= LIMIT
-        raise Error.new("connection_capacity", "当前网络的个人连接较多，请先断开已有连接。", 429) if current.count { |e| e.ip == ip } >= 4
-        token = SecureRandom.hex(32)
-        entry = Entry.new(Config.new(api_key: key, personal: true), Store.new(nil, memory: true, limit: BUDGET), @clock.call + TTL, ip, false, 0)
+        evicted = []
+        while current.length >= LIMIT || current.count { |e| e.ip == ip } >= 4
+          same_ip = current.count { |e| e.ip == ip } >= 4
+          candidate = current.select { |e| e.active.zero? && (!same_ip || e.ip == ip) }.min_by(&:touched)
+          raise Error.new("connection_capacity", "个人连接正在处理中，请稍后重试。", 429) unless candidate
+          evicted << candidate
+          current.delete(candidate)
+        end
+        token ||= SecureRandom.hex(32)
+        expires ||= @clock.call + TTL
+        usage = @ledger&.call(token, expires)
+        entry = Entry.new(Config.new(api_key: key, personal: true), Store.new(nil, memory: true, limit: BUDGET, ledger: usage, expires_at: Time.at(expires)), expires, ip, false, 0, @clock.call)
         @entries[Digest::SHA256.hexdigest(token)] = entry
         old.revoked = true if old
+        evicted.each { |e| e.revoked = true }
         prune
         [token, entry]
       end
@@ -43,6 +57,7 @@ module Geo
       @mutex.synchronize do
         prune
         entry = @entries[Digest::SHA256.hexdigest(token)]
+        entry.touched = @clock.call if entry
         entry unless entry&.revoked
       end
     end

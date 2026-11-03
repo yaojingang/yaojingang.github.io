@@ -21,8 +21,8 @@
     meter.textContent = statusLabel();
     if (live.active) {
       const logout = document.createElement('button');
-      logout.type = 'button'; logout.className = 'live-logout'; logout.textContent = live.accessMode==='personal'?'断开 Key':'退出内测';
-      logout.onclick = async () => {try {await request('/session', {method: 'DELETE'});try{sessionStorage.removeItem('geo-provider');}catch(_){}showMode(false);} catch (error) {toast(error.message);}};
+      logout.type = 'button'; logout.className = 'live-logout'; logout.textContent = live.accessMode==='personal'?'清除已保存 Key':'退出内测';
+      logout.onclick = async () => {try {await request(live.accessMode==='personal'?'/personal-session':'/session', {method: 'DELETE'});try{sessionStorage.removeItem('geo-provider');}catch(_){}showMode(false);} catch (error) {toast(error.message);}};
       meter.append(' · ', logout);
       if(live.accessMode==='personal'){const manage=document.createElement('a');manage.href='/geo/api/connect';manage.className='live-key-manage';manage.textContent='管理连接';meter.append(' · ',manage);}
     }
@@ -357,7 +357,7 @@
     const costOrigin=ds.cached?'original':'current';
     const recordState=audit?.available?(audit.complete?'complete':'partial'):'unavailable';
     const recordLabel=recordState==='complete'?'处理留档完整':recordState==='partial'?'处理留档不完整，无法追溯的项目保持未知':'处理留档已清理或暂不可用';
-    return `<details class="live-run-record"><summary>本次处理记录与引用核对范围</summary><p>引用编号与来源对应已检查，结论的证据支持程度可继续核对原文。</p><p>本次保留 ${(ds.evidence || []).length} 段输入证据，${ds.sents.reduce((n,s)=>n+s.evidence_refs.length,0)} 条证据引用关联。来源按钮按网页合并，弹层保留全部选段。</p>${audit?`<p data-run-cost-origin="${costOrigin}">${ds.cached?'原检索':'本次'}调用已结算 ¥${Number(audit.settled_cny).toFixed(4)}${audit.pending_cny?`，另有待确认预留 ¥${Number(audit.pending_cny).toFixed(4)}`:''}${ds.cached?'；本次缓存读取无新增调用':''}；全站累计单独显示</p><p data-run-record-state="${recordState}">${recordLabel}，${ds.access_mode==='personal'?'记录仅保留在当前个人连接内存中，断开、过期或服务重启后不可读取。':'记录最长保留 7 天，容量达到上限时优先清理旧记录。'}</p>`:''}${valid&&audit?.available?`<a class="linkbtn" href="/geo/api/runs/${ds.run_id}" download="geo-run-${ds.run_id}.json">下载本次诊断记录</a>`:'<p>本次诊断记录暂不可下载</p>'}</details>`;
+    return `<details class="live-run-record"><summary>本次处理记录与引用核对范围</summary><p>引用编号与来源对应已检查，结论的证据支持程度可继续核对原文。</p><p>本次保留 ${(ds.evidence || []).length} 段输入证据，${ds.sents.reduce((n,s)=>n+s.evidence_refs.length,0)} 条证据引用关联。来源按钮按网页合并，弹层保留全部选段。</p>${audit?`<p data-run-cost-origin="${costOrigin}">${ds.cached?'原检索':'本次'}调用已结算 ¥${Number(audit.settled_cny).toFixed(4)}${audit.pending_cny?`，另有待确认预留 ¥${Number(audit.pending_cny).toFixed(4)}`:''}${ds.cached?'；本次缓存读取无新增调用':''}；全站累计单独显示</p><p data-run-record-state="${recordState}">${recordLabel}，${ds.access_mode==='personal'?'检索记录保留在运行内存中，服务重启或空闲回收后会清理；Key 的浏览器保存期限为 30 天。':'记录最长保留 7 天，容量达到上限时优先清理旧记录。'}</p>`:''}${valid&&audit?.available?`<a class="linkbtn" href="/geo/api/runs/${ds.run_id}" download="geo-run-${ds.run_id}.json">下载本次诊断记录</a>`:'<p>本次诊断记录暂不可下载</p>'}</details>`;
   }
 
   const descriptions = [

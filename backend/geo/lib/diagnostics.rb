@@ -123,9 +123,9 @@ module Geo
     end
     attr_reader :expires_at
 
-    def initialize(max_bytes: 2 * 1024 * 1024)
+    def initialize(max_bytes: 2 * 1024 * 1024, expires_at: nil)
       @max_bytes, @bytes, @records, @active, @mutex, @clock = max_bytes, 0, {}, {}, Mutex.new, -> { Time.now }
-      @expires_at = Time.now + 3600
+      @expires_at = expires_at || Time.now + 3600
     end
 
     def start(metadata, redact = nil)

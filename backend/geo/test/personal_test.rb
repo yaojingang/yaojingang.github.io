@@ -44,7 +44,7 @@ class GeoPersonalTest < GeoHTTPTest
     refute x['cached'];refute y['cached']
     refute_equal x['run_id'],y['run_id']
     assert_equal 'memory', x['diagnostics']['storage']
-    assert_operator Time.parse(x['diagnostics']['expires_at']), :<=, Time.now+3600
+    assert_operator Time.parse(x['diagnostics']['expires_at']), :<=, Time.now+30*86400
     calls=@calls.length
     cached=search_personal(a,ca)
     assert cached['cached'];assert_equal calls,@calls.length
@@ -136,18 +136,21 @@ class GeoPersonalTest < GeoHTTPTest
     now=100
     registry=Geo::PersonalSessions.new(clock:->{now})
     tokens=4.times.map{registry.create(KEY_A,'fixture')[0]}
-    assert_raises(Geo::Error){registry.create(KEY_A,'fixture')}
+    registry.create(KEY_A,'fixture')
+    assert_nil registry.find(tokens[0])
+    tokens[0]=registry.create(KEY_A,'fixture')[0]
     replacement,_=registry.create(KEY_B,'fixture',replace:tokens[3])
     assert_nil registry.find(tokens[3])
     assert registry.find(replacement)
     tokens[3]=replacement
+    tokens[0]=registry.create(KEY_A,'other-fixture')[0]
     entry=registry.find(tokens[0])
     big='中'*400_000
     3.times{|i|entry.store.cache_put(i.to_s,{'data'=>big})}
     assert_nil entry.store.cache_get('0')
     assert entry.store.cache_get('2')
     registry.use(tokens[0]) do |active|
-      now+=3601
+      now+=Geo::PersonalSessions::TTL+1
       assert_nil registry.find(tokens[0])
       assert_equal 0,active.store.budget['used_cny']
     end
@@ -164,7 +167,7 @@ class GeoPersonalTest < GeoHTTPTest
       client=Geo::DeepSeek.new(entry.config,entry.store,transport:transport,authorize:authorize)
       client.search('企业工具','企业工具')
       spent=entry.store.budget['used_cny'];calls=@calls.length
-      now+=3601
+      now+=Geo::PersonalSessions::TTL+1
       assert_equal 'unauthorized',assert_raises(Geo::Error){client.search('企业工具','企业工具')}.code
       assert_equal calls,@calls.length
       assert_equal spent,entry.store.budget['used_cny']
@@ -187,4 +190,121 @@ class GeoPersonalTest < GeoHTTPTest
     cached=search_personal(cookie,connection)
     assert cached['cached'];refute_includes cached.to_json,KEY_A
   end
+  def remembered_connect(key=KEY_A, cookie: nil)
+    r=http('Post','/geo/api/personal-session',body:{api_key:key},cookie:cookie)
+    assert_equal '200',r.code,r.body
+    fields=r.get_fields('set-cookie')
+    assert_equal 2,fields.length
+    assert fields.all?{|v|v.include?('Max-Age=2592000')&&v.include?('HttpOnly')&&v.include?('SameSite=Strict')}
+    combined=fields.map{|v|v.split(';').first}.join('; ')
+    refute_includes combined,key
+    [combined,JSON.parse(r.body),fields]
+  end
+
+  def restart_app
+    provider=@app.instance_variable_get(:@transport)
+    @app=Geo::App.new(@config,@store,transport:provider)
+    @server.mount('/',Geo::Servlet,@app)
+  end
+
+  def test_remembered_key_restores_after_restart_with_same_identity_and_usage
+    cookie,connection=remembered_connect
+    result=search_personal(cookie,connection)
+    spend=result['budget']['used_cny'];calls=@calls.length
+    restart_app
+    status=JSON.parse(http('Get','/geo/api/status',cookie:cookie).body)
+    assert status['authenticated'];assert status['saved_key']
+    assert_equal connection['connection_id'],status['connection_id']
+    assert_equal spend,status['budget']['used_cny']
+    assert_equal calls,@calls.length
+    renewed=search_personal(cookie,status)
+    refute renewed['cached'];assert_operator renewed['budget']['used_cny'],:>,spend
+    assert_equal 0,@store.budget['used_cny']
+    proof=cookie.split('; ').find{|v|v.start_with?('geo_personal_key=')}
+    assert JSON.parse(http('Get','/geo/api/status',cookie:proof).body)['authenticated']
+  end
+
+  def test_clear_remembered_key_denies_old_cookies_after_restart
+    cookie,connection=remembered_connect
+    search_personal(cookie,connection)
+    cleared=http('Delete','/geo/api/personal-session',cookie:cookie)
+    assert_equal '200',cleared.code
+    assert cleared.get_fields('set-cookie').all?{|v|v.include?('Max-Age=0')}
+    restart_app
+    status=JSON.parse(http('Get','/geo/api/status',cookie:cookie).body)
+    refute status['authenticated'];refute status['saved_key']
+    before=@calls.length
+    assert_equal '401',http('Post','/geo/api/search',cookie:cookie,body:{question:'企业工具',connection_id:connection['connection_id']}).code
+    assert_equal before,@calls.length
+    assert_equal '401',http('Post','/geo/api/personal-session/restore',cookie:cookie).code
+    assert_equal 0,@store.budget['used_cny']
+  end
+
+  def test_remembered_personal_and_team_switching_preserves_correct_payer
+    cookie,personal=remembered_connect
+    proof=cookie.split('; ').find{|v|v.start_with?('geo_personal_key=')}
+    r=http('Post','/geo/api/session',cookie:cookie,body:{password:'fixture-password-123'})
+    team_cookie=r.get_fields('set-cookie').find{|v|v.start_with?('geo_session=')}.split(';').first
+    both=team_cookie+'; '+proof
+    status=JSON.parse(http('Get','/geo/api/status',cookie:both).body)
+    assert_equal 'team',status['access_mode'];assert status['saved_key']
+    restored=http('Post','/geo/api/personal-session/restore',cookie:both)
+    assert_equal '200',restored.code
+    assert_equal personal['connection_id'],JSON.parse(restored.body)['connection_id']
+    # A fresh team login remains active when only the saved personal Key is cleared.
+    team=login
+    clear=http('Delete','/geo/api/personal-session',cookie:team+'; '+proof)
+    assert_equal '200',clear.code
+    refute clear.get_fields('set-cookie').any?{|v|v.start_with?('geo_session=')}
+    assert JSON.parse(http('Get','/geo/api/status',cookie:team).body)['authenticated']
+    assert_equal '200',http('Delete','/geo/api/personal-session',cookie:team).code
+    assert JSON.parse(http('Get','/geo/api/status',cookie:team).body)['authenticated']
+  end
+
+  def test_cipher_authentication_expiry_and_private_secret_survive_reload
+    now=1_800_000_000
+    vault=Geo::BrowserCredentials.new(@directory,clock:->{now})
+    encoded=vault.seal(KEY_A,'a'*64,now+30*86400)
+    assert_equal KEY_A,vault.open(encoded)['key']
+    reloaded=Geo::BrowserCredentials.new(@directory,clock:->{now})
+    assert_equal KEY_A,reloaded.open(encoded)['key']
+    tampered=encoded.dup;tampered[20]=tampered[20]=='a'?'b':'a'
+    assert_nil reloaded.open(tampered)
+    now+=30*86400+1;assert_nil reloaded.open(encoded)
+    file=File.join(@directory,'personal-browser.key')
+    assert_equal 0600,File.stat(file).mode&0777
+    assert_equal 32,File.size(file)
+    refute_includes File.binread(file),KEY_A
+  end
+
+  def test_failed_explicit_restore_preserves_the_team_session
+    cookie,_=remembered_connect
+    proof=cookie.split('; ').find{|v|v.start_with?('geo_personal_key=')}
+    r=http('Post','/geo/api/session',cookie:cookie,body:{password:'fixture-password-123'})
+    team=r.get_fields('set-cookie').first.split(';').first
+    registry=@app.instance_variable_get(:@personal)
+    tokens=4.times.map{registry.create(KEY_B,'127.0.0.1')[0]}
+    nest=lambda do |i|
+      if i==tokens.length
+        assert_equal '429',http('Post','/geo/api/personal-session/restore',cookie:team+'; '+proof).code
+        assert JSON.parse(http('Get','/geo/api/status',cookie:team).body)['authenticated']
+      else
+        registry.use(tokens[i],exclusive:false){nest.call(i+1)}
+      end
+    end
+    nest.call(0)
+  end
+
+  def test_persistent_personal_quota_cannot_reset_when_memory_context_is_recreated
+    cookie,connection=remembered_connect
+    token=cookie.split('; ').first.split('=',2)[1]
+    ledger=Geo::Store::PersonalLedger.new(@store,token,connection['expires_at'],5_000_000)
+    id=ledger.reserve('fixture',4_990_000);ledger.settle(id,4_990_000)
+    restart_app
+    status=JSON.parse(http('Get','/geo/api/status',cookie:cookie).body)
+    assert_in_delta 4.99,status['budget']['used_cny'],0.000001
+    assert_equal 'budget_exhausted',assert_raises(Geo::Error){ledger.reserve('fixture',20_000)}.code
+    assert_equal 0,@store.budget['used_cny']
+  end
+
 end
