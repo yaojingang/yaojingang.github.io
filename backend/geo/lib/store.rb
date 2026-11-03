@@ -31,6 +31,8 @@ module Geo
         CREATE INDEX IF NOT EXISTS personal_charges_by_expiry ON personal_charges(expires);
         CREATE TABLE IF NOT EXISTS revoked_personal (owner TEXT PRIMARY KEY, expires INTEGER NOT NULL);
         CREATE INDEX IF NOT EXISTS revoked_personal_by_expiry ON revoked_personal(expires);
+        CREATE TABLE IF NOT EXISTS personal_successors (parent TEXT PRIMARY KEY, child TEXT NOT NULL, expires INTEGER NOT NULL);
+        CREATE INDEX IF NOT EXISTS personal_successors_by_expiry ON personal_successors(expires);
       SQL
       File.chmod(0600, File.join(directory, "geo.sqlite3")) unless memory
       transaction do
@@ -97,14 +99,46 @@ module Geo
     end
 
     def revoke_personal(token, expires)
+      transaction { revoke_personal_record(token, expires) }
+    end
+
+    def replace_personal(token, expires, successor, successor_expires)
       transaction do
-        @db.execute("DELETE FROM revoked_personal WHERE expires<?", [Time.now.to_i])
-        @db.execute("INSERT OR REPLACE INTO revoked_personal VALUES (?,?)", [Digest::SHA256.hexdigest(token), expires])
+        if token
+          if expires <= Time.now.to_i || @db.get_first_value("SELECT owner FROM revoked_personal WHERE owner=?", [Digest::SHA256.hexdigest(token)])
+            raise Error.new("connection_changed", "保存的 Key 已清除、更换或过期，请刷新连接页后重新确认。", 409)
+          end
+          revoke_personal_record(token, expires)
+          @db.execute("INSERT INTO personal_successors VALUES (?,?,?)", [Digest::SHA256.hexdigest(token), Digest::SHA256.hexdigest(successor), [expires, successor_expires].max])
+        end
+        yield
       end
     end
 
+    def revoke_personal_record(token, expires)
+      @db.execute("DELETE FROM revoked_personal WHERE expires<?", [Time.now.to_i])
+      @db.execute("DELETE FROM personal_successors WHERE expires<?", [Time.now.to_i])
+      @db.execute(<<~SQL, [Digest::SHA256.hexdigest(token), expires]).map(&:first)
+        WITH RECURSIVE chain(owner, expires) AS (
+          SELECT ?, ?
+          UNION
+          SELECT s.child, s.expires FROM personal_successors s JOIN chain c ON s.parent=c.owner
+        )
+        INSERT INTO revoked_personal (owner, expires)
+        SELECT owner, MAX(expires) FROM chain GROUP BY owner
+        ON CONFLICT(owner) DO UPDATE SET expires=MAX(revoked_personal.expires, excluded.expires)
+        RETURNING owner
+      SQL
+    end
+    private :revoke_personal_record
+
     def personal_revoked?(token)
-      @mutex.synchronize { !!@db.get_first_value("SELECT owner FROM revoked_personal WHERE owner=? AND expires>?", [Digest::SHA256.hexdigest(token), Time.now.to_i]) }
+      !!personal_revoked_expiry(token)
+    end
+
+    def personal_revoked_expiry(token)
+      return nil unless token.is_a?(String) && token.match?(/\A[a-f0-9]{64}\z/)
+      @mutex.synchronize { @db.get_first_value("SELECT expires FROM revoked_personal WHERE owner=? AND expires>?", [Digest::SHA256.hexdigest(token), Time.now.to_i]) }
     end
 
     def personal_transaction

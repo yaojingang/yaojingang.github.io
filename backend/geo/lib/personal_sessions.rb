@@ -82,9 +82,15 @@ module Geo
     end
 
     def delete(token)
+      delete_owners([Digest::SHA256.hexdigest(token.to_s)])
+    end
+
+    def delete_owners(owners)
       @mutex.synchronize do
-        entry = @entries[Digest::SHA256.hexdigest(token.to_s)]
-        entry.revoked = true if entry
+        owners.each do |owner|
+          entry = @entries[owner]
+          entry.revoked = true if entry
+        end
         prune
       end
     end

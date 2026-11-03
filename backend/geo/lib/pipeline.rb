@@ -8,7 +8,7 @@ require_relative "ranking"
 module Geo
   class Pipeline
     attr_reader :run_id
-    VERSION = "geo-live-1.10.0"
+    VERSION = "geo-live-1.10.1"
     PREFERRED_SOURCE_SCORE = 1.5
     MIN_SOURCE_SCORE = 1.0
     MAX_FETCHES = 5

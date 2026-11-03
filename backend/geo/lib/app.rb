@@ -34,9 +34,13 @@ module Geo
       req.cookies.find { |cookie| cookie.name == COOKIE }.to_s.split("=", 2)[1].to_s
     end
 
-    def remembered(req)
+    def saved_personal(req)
       value = req.cookies.find { |cookie| cookie.name == BrowserCredentials::COOKIE }.to_s.split("=", 2)[1]
-      data = @browser_keys.open(value)
+      @browser_keys.open(value)
+    end
+
+    def remembered(req)
+      data = saved_personal(req)
       data unless data && @store.personal_revoked?(data["token"])
     end
 
@@ -57,14 +61,16 @@ module Geo
     end
 
     def clear_personal(req, res)
-      data = remembered(req)
+      data = saved_personal(req)
       token = data ? data["token"] : session(req)
       entry = @personal.find(token)
-      if data || entry
-        @store.revoke_personal(token, data ? data["expires"] : entry.expires)
-        @personal.delete(token)
+      expires = data ? data["expires"] : (entry&.expires || @store.personal_revoked_expiry(token))
+      owners = []
+      if expires
+        owners = @store.revoke_personal(token, expires)
+        @personal.delete_owners(owners)
       end
-      set_cookie(res, "", 0) if (data || entry) && session(req) == token
+      set_cookie(res, "", 0) if owners.include?(Digest::SHA256.hexdigest(session(req)))
       set_cookie(res, "", 0, name: BrowserCredentials::COOKIE)
     end
 
@@ -148,6 +154,10 @@ module Geo
         @store.rate_limit("key-connect-global", 60, 300)
         @store.rate_limit("key-connect:#{client_ip(req)}", 8, 300)
         key = input(req)["api_key"]
+        previous = remembered(req)
+        original = authorized_personal(session(req)) unless previous
+        previous_token = previous ? previous["token"] : (session(req) if original)
+        previous_expires = previous ? previous["expires"] : original&.expires
         checking = false
         begin
           @mutex.synchronize do
@@ -156,15 +166,15 @@ module Geo
             checking = true
           end
           DeepSeek.validate_key(key, transport: @transport)
-          token, entry = @personal.create(key, client_ip(req), replace: session(req))
-          previous = remembered(req)
-          if previous
-            @store.revoke_personal(previous["token"], previous["expires"])
-            @personal.delete(previous["token"])
+          token, expires = SecureRandom.hex(32), Time.now.to_i + PersonalSessions::TTL
+          saved = @browser_keys.seal(key, token, expires)
+          _, entry = @store.replace_personal(previous_token, previous_expires, token, expires) do
+            @personal.create(key, client_ip(req), replace: session(req), token: token, expires: expires)
           end
+          @personal.delete(previous_token) if previous_token
           forget_session(session(req))
           set_cookie(res, token, PersonalSessions::TTL)
-          set_cookie(res, @browser_keys.seal(key, token, entry.expires), PersonalSessions::TTL, name: BrowserCredentials::COOKIE)
+          set_cookie(res, saved, PersonalSessions::TTL, name: BrowserCredentials::COOKIE)
           json(res, { "authenticated" => true, "access_mode" => "personal", "connection_id" => Digest::SHA256.hexdigest(token), "expires_at" => entry.expires, "budget" => entry.store.budget })
         ensure
           key = nil
@@ -187,7 +197,7 @@ module Geo
         set_cookie(res, token, 43_200)
         json(res, { "authenticated" => true, "access_mode" => "team", "connection_id" => Digest::SHA256.hexdigest(token), "budget" => @store.budget })
       when ["DELETE", "/geo/api/session"]
-        clear_personal(req, res) if @personal.find(session(req)) || remembered(req)&.fetch("token") == session(req)
+        clear_personal(req, res) if @personal.find(session(req)) || saved_personal(req)&.fetch("token") == session(req) || @store.personal_revoked?(session(req))
         forget_session(session(req))
         set_cookie(res, "", 0)
         json(res, { "authenticated" => false })

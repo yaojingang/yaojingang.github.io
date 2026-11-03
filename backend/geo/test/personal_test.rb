@@ -307,4 +307,191 @@ class GeoPersonalTest < GeoHTTPTest
     assert_equal 0,@store.budget['used_cny']
   end
 
+  def test_clear_during_key_validation_blocks_the_pending_replacement
+    thread=release=nil
+    [true,false].each do |with_proof|
+      cookie,_=remembered_connect
+      cookie=cookie.split('; ').first unless with_proof
+      entered,release=Queue.new,Queue.new
+      provider=@app.instance_variable_get(:@transport)
+      @app.instance_variable_set(:@transport,lambda do |path,payload|
+        if path=='/user/balance'
+          entered << true;release.pop
+        end
+        provider.call(path,payload)
+      end)
+      thread=Thread.new{http('Post','/geo/api/personal-session',cookie:cookie,body:{api_key:KEY_B})}
+      Timeout.timeout(5){entered.pop}
+      assert_equal '200',http('Delete','/geo/api/personal-session',cookie:cookie).code
+      release << true
+      changed=thread.value
+      assert_equal '409',changed.code
+      assert_equal 'connection_changed',JSON.parse(changed.body)['error']['code']
+      refute changed['Set-Cookie']
+      refute JSON.parse(http('Get','/geo/api/status',cookie:cookie).body)['authenticated']
+      assert_equal 0,@store.budget['used_cny']
+      @app.instance_variable_set(:@transport,provider)
+    end
+  ensure
+    release << true if thread&.alive?
+    thread&.join
+  end
+
+  def test_two_app_instances_cannot_both_replace_the_same_saved_key
+    cookie,_=remembered_connect
+    entered,release=Queue.new,Queue.new
+    provider=@app.instance_variable_get(:@transport)
+    @app.instance_variable_set(:@transport,lambda do |path,payload|
+      if path=='/user/balance'
+        entered << true;release.pop
+      end
+      provider.call(path,payload)
+    end)
+    first=Thread.new{http('Post','/geo/api/personal-session',cookie:cookie,body:{api_key:KEY_B})}
+    Timeout.timeout(5){entered.pop}
+    original=@app
+    restart_app
+    second=Thread.new{http('Post','/geo/api/personal-session',cookie:cookie,body:{api_key:KEY_A})}
+    Timeout.timeout(5){entered.pop}
+    2.times{release << true}
+    responses=[first.value,second.value]
+    assert_equal ['200','409'],responses.map(&:code).sort
+    winner=responses.find{|r|r.code=='200'}
+    refute responses.find{|r|r.code=='409'}['Set-Cookie']
+    proof=winner.get_fields('set-cookie').map{|v|v.split(';').first}.join('; ')
+    expected=JSON.parse(winner.body)['connection_id']
+    [@app,original].each do |app|
+      @server.mount('/',Geo::Servlet,app)
+      state=JSON.parse(http('Get','/geo/api/status',cookie:proof).body)
+      assert state['authenticated'];assert_equal expected,state['connection_id']
+      refute JSON.parse(http('Get','/geo/api/status',cookie:cookie).body)['authenticated']
+    end
+    assert_equal 0,@store.budget['used_cny']
+  ensure
+    2.times{release << true} if release
+    first&.join;second&.join
+  end
+
+  def test_failed_cookie_encryption_preserves_the_saved_connection
+    cookie,connection=remembered_connect
+    @app.instance_variable_get(:@browser_keys).define_singleton_method(:seal){|*_|raise OpenSSL::Cipher::CipherError,'fixture failure'}
+    failed=http('Post','/geo/api/personal-session',cookie:cookie,body:{api_key:KEY_B})
+    assert_equal '500',failed.code
+    refute failed['Set-Cookie']
+    status=JSON.parse(http('Get','/geo/api/status',cookie:cookie).body)
+    assert status['saved_key'];assert status['authenticated']
+    assert_equal connection['connection_id'],status['connection_id']
+  end
+
+  def test_replacement_capacity_failure_keeps_the_original_grant_restorable
+    cookie,connection=remembered_connect
+    registry=@app.instance_variable_get(:@personal)
+    tokens=4.times.map{registry.create(KEY_B,'127.0.0.1')[0]}
+    nest=lambda do |i|
+      if i==tokens.length
+        failed=http('Post','/geo/api/personal-session',cookie:cookie,body:{api_key:KEY_B})
+        assert_equal '429',failed.code
+        refute failed['Set-Cookie']
+      else
+        registry.use(tokens[i],exclusive:false){nest.call(i+1)}
+      end
+    end
+    nest.call(0)
+    status=JSON.parse(http('Get','/geo/api/status',cookie:cookie).body)
+    assert status['authenticated'];assert_equal connection['connection_id'],status['connection_id']
+  end
+
+  def test_clear_revokes_a_committed_replacement_whose_response_arrives_late
+    assert_late_replacement_stays_cleared(true)
+  end
+
+  def test_legacy_session_clear_revokes_a_replacement_whose_response_arrives_late
+    assert_late_replacement_stays_cleared(false)
+  end
+
+  def assert_late_replacement_stays_cleared(with_proof)
+    cookie,_=remembered_connect
+    cookie=cookie.split('; ').first unless with_proof
+    prepared,release=Queue.new,Queue.new
+    original=@app.method(:json)
+    @app.define_singleton_method(:json) do |res,data,status=200|
+      original.call(res,data,status)
+      if data['access_mode']=='personal' && data['authenticated'] && !data['version']
+        prepared << true;release.pop
+      end
+    end
+    pending=Thread.new{http('Post','/geo/api/personal-session',cookie:cookie,body:{api_key:KEY_B})}
+    Timeout.timeout(5){prepared.pop}
+    assert_equal '200',http('Delete','/geo/api/personal-session',cookie:cookie).code
+    release << true
+    late=pending.value
+    assert_equal '200',late.code
+    late_cookie=late.get_fields('set-cookie').map{|v|v.split(';').first}.join('; ')
+    late_connection=JSON.parse(late.body)
+    restart_app
+    state=http('Get','/geo/api/status',cookie:late_cookie)
+    refute JSON.parse(state.body)['authenticated']
+    refute JSON.parse(state.body)['saved_key']
+    refute state['Set-Cookie']
+    before=@calls.length
+    assert_equal '401',http('Post','/geo/api/search',cookie:late_cookie,body:{question:'企业工具',connection_id:late_connection['connection_id']}).code
+    assert_equal before,@calls.length
+    fresh,connection=remembered_connect(KEY_A,cookie:late_cookie)
+    assert_equal '200',http('Delete','/geo/api/personal-session',cookie:cookie).code
+    current=JSON.parse(http('Get','/geo/api/status',cookie:fresh).body)
+    assert current['authenticated'];assert_equal connection['connection_id'],current['connection_id']
+  ensure
+    release << true if pending&.alive?
+    pending&.join
+  end
+
+  def test_clearing_an_old_saved_key_revokes_its_replacement_chain_and_preserves_team_login
+    old,_=remembered_connect
+    second,_=remembered_connect(KEY_B,cookie:old)
+    current,_=remembered_connect(KEY_A,cookie:second)
+    @store.close
+    @store=Geo::Store.new(@directory)
+    restart_app
+    assert_equal '200',http('Delete','/geo/api/personal-session',cookie:old).code
+    [old,second,current].each do |value|
+      status=JSON.parse(http('Get','/geo/api/status',cookie:value).body)
+      refute status['authenticated'];refute status['saved_key']
+    end
+    team=login
+    proof=current.split('; ').find{|v|v.start_with?('geo_personal_key=')}
+    status=http('Get','/geo/api/status',cookie:team+'; '+proof)
+    assert_equal 'team',JSON.parse(status.body)['access_mode']
+    refute status['Set-Cookie']
+    assert JSON.parse(http('Get','/geo/api/status',cookie:team).body)['authenticated']
+  end
+
+  def test_successor_remains_revoked_through_its_own_later_expiry
+    now=Time.now.to_i
+    parent,child='a'*64,'b'*64
+    parent_expires,child_expires=now+100,now+200
+    @store.replace_personal(parent,parent_expires,child,child_expires){true}
+    ledger=Geo::Store::PersonalLedger.new(@store,child,child_expires,5_000_000)
+    reservation=ledger.reserve('fixture',5000)
+    owners=@store.revoke_personal(parent,parent_expires)
+    assert_includes owners,Digest::SHA256.hexdigest(child)
+    Time.stub(:now,Time.at(parent_expires+1)) do
+      assert @store.personal_revoked?(child)
+      assert_equal 'unauthorized',assert_raises(Geo::Error){ledger.reserve('fixture',5000)}.code
+      ledger.settle(reservation,2000)
+      assert_in_delta 0.002,ledger.budget['used_cny'],0.000001
+    end
+    assert_equal 0,@store.budget['used_cny']
+  end
+
+  def test_public_connection_id_cannot_clear_successors_and_legacy_logout_can
+    old,connection=remembered_connect
+    current,_=remembered_connect(KEY_B,cookie:old)
+    public_id='geo_session='+connection['connection_id']
+    assert_equal '200',http('Delete','/geo/api/personal-session',cookie:public_id).code
+    assert JSON.parse(http('Get','/geo/api/status',cookie:current).body)['authenticated']
+    legacy=old.split('; ').first
+    assert_equal '200',http('Delete','/geo/api/session',cookie:legacy).code
+    refute JSON.parse(http('Get','/geo/api/status',cookie:current).body)['authenticated']
+  end
+
 end
