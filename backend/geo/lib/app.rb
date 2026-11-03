@@ -126,7 +126,7 @@ module Geo
       res["Referrer-Policy"] = "strict-origin-when-cross-origin"
       if req.request_method != "GET" && req["origin"]
         expected = ENV["APP_ENV"] == "production" ? "https://www.laoyao.cn" : "http://#{req['host']}"
-        raise Error.new("invalid_origin", "请从 GEO 页面发起请求。", 403) unless req["origin"] == expected
+        raise Error.new("invalid_origin", "请从爱好搜页面发起请求。", 403) unless req["origin"] == expected
       end
       case [req.request_method, req.path]
       when ["GET", "/geo/api/health"]
