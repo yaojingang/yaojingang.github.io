@@ -3337,6 +3337,17 @@ li {
   margin: 0;
 }
 
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+}
+
+.footer-meta a {
+  white-space: nowrap;
+}
+
 .footer-links {
   display: flex;
   flex-wrap: wrap;
