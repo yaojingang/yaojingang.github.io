@@ -15,7 +15,7 @@ class AgentSubscriptionTest < Minitest::Test
   ORIGIN = "https://reader.example/blog"
 
   def setup
-    @directory = Dir.mktmpdir("agent-subscription-test-")
+    @directory = File.realpath(Dir.mktmpdir("agent-subscription-test-"))
     @source = File.join(@directory, "source")
     @output = File.join(@directory, "public")
     FileUtils.mkdir_p(File.join(@source, "_layouts"))
@@ -47,7 +47,7 @@ class AgentSubscriptionTest < Minitest::Test
       "quiet" => true,
       "disable_disk_cache" => true
     )
-    Jekyll::Site.new(configuration).process
+    Dir.chdir(@source) { Jekyll::Site.new(configuration).process }
   end
 
   def items

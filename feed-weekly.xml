@@ -4,8 +4,10 @@ permalink: /feed-weekly.xml
 ---
 <?xml version="1.0" encoding="UTF-8"?>
 {% assign weekly_posts = site.posts | where_exp: "note", "note.weekly" %}
-{% assign weekly_notes = site.weekly | concat: weekly_posts | where_exp: "note", "note.date <= site.time" | sort: "date" | reverse %}
-{% assign chinese_weekly_notes = weekly_notes | where_exp: "note", "note.lang == nil or note.lang contains 'zh'" %}
+{% assign weekly_notes = site.weekly | concat: weekly_posts | where_exp: "note", "note.date <= site.time" %}
+{% assign labelled_chinese_notes = weekly_notes | where_exp: "note", "note.lang contains 'zh'" %}
+{% assign unlabelled_notes = weekly_notes | where_exp: "note", "note.lang == nil" %}
+{% assign chinese_weekly_notes = labelled_chinese_notes | concat: unlabelled_notes | sort: "date" | reverse %}
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>{{ site.title | xml_escape }} · 每周随笔</title>
