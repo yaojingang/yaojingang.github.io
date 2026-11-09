@@ -1,0 +1,25 @@
+---
+layout: null
+permalink: /subscribe/manifest.json
+---
+{
+  "schema_version": {{ site.data.agent_subscription.schema_version | jsonify }},
+  "version": {{ site.data.agent_subscription.version | jsonify }},
+  "subscription_id": "yaojingang-weekly",
+  "name": "姚金刚的每周随笔",
+  "source_url": {{ '/' | absolute_url | jsonify }},
+  "instructions_url": {{ '/subscribe/agent.txt' | absolute_url | jsonify }},
+  "feed_url": {{ '/subscribe/feed.json' | absolute_url | jsonify }},
+  "rss_url": {{ '/feed-weekly.xml' | absolute_url | jsonify }},
+  "archive_url": {{ '/weekly/' | absolute_url | jsonify }},
+  "schedule": {
+    "timezone": "Asia/Shanghai",
+    "rrule": "FREQ=WEEKLY;BYDAY=SU;BYHOUR=21;BYMINUTE=0;BYSECOND=0"
+  },
+  "cli": {
+    "url": {{ '/assets/cli/yao-notes.rb' | absolute_url | jsonify }},
+    "version": {{ site.data.agent_subscription.version | jsonify }},
+    "sha256": {{ site.data.agent_subscription.cli_sha256 | jsonify }},
+    "runtime": "Ruby 2.6+"
+  }
+}

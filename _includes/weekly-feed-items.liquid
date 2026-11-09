@@ -1,0 +1,32 @@
+{%- assign weekly_posts = site.posts | where_exp: "note", "note.weekly" -%}
+{%- assign weekly_notes = site.weekly | concat: weekly_posts | where_exp: "note", "note.date <= site.time" -%}
+{%- assign labelled_chinese_notes = weekly_notes | where_exp: "note", "note.lang contains 'zh'" -%}
+{%- assign unlabelled_notes = weekly_notes | where_exp: "note", "note.lang == nil" -%}
+{%- assign chinese_weekly_notes = labelled_chinese_notes | concat: unlabelled_notes | sort: "date" | reverse -%}
+{%- for note in chinese_weekly_notes limit:12 -%}
+  {%- assign note_url = note.url | absolute_url -%}
+  {%- assign note_summary = note.description | default: note.excerpt | strip_html | normalize_whitespace | truncate: 240 -%}
+  {%- if include.format == "json" -%}
+    {%- assign absolute_base = site.url | append: site.baseurl -%}
+    {%- assign href_prefix = 'href="' | append: absolute_base | append: '/' -%}
+    {%- assign src_prefix = 'src="' | append: absolute_base | append: '/' -%}
+    {%- assign note_html = note.content | markdownify | replace: 'href="/', href_prefix | replace: 'src="/', src_prefix -%}
+    {%- unless forloop.first -%},{%- endunless -%}
+    {
+      "id": {{ note_url | jsonify }},
+      "url": {{ note_url | jsonify }},
+      "title": {{ note.title | jsonify }},
+      "date_published": {{ note.date | date_to_xmlschema | jsonify }},
+      "summary": {{ note_summary | jsonify }},
+      "content_html": {{ note_html | jsonify }}
+    }
+  {%- else -%}
+    <item>
+      <title>{{ note.title | xml_escape }}</title>
+      <link>{{ note_url | xml_escape }}</link>
+      <guid isPermaLink="true">{{ note_url | xml_escape }}</guid>
+      <pubDate>{{ note.date | date_to_rfc822 }}</pubDate>
+      <description>{{ note_summary | xml_escape }}</description>
+    </item>
+  {%- endif -%}
+{%- endfor -%}

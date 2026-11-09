@@ -9,6 +9,7 @@ require "rexml/document"
 require "tmpdir"
 require "uri"
 require "yaml"
+require "digest"
 
 class AgentSubscriptionTest < Minitest::Test
   ROOT = File.expand_path("..", __dir__)
@@ -20,9 +21,11 @@ class AgentSubscriptionTest < Minitest::Test
     @output = File.join(@directory, "public")
     FileUtils.mkdir_p(File.join(@source, "_layouts"))
     File.write(File.join(@source, "_layouts/default.html"), "{{ content }}")
-    %w[index.html feed-weekly.xml].each do |name|
+    %w[index.html feed-weekly.xml _includes/weekly-feed-items.liquid _data/agent_subscription.yml subscribe/index.md subscribe/agent.txt subscribe/manifest.json subscribe/feed.json assets/cli/yao-notes.rb].each do |name|
+      FileUtils.mkdir_p(File.dirname(File.join(@source, name)))
       FileUtils.cp(File.join(ROOT, name), File.join(@source, name))
     end
+    File.write(File.join(@source, "_layouts/page.html"), "{{ content }}")
   end
 
   def teardown
@@ -52,17 +55,6 @@ class AgentSubscriptionTest < Minitest::Test
 
   def items
     REXML::XPath.match(REXML::Document.new(File.read(File.join(@output, "feed-weekly.xml"))), "/rss/channel/item")
-  end
-
-  def task_body
-    build
-    html = File.read(File.join(@output, "index.html"))
-    textarea = html.match(/<textarea\b[^>]*data-agent-prompt[^>]*>(.*?)<\/textarea>/m)
-    refute_nil textarea, "The published homepage must provide the copyable task prompt"
-    prompt = CGI.unescapeHTML(textarea[1])
-    body = prompt.match(/请把以下执行规则完整保存到定时任务中，让每次运行都能读取：\s*(.*?)\n创建时先/m)
-    refute_nil body, "The reusable task body must have an explicit boundary"
-    body[1]
   end
 
   def test_feed_excludes_future_collection_notes_and_unrelated_content
@@ -104,9 +96,36 @@ class AgentSubscriptionTest < Minitest::Test
     assert_empty items
   end
 
-  def test_saved_task_body_contains_its_own_fetchable_sources
-    urls = URI.extract(task_body, %w[http https])
-    assert_includes urls, ORIGIN + "/feed-weekly.xml"
-    assert_includes urls, ORIGIN + "/weekly/"
+  def test_homepage_copies_one_sentence_and_links_to_complete_protocol
+    build
+    html = File.read(File.join(@output, "index.html"))
+    textarea = html.match(/<textarea\b[^>]*data-agent-prompt[^>]*>(.*?)<\/textarea>/m)
+    refute_nil textarea
+    prompt = CGI.unescapeHTML(textarea[1]).strip
+    assert_equal "请读取 #{ORIGIN}/subscribe/，按说明为我订阅姚金刚的每周随笔。", prompt
+    assert_operator prompt.length, :<, 150
+    assert_includes File.read(File.join(@output, "subscribe/index.html")), "/blog/subscribe/agent.txt"
+    protocol = File.read(File.join(@output, "subscribe/agent.txt"))
+    %w[subscribe/manifest.json subscribe/feed.json assets/cli/yao-notes.rb weekly/].each do |path|
+      assert_includes protocol, ORIGIN + "/" + path
+    end
+    assert_includes protocol, "Asia/Shanghai"
+    assert_includes protocol, "--source #{ORIGIN}/ --state-dir STATE check"
+    assert_includes html, "data-agent-toast"
+  end
+
+  def test_manifest_integrity_and_json_feed_match_the_rss_items
+    document("_weekly/body.md", "title" => "A & B", "date" => "2026-02-01", "lang" => "zh-CN")
+    build
+    manifest = JSON.parse(File.read(File.join(@output, "subscribe/manifest.json")))
+    assert_equal 1, manifest.fetch("schema_version")
+    assert_equal "yaojingang-weekly", manifest.fetch("subscription_id")
+    assert_equal "Asia/Shanghai", manifest.fetch("schedule").fetch("timezone")
+    assert_equal Digest::SHA256.file(File.join(@output, "assets/cli/yao-notes.rb")).hexdigest, manifest.fetch("cli").fetch("sha256")
+    json = JSON.parse(File.read(File.join(@output, "subscribe/feed.json")))
+    assert_equal "https://jsonfeed.org/version/1.1", json.fetch("version")
+    assert_equal items.map { |item| item.elements["guid"].text }, json.fetch("items").map { |item| item.fetch("id") }
+    assert_includes json.fetch("items").first.fetch("content_html"), "A complete source paragraph."
+    assert_includes json.fetch("items").first.fetch("content_html"), "<p>"
   end
 end

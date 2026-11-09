@@ -1,0 +1,12 @@
+---
+layout: null
+permalink: /subscribe/feed.json
+---
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": {{ site.title | append: ' · 每周随笔' | jsonify }},
+  "home_page_url": {{ '/weekly/' | absolute_url | jsonify }},
+  "feed_url": {{ '/subscribe/feed.json' | absolute_url | jsonify }},
+  "language": "zh-CN",
+  "items": [{% include weekly-feed-items.liquid format="json" %}]
+}

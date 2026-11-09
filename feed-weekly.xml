@@ -3,11 +3,6 @@ layout: null
 permalink: /feed-weekly.xml
 ---
 <?xml version="1.0" encoding="UTF-8"?>
-{% assign weekly_posts = site.posts | where_exp: "note", "note.weekly" %}
-{% assign weekly_notes = site.weekly | concat: weekly_posts | where_exp: "note", "note.date <= site.time" %}
-{% assign labelled_chinese_notes = weekly_notes | where_exp: "note", "note.lang contains 'zh'" %}
-{% assign unlabelled_notes = weekly_notes | where_exp: "note", "note.lang == nil" %}
-{% assign chinese_weekly_notes = labelled_chinese_notes | concat: unlabelled_notes | sort: "date" | reverse %}
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>{{ site.title | xml_escape }} · 每周随笔</title>
@@ -17,14 +12,6 @@ permalink: /feed-weekly.xml
     <language>zh-CN</language>
     <lastBuildDate>{{ site.time | date_to_rfc822 }}</lastBuildDate>
     <generator>Jekyll</generator>
-    {% for note in chinese_weekly_notes limit:12 %}
-    <item>
-      <title>{{ note.title | xml_escape }}</title>
-      <link>{{ note.url | absolute_url | xml_escape }}</link>
-      <guid isPermaLink="true">{{ note.url | absolute_url | xml_escape }}</guid>
-      <pubDate>{{ note.date | date_to_rfc822 }}</pubDate>
-      <description>{{ note.description | default: note.excerpt | strip_html | normalize_whitespace | truncate: 240 | xml_escape }}</description>
-    </item>
-    {% endfor %}
+    {% include weekly-feed-items.liquid format="rss" %}
   </channel>
 </rss>
