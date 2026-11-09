@@ -9,6 +9,7 @@
   {%- feed_meta -%}
   <link rel="alternate" type="application/rss+xml" title="中文内容 RSS" href="{{ '/feed-zh.xml' | absolute_url }}">
   <link rel="alternate" type="application/rss+xml" title="English Essays RSS" href="{{ '/feed-en.xml' | absolute_url }}">
+  <link rel="alternate" type="application/rss+xml" title="每周随笔 RSS" href="{{ '/feed-weekly.xml' | absolute_url }}">
 </head>
 <body>
   <header class="site-header">
@@ -45,7 +46,9 @@
     </div>
   </footer>
   <script src="{{ '/assets/js/pagination.js' | relative_url }}?v={{ site.time | date: '%Y%m%d%H%M%S' }}" defer></script>
-  <script src="{{ '/assets/js/home-code-tabs.js' | relative_url }}?v={{ site.time | date: '%Y%m%d%H%M%S' }}" defer></script>
+  {% if page.url == '/' %}
+  <script src="{{ '/assets/js/agent-subscribe.js' | relative_url }}?v={{ site.time | date: '%Y%m%d%H%M%S' }}" defer></script>
+  {% endif %}
   {% include baidu-analytics.html %}
 </body>
 </html>

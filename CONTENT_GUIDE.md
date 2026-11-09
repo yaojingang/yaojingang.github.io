@@ -8,6 +8,15 @@
 - `collected` records whether a node's homepage was checked. Product homepages are currently outside the collection scope, so their outgoing links remain uncollected.
 - Run `ruby scripts/test_link_network.rb` after editing the catalog or snapshot. Also check node selection, incoming/outgoing lists, filters, zoom, panning, keyboard access, and mobile layout in the browser.
 
+## Agent Subscription
+
+- The homepage offers a copyable task prompt for Sundays at 21:00 in `Asia/Shanghai`. The reader's AI workspace creates and manages the scheduled task and notifications.
+- `/feed-weekly.xml` contains metadata for the latest 12 published Chinese weekly notes, combining the weekly collection and posts marked `weekly: true`. Exclude future-dated notes before taking the latest 12, because Jekyll retains future collection documents while withholding their generated pages. Agents follow each item link to read its full article. Keep the existing full-text language feeds available.
+- The prompt lives in the homepage textarea, which also supplies the clipboard text. Keep feed and archive URLs derived from the Jekyll site URL so each deployment uses its own origin.
+- The saved recurring task body includes its own source URLs, schedule, and timezone. At setup, record the existing GUIDs as the historical baseline and queue the latest note for preview; later runs process newly discovered GUIDs and explicit retries. Persist the initialized state with the task so older issues stay outside subsequent deliveries.
+- The website confirms clipboard success. Scheduling success, persistent delivery history, device requirements, and cancellation are reported by the reader's AI workspace. Clipboard denial reveals selectable text; the native disclosure also works with JavaScript disabled.
+- Run `ruby scripts/test_agent_subscription.rb` to validate the rendered task's source URLs, published-only RSS, XML escaping, and deployment base URL. Check successful and denied clipboard access, keyboard use, and desktop/mobile layouts in an isolated preview.
+
 ## Article Summary
 
 The `description` field in each post is the article detail summary.

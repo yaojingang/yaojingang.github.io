@@ -305,99 +305,125 @@ li {
   font-size: 0.86rem;
 }
 
-.home-code-demo {
+.agent-subscribe {
   width: 100%;
+  min-width: 0;
   max-width: 520px;
   justify-self: end;
-  overflow: hidden;
+  padding: 28px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  background: var(--surface);
 }
 
-.home-code-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
-  gap: 24px;
-  align-items: center;
-  min-height: 54px;
-  padding: 0 22px;
-  border-bottom: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 0.95rem;
-  font-weight: 520;
-}
-
-.home-code-tab {
-  appearance: none;
-  position: relative;
+.agent-subscribe h2 {
   margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
+  font-size: 1.375rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.agent-subscribe-schedule {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  font-weight: 550;
+}
+
+.agent-subscribe-description {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.agent-subscribe-actions {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 16px 20px;
+  margin-top: 22px;
+}
+
+.agent-subscribe-copy {
+  min-width: 148px;
+  min-height: 44px;
+  gap: 8px;
+  font-family: inherit;
   cursor: pointer;
 }
 
-.home-code-tab.is-active {
-  color: var(--heading);
+.agent-subscribe-copy:disabled {
+  cursor: wait;
 }
 
-.home-code-tab.is-active::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -16px;
-  height: 2px;
-  background: #111111;
-}
-
-.home-code-tab:focus-visible {
-  outline: 2px solid rgba(0, 112, 243, 0.32);
-  outline-offset: 6px;
-}
-
-.home-code-body {
-  display: grid;
-  padding: 26px 0 32px;
-  font-family: "Geist Mono", monospace;
-  font-size: clamp(0.86rem, 1.32vw, 1rem);
-  line-height: 1.8;
-}
-
-.home-code-body[hidden] {
+.agent-subscribe-copy[hidden],
+.agent-subscribe-hide,
+.agent-subscribe-details[open] .agent-subscribe-show {
   display: none;
 }
 
-.home-code-body div {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
-  gap: 16px;
-  padding: 1px 24px;
+.agent-subscribe-details[open] {
+  grid-column: 1 / -1;
 }
 
-.home-code-body div.is-highlighted {
-  background: #eaf4ff;
-  box-shadow: inset 3px 0 0 var(--accent);
+.agent-subscribe-details[open] .agent-subscribe-hide {
+  display: inline;
 }
 
-.home-code-body span {
-  color: #a3a3a3;
-  text-align: right;
+.agent-subscribe-details summary {
+  width: max-content;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: color 160ms ease, transform 160ms ease;
 }
 
-.home-code-body code {
-  min-width: 0;
-  color: #222222;
-  white-space: pre-wrap;
+.agent-subscribe-details summary::-webkit-details-marker {
+  display: none;
 }
 
-.home-code-body b {
+.agent-subscribe-details summary:hover {
   color: var(--accent);
-  font-weight: 560;
+}
+
+.agent-subscribe-details summary:active {
+  transform: translateY(1px);
+}
+
+.agent-subscribe-details summary:focus-visible {
+  outline: 0;
+  border-radius: var(--radius);
+  box-shadow: var(--focus-ring);
+}
+
+.agent-subscribe-prompt {
+  display: block;
+  width: 100%;
+  min-height: 260px;
+  margin-top: 10px;
+  padding: 14px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.8;
+}
+
+.agent-subscribe-prompt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.agent-subscribe-status {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
 }
 
 .article-row-meta,
@@ -2926,11 +2952,6 @@ li {
   border: 0;
 }
 
-.home-code-demo {
-  border: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
 .page-header {
   border-top: 0;
 }
@@ -3450,7 +3471,7 @@ li {
     max-width: 640px;
   }
 
-  .home-code-demo {
+  .agent-subscribe {
     max-width: 100%;
     justify-self: stretch;
   }
@@ -3703,27 +3724,8 @@ li {
     width: 100%;
   }
 
-  .home-code-tabs {
-    grid-template-columns: repeat(3, max-content);
-    gap: 16px;
-    min-height: 48px;
-    padding: 0 16px;
-    font-size: 0.9rem;
-  }
-
-  .home-code-tab.is-active::after {
-    bottom: -14px;
-  }
-
-  .home-code-body {
-    font-size: 0.8rem;
-  }
-
-  .home-code-body div {
-    grid-template-columns: 32px minmax(0, 1fr);
-    gap: 12px;
-    padding-left: 12px;
-    padding-right: 12px;
+  .agent-subscribe {
+    padding: 22px;
   }
 
   .home-list-head {

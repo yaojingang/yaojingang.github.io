@@ -1,0 +1,28 @@
+---
+layout: null
+permalink: /feed-weekly.xml
+---
+<?xml version="1.0" encoding="UTF-8"?>
+{% assign weekly_posts = site.posts | where_exp: "note", "note.weekly" %}
+{% assign weekly_notes = site.weekly | concat: weekly_posts | where_exp: "note", "note.date <= site.time" | sort: "date" | reverse %}
+{% assign chinese_weekly_notes = weekly_notes | where_exp: "note", "note.lang == nil or note.lang contains 'zh'" %}
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{{ site.title | xml_escape }} · 每周随笔</title>
+    <link>{{ '/weekly/' | absolute_url | xml_escape }}</link>
+    <atom:link href="{{ '/feed-weekly.xml' | absolute_url | xml_escape }}" rel="self" type="application/rss+xml" />
+    <description>姚金刚最近 12 期中文随笔。请通过每篇的原文链接读取完整内容。</description>
+    <language>zh-CN</language>
+    <lastBuildDate>{{ site.time | date_to_rfc822 }}</lastBuildDate>
+    <generator>Jekyll</generator>
+    {% for note in chinese_weekly_notes limit:12 %}
+    <item>
+      <title>{{ note.title | xml_escape }}</title>
+      <link>{{ note.url | absolute_url | xml_escape }}</link>
+      <guid isPermaLink="true">{{ note.url | absolute_url | xml_escape }}</guid>
+      <pubDate>{{ note.date | date_to_rfc822 }}</pubDate>
+      <description>{{ note.description | default: note.excerpt | strip_html | normalize_whitespace | truncate: 240 | xml_escape }}</description>
+    </item>
+    {% endfor %}
+  </channel>
+</rss>
