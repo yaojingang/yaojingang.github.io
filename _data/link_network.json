@@ -203,10 +203,10 @@
       "collected": false
     },
     {
-      "id": "aihot.virxact.com",
+      "id": "aihot.news",
       "name": "AIHot",
       "label": "AIHot",
-      "url": "https://aihot.virxact.com/",
+      "url": "https://aihot.news/",
       "kind": "product",
       "collected": false
     },
@@ -374,7 +374,7 @@
     },
     {
       "source": "laoyao.cn",
-      "target": "aihot.virxact.com"
+      "target": "aihot.news"
     },
     {
       "source": "laoyao.cn",
@@ -550,7 +550,7 @@
     },
     {
       "source": "orangesai.com",
-      "target": "aihot.virxact.com"
+      "target": "aihot.news"
     },
     {
       "source": "orangesai.com",
@@ -690,7 +690,7 @@
     },
     {
       "source": "qiaomu.ai",
-      "target": "aihot.virxact.com"
+      "target": "aihot.news"
     },
     {
       "source": "qiaomu.ai",
